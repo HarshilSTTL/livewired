@@ -8,6 +8,32 @@
 
 ## 2026-03-30
 
+### [2026-03-30 17:30] | TABLE + SP | users table schema + Auth group (register, signup, login) populated
+
+**Table updated:** `users`
+- `id` is `int8` (not `uuid` as initially planned)
+- No `role_id` FK — uses `is_creator boolean` instead
+- Columns: id, created_at, email, is_creator, updated_at, created_device_ip, updated_device_ip, password
+
+**SPs populated (Auth group — all 3):**
+- `register` — basic registration, no input validation, param name `created_device_i`
+- `signup` — improved registration with email/password validation, case-insensitive email check, SECURITY DEFINER
+- `login` — email+password auth, exact email match, plain text password compare, SECURITY DEFINER
+
+**Files changed:**
+- `docs/database/tables/02_users.md` — full column table, business rules, SP usage list
+- `schema/tables/02_users.sql` — CREATE TABLE statement
+- `functions/auth/register.sql` — actual SP SQL
+- `functions/auth/signup.sql` — actual SP SQL
+- `functions/auth/login.sql` — actual SP SQL
+- `docs/api/auth/register.md` — parameters, request/response, error cases, logic flow
+- `docs/api/auth/signup.md` — parameters, request/response, error cases, diff vs register
+- `docs/api/auth/login.md` — parameters, request/response, error cases, notes
+
+**Design note:** `users.id` is `int8` not `uuid`. All SPs returning `user_id` return a bigint.
+
+---
+
 ### [2026-03-30 14:50] | INIT | Project documentation repository initialized
 
 **What was done:**

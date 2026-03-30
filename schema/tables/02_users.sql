@@ -1,4 +1,16 @@
 -- Table: users
--- Status: Pending SQL population
+-- Purpose: Core authentication and user accounts
 -- Doc: docs/database/tables/02_users.md
--- Will contain: CREATE TABLE statement, constraints, foreign keys
+
+CREATE TABLE IF NOT EXISTS public.users (
+    id                int8        PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    created_at        timestamptz DEFAULT now(),
+    email             text        UNIQUE,
+    is_creator        bool        DEFAULT false,
+    updated_at        timestamptz DEFAULT now(),
+    created_device_ip text,
+    updated_device_ip text,
+    password          text
+);
+
+-- Note: No role_id FK — creator status is tracked via is_creator boolean
