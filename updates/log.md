@@ -8,6 +8,27 @@
 
 ## 2026-03-30
 
+### [2026-03-30 18:00] | TABLE + SP | platforms table + get_all_platforms SP populated
+
+**Table:** `platforms`
+- Columns: plat_id (int8 PK), created_at, plat_name, logo_url (nullable), is_active (int2, default 1)
+- `logo_url` confirmed nullable
+- `is_active` is `int2` type with default `1` (not boolean)
+
+**SP populated:** `get_all_platforms`
+- `GET /rpc/get_all_platforms` — no params, returns all active platforms (is_active = 1)
+- Returns: plat_id, plat_name, logo_url, is_active, created_at
+- logo_url can be null in response — UI must handle gracefully
+- SECURITY DEFINER, json_agg result
+
+**Files changed:**
+- `docs/database/tables/03_platforms.md` — full column table, business rules, seed data, referenced-by list
+- `schema/tables/03_platforms.sql` — CREATE TABLE + seed INSERT
+- `functions/platforms/get_all_platforms.sql` — actual SP SQL
+- `docs/api/platforms/get_all_platforms.md` — params, request/response, error cases, logic flow
+
+---
+
 ### [2026-03-30 17:45] | TABLE | users table — nullable + unique constraint clarification
 
 **Fields clarified:**
