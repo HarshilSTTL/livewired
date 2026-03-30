@@ -8,6 +8,53 @@
 
 ## 2026-03-30
 
+### [2026-03-30 20:15] | TABLE + SP | follows table + follow_creator, unfollow_creator, get_following_list, get_followers_list SPs populated
+
+**Table:** `follows`
+- Columns: id (uuid PK), user_id (uuid), profile_id (uuid), created_at (timestamptz, nullable), is_active (bool, default true), unfollowed_at (timestamptz, nullable)
+- FK: fk_user → users.id | fk_profile → creator_profiles.id
+- Soft delete pattern: unfollow sets is_active=false + unfollowed_at=now(); re-follow updates existing row
+
+**SPs populated (Follow group — all 4):**
+
+`follow_creator` (POST /rpc/follow_creator):
+- Params: p_user_id (uuid), p_profile_id (uuid)
+- ⚠️ p_device_ip referenced in body but NOT in function signature — device IP update won't execute
+- Validates: null checks, user exists, profile active, not own profile
+- Re-follow: updates existing row (is_active=true, unfollowed_at=null, created_at=now())
+- Already following: returns error if is_active=true
+
+`unfollow_creator` (POST /rpc/unfollow_creator):
+- Params: p_user_id (uuid), p_profile_id (uuid)
+- Soft delete: UPDATE is_active=false, unfollowed_at=now()
+- Validates active follow row exists before updating
+
+`get_following_list` (POST /rpc/get_following_list):
+- Param: p_user_id (uuid)
+- Returns: profile_id, profile_name, username, avatar_url, bio, status, followers (live count), platforms array, followed_at
+- Filters: is_active=true AND cp.status='active'
+- Ordered by followed_at DESC
+
+`get_followers_list` (POST /rpc/get_followers_list):
+- Param: p_profile_id (uuid)
+- Returns: user_id, email, followed_at + total_followers in response root
+- total_followers is a separate COUNT query
+- Ordered by followed_at DESC
+
+**Files changed:**
+- `docs/database/tables/10_follows.md` — full schema, soft delete rules, referenced-by list
+- `schema/tables/10_follows.sql` — CREATE TABLE with soft delete comments
+- `functions/follow/follow_creator.sql` — actual SP SQL (with p_device_ip note)
+- `docs/api/follow/follow_creator.md` — full docs with state machine diagram
+- `functions/follow/unfollow_creator.sql` — actual SP SQL
+- `docs/api/follow/unfollow_creator.md` — full docs
+- `functions/follow/get_following_list.sql` — actual SP SQL
+- `docs/api/follow/get_following_list.md` — full docs
+- `functions/follow/get_followers_list.sql` — actual SP SQL (reconstructed full function)
+- `docs/api/follow/get_followers_list.md` — full docs with comparison table
+
+---
+
 ### [2026-03-30 19:30] | TABLE + SP | event_mst, event_platforms tables + get_event_list + search_events SPs populated
 
 **Tables updated:**
