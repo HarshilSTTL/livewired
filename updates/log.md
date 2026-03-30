@@ -8,6 +8,47 @@
 
 ## 2026-03-30
 
+### [2026-03-30 19:30] | TABLE + SP | event_mst, event_platforms tables + get_event_list + search_events SPs populated
+
+**Tables updated:**
+
+`event_mst`:
+- Columns: event_id (uuid PK), profile_id (uuid, FK → creator_profiles.id), title, description (nullable), event_link, event_date, event_time, livestream (bool), video (bool), is_recurring (bool), created_at, updated_at (nullable)
+- FK: event_mst_profile_id_fkey → creator_profiles.id ON DELETE CASCADE
+
+`event_platforms`:
+- Columns: id (uuid PK), event_id (uuid, FK), platform_id (int4 ⚠️), stream_url, created_at (timestamp, nullable)
+- ⚠️ platform_id is int4 (not int8) — requires ::bigint cast when joining platforms.plat_id
+- ⚠️ created_at is timestamp (no timezone), nullable
+- FK: fk_event → event_mst.event_id | fk_platform → platforms.plat_id
+
+**SPs populated:**
+
+`get_event_list` (POST /rpc/get_event_list):
+- Params: p_date (date, default CURRENT_DATE), p_device_ip (text, optional)
+- 3-branch date logic: past / today / future
+- Live section: livestream=true, started, within 3-hour window
+- Terminated events (>3h ago) hidden from both sections
+- Returns: { live: [...], today: [...] } — both always arrays never null
+
+`search_events` (POST /rpc/search_events):
+- Params: p_keyword (text, required, min 2 chars), p_limit (int, default 20)
+- Searches: event_mst.title + description via ILIKE + word_similarity (threshold 0.3)
+- coalesce(description, '') used to handle nullable description in fuzzy match
+- Returns match_score (0.0–1.0), ordered score DESC, event_date ASC
+
+**Files changed:**
+- `docs/database/tables/08_event_mst.md` — full schema, FK, live section business rules
+- `schema/tables/08_event_mst.sql` — CREATE TABLE
+- `docs/database/tables/09_event_platforms.md` — schema, int4/int8 warning, timestamp warning
+- `schema/tables/09_event_platforms.sql` — CREATE TABLE with type warnings
+- `functions/events/get_event_list.sql` — actual SP SQL (full 3-branch logic)
+- `docs/api/events/get_event_list.md` — full docs with date logic table
+- `functions/search/search_events.sql` — actual SP SQL
+- `docs/api/search/search_events.md` — full docs with search behavior table
+
+---
+
 ### [2026-03-30 18:45] | TABLE + SP | creator_profiles, creator_platform_accounts, profile_tags tables + create_profile + is_creator SPs populated
 
 **Tables updated:**
