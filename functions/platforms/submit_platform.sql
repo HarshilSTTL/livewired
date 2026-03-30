@@ -1,0 +1,5 @@
+-- Function: submit_platform
+-- Group: platforms
+-- Status: Pending SQL population
+-- Doc: docs/api/platforms/submit_platform.md
+-- Will contain: CREATE OR REPLACE FUNCTION submit_platform(...) RETURNS json AS $$...$$ LANGUAGE plpgsql;

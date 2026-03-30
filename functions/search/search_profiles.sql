@@ -1,0 +1,5 @@
+-- Function: search_profiles
+-- Group: search
+-- Status: Pending SQL population
+-- Doc: docs/api/search/search_profiles.md
+-- Will contain: CREATE OR REPLACE FUNCTION search_profiles(...) RETURNS json AS $$...$$ LANGUAGE plpgsql;

@@ -1,0 +1,5 @@
+-- Function: register
+-- Group: auth
+-- Status: Pending SQL population
+-- Doc: docs/api/auth/register.md
+-- Will contain: CREATE OR REPLACE FUNCTION register(...) RETURNS json AS $$...$$ LANGUAGE plpgsql;

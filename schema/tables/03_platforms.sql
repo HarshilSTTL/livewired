@@ -1,0 +1,4 @@
+-- Table: platforms
+-- Status: Pending SQL population
+-- Doc: docs/database/tables/03_platforms.md
+-- Will contain: CREATE TABLE statement, constraints, foreign keys

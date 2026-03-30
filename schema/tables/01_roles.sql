@@ -1,0 +1,4 @@
+-- Table: roles
+-- Status: Pending SQL population
+-- Doc: docs/database/tables/01_roles.md
+-- Will contain: CREATE TABLE statement, constraints, foreign keys

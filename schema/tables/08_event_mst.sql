@@ -1,0 +1,4 @@
+-- Table: event_mst
+-- Status: Pending SQL population
+-- Doc: docs/database/tables/08_event_mst.md
+-- Will contain: CREATE TABLE statement, constraints, foreign keys

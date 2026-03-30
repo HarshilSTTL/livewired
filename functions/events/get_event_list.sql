@@ -1,0 +1,5 @@
+-- Function: get_event_list
+-- Group: events
+-- Status: Pending SQL population
+-- Doc: docs/api/events/get_event_list.md
+-- Will contain: CREATE OR REPLACE FUNCTION get_event_list(...) RETURNS json AS $$...$$ LANGUAGE plpgsql;

@@ -1,0 +1,5 @@
+-- Function: submit_tags
+-- Group: tags
+-- Status: Pending SQL population
+-- Doc: docs/api/tags/submit_tags.md
+-- Will contain: CREATE OR REPLACE FUNCTION submit_tags(...) RETURNS json AS $$...$$ LANGUAGE plpgsql;

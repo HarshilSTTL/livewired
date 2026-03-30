@@ -1,0 +1,4 @@
+-- Table: tags
+-- Status: Pending SQL population
+-- Doc: docs/database/tables/04_tags.md
+-- Will contain: CREATE TABLE statement, constraints, foreign keys

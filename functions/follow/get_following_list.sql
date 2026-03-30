@@ -1,0 +1,5 @@
+-- Function: get_following_list
+-- Group: follow
+-- Status: Pending SQL population
+-- Doc: docs/api/follow/get_following_list.md
+-- Will contain: CREATE OR REPLACE FUNCTION get_following_list(...) RETURNS json AS $$...$$ LANGUAGE plpgsql;

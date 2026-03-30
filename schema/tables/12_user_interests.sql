@@ -1,0 +1,4 @@
+-- Table: user_interests
+-- Status: Pending SQL population
+-- Doc: docs/database/tables/12_user_interests.md
+-- Will contain: CREATE TABLE statement, constraints, foreign keys

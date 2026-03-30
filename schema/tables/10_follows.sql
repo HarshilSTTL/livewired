@@ -1,0 +1,4 @@
+-- Table: follows
+-- Status: Pending SQL population
+-- Doc: docs/database/tables/10_follows.md
+-- Will contain: CREATE TABLE statement, constraints, foreign keys

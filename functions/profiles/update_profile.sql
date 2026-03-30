@@ -1,0 +1,5 @@
+-- Function: update_profile
+-- Group: profiles
+-- Status: Pending SQL population
+-- Doc: docs/api/profiles/update_profile.md
+-- Will contain: CREATE OR REPLACE FUNCTION update_profile(...) RETURNS json AS $$...$$ LANGUAGE plpgsql;

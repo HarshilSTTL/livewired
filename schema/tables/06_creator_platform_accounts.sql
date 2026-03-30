@@ -1,0 +1,4 @@
+-- Table: creator_platform_accounts
+-- Status: Pending SQL population
+-- Doc: docs/database/tables/06_creator_platform_accounts.md
+-- Will contain: CREATE TABLE statement, constraints, foreign keys

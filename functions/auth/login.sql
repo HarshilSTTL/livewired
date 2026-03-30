@@ -1,0 +1,5 @@
+-- Function: login
+-- Group: auth
+-- Status: Pending SQL population
+-- Doc: docs/api/auth/login.md
+-- Will contain: CREATE OR REPLACE FUNCTION login(...) RETURNS json AS $$...$$ LANGUAGE plpgsql;

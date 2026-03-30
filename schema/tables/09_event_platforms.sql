@@ -1,0 +1,4 @@
+-- Table: event_platforms
+-- Status: Pending SQL population
+-- Doc: docs/database/tables/09_event_platforms.md
+-- Will contain: CREATE TABLE statement, constraints, foreign keys

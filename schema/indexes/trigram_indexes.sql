@@ -1,0 +1,5 @@
+-- Trigram Indexes
+-- Required for: elastic/fuzzy search performance
+-- Tables: creator_profiles, event_mst
+-- Status: Pending SQL population
+-- Will contain: CREATE INDEX statements using gin_trgm_ops

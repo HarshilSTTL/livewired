@@ -1,0 +1,5 @@
+-- Function: get_creators
+-- Group: follow
+-- Status: Pending SQL population
+-- Doc: docs/api/follow/get_creators.md
+-- Will contain: CREATE OR REPLACE FUNCTION get_creators(...) RETURNS json AS $$...$$ LANGUAGE plpgsql;

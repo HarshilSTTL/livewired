@@ -1,0 +1,5 @@
+-- Function: search_events
+-- Group: search
+-- Status: Pending SQL population
+-- Doc: docs/api/search/search_events.md
+-- Will contain: CREATE OR REPLACE FUNCTION search_events(...) RETURNS json AS $$...$$ LANGUAGE plpgsql;

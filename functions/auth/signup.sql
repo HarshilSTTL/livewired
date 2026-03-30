@@ -1,0 +1,5 @@
+-- Function: signup
+-- Group: auth
+-- Status: Pending SQL population
+-- Doc: docs/api/auth/signup.md
+-- Will contain: CREATE OR REPLACE FUNCTION signup(...) RETURNS json AS $$...$$ LANGUAGE plpgsql;

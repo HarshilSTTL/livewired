@@ -1,0 +1,5 @@
+-- Function: get_all_tags
+-- Group: tags
+-- Status: Pending SQL population
+-- Doc: docs/api/tags/get_all_tags.md
+-- Will contain: CREATE OR REPLACE FUNCTION get_all_tags(...) RETURNS json AS $$...$$ LANGUAGE plpgsql;

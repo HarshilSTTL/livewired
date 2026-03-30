@@ -1,0 +1,4 @@
+-- Table: user_preferred_platforms
+-- Status: Pending SQL population
+-- Doc: docs/database/tables/11_user_preferred_platforms.md
+-- Will contain: CREATE TABLE statement, constraints, foreign keys

@@ -1,0 +1,5 @@
+-- Function: unfollow_creator
+-- Group: follow
+-- Status: Pending SQL population
+-- Doc: docs/api/follow/unfollow_creator.md
+-- Will contain: CREATE OR REPLACE FUNCTION unfollow_creator(...) RETURNS json AS $$...$$ LANGUAGE plpgsql;

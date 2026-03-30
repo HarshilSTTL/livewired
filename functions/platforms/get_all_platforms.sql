@@ -1,0 +1,5 @@
+-- Function: get_all_platforms
+-- Group: platforms
+-- Status: Pending SQL population
+-- Doc: docs/api/platforms/get_all_platforms.md
+-- Will contain: CREATE OR REPLACE FUNCTION get_all_platforms(...) RETURNS json AS $$...$$ LANGUAGE plpgsql;

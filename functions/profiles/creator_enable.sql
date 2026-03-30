@@ -1,0 +1,5 @@
+-- Function: creator_enable
+-- Group: profiles
+-- Status: Pending SQL population
+-- Doc: docs/api/profiles/creator_enable.md
+-- Will contain: CREATE OR REPLACE FUNCTION creator_enable(...) RETURNS json AS $$...$$ LANGUAGE plpgsql;

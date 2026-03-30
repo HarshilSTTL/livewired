@@ -1,0 +1,4 @@
+-- Table: creator_profiles
+-- Status: Pending SQL population
+-- Doc: docs/database/tables/05_creator_profiles.md
+-- Will contain: CREATE TABLE statement, constraints, foreign keys
