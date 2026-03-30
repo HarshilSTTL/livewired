@@ -6,11 +6,14 @@ CREATE TABLE IF NOT EXISTS public.users (
     id                int8        PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     created_at        timestamptz DEFAULT now(),
     email             text        UNIQUE,                -- unique, nullable
-    is_creator        bool        DEFAULT false,
+    is_creator        bool        DEFAULT false,         -- legacy; role_id is used by SPs
     updated_at        timestamptz DEFAULT now(),
     created_device_ip text        NULL,                  -- nullable
     updated_device_ip text        NULL,                  -- nullable
-    password          text
+    password          text,
+    role_id           int8                               -- 1 = user, 2 = creator; set by is_creator SP
 );
 
--- Note: No role_id FK — creator status is tracked via is_creator boolean
+-- Note: role_id has no FK constraint enforced at DB level
+-- Note: is_creator SP sets role_id = 2 (creator) or 1 (user)
+-- Note: create_profile SP checks role_id = 2 before allowing profile creation

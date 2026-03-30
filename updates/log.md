@@ -8,6 +8,59 @@
 
 ## 2026-03-30
 
+### [2026-03-30 18:45] | TABLE + SP | creator_profiles, creator_platform_accounts, profile_tags tables + create_profile + is_creator SPs populated
+
+**Tables updated:**
+
+`creator_profiles`:
+- username → UNIQUE constraint
+- avatar_url → nullable
+- bio → nullable
+- show_followers → NEW column (boolean, default true) — not in original design
+
+`creator_platform_accounts`:
+- channel_url → nullable (at DB level; SP requires it when platforms are passed)
+- username → nullable
+
+`profile_tags`:
+- profile_id → nullable
+- tag_id → nullable
+
+`users` (updated again):
+- role_id column added (int8) — used by is_creator SP and checked in create_profile SP
+- Corrects earlier assumption that role was tracked only via is_creator boolean
+
+**SPs populated:**
+
+`create_profile` (POST /rpc/create_profile):
+- Checks role_id = 2 before allowing profile creation
+- Accepts p_platforms (jsonb array) + p_tag_ids (bigint[]) in same call
+- Auto-sets is_default = true for first profile
+- Validates platform IDs, channel_urls, tag count (max 10), tag IDs
+- Inserts into creator_profiles + creator_platform_accounts + profile_tags atomically
+- Returns profile_id + show_followers
+
+`is_creator` (POST /rpc/is_creator) — was: creator_enable:
+- ⚠️ SP renamed from creator_enable → is_creator in actual DB
+- Sets role_id = 2 (creator) or 1 (user)
+- Updates updated_device_ip and updated_at
+
+**Files changed:**
+- `docs/database/tables/02_users.md` — added role_id column, updated business rules
+- `schema/tables/02_users.sql` — added role_id column
+- `docs/database/tables/05_creator_profiles.md` — full schema including show_followers
+- `schema/tables/05_creator_profiles.sql` — CREATE TABLE
+- `docs/database/tables/06_creator_platform_accounts.md` — nullable channel_url, username
+- `schema/tables/06_creator_platform_accounts.sql` — CREATE TABLE
+- `docs/database/tables/07_profile_tags.md` — nullable profile_id and tag_id
+- `schema/tables/07_profile_tags.sql` — CREATE TABLE
+- `functions/profiles/create_profile.sql` — actual SP SQL
+- `docs/api/profiles/create_profile.md` — full API docs incl. p_platforms format
+- `functions/profiles/creator_enable.sql` — updated to is_creator function
+- `docs/api/profiles/creator_enable.md` — updated for is_creator rename + role_id logic
+
+---
+
 ### [2026-03-30 18:15] | TABLE + SP | tags table + get_all_tags SP populated
 
 **Table:** `tags`
