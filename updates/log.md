@@ -8,6 +8,19 @@
 
 ## 2026-03-30
 
+### [2026-03-30 17:45] | TABLE | users table — nullable + unique constraint clarification
+
+**Fields clarified:**
+- `created_device_ip` → explicitly nullable
+- `updated_device_ip` → explicitly nullable
+- `email` → confirmed UNIQUE constraint
+
+**Files changed:**
+- `docs/database/tables/02_users.md` — added Nullable column to table, marked ip fields as nullable
+- `schema/tables/02_users.sql` — added `NULL` keyword explicitly on ip columns, inline comments
+
+---
+
 ### [2026-03-30 17:30] | TABLE + SP | users table schema + Auth group (register, signup, login) populated
 
 **Table updated:** `users`

@@ -4,16 +4,16 @@
 
 ## Columns
 
-| Column | Type | Default | Constraints | Notes |
-|--------|------|---------|-------------|-------|
-| id | int8 | — | PRIMARY KEY | Auto-generated user ID |
-| created_at | timestamptz | now() | — | Registration timestamp |
-| email | text | NULL | UNIQUE | Login email |
-| is_creator | bool | false | — | true = creator mode enabled |
-| updated_at | timestamptz | now() | — | Last update timestamp |
-| created_device_ip | text | NULL | — | IP address at registration |
-| updated_device_ip | text | NULL | — | IP address at last update |
-| password | text | NULL | — | Plain/hashed password |
+| Column | Type | Default | Nullable | Constraints | Notes |
+|--------|------|---------|----------|-------------|-------|
+| id | int8 | — | No | PRIMARY KEY | Auto-generated user ID |
+| created_at | timestamptz | now() | Yes | — | Registration timestamp |
+| email | text | NULL | Yes | UNIQUE | Login email — unique across all users |
+| is_creator | bool | false | No | — | true = creator mode enabled |
+| updated_at | timestamptz | now() | Yes | — | Last update timestamp |
+| created_device_ip | text | NULL | **Yes** | — | IP address at registration (nullable) |
+| updated_device_ip | text | NULL | **Yes** | — | IP address at last update (nullable) |
+| password | text | NULL | Yes | — | Plain/hashed password |
 
 ## Foreign Keys
 
