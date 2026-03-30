@@ -8,6 +8,28 @@
 
 ## 2026-03-30
 
+### [2026-03-30 18:15] | TABLE + SP | tags table + get_all_tags SP populated
+
+**Table:** `tags`
+- Columns: tag_id (int8 PK), tag_name (text, nullable)
+- Both columns confirmed nullable (tag_id is PK so not null in practice)
+- No is_active flag — all tags always returned
+- 13 seed tags: Gaming, Tech, Music, Sports, Travel, Finance, Cooking, Health, News, Science, Entertainment, Politics, Automotive
+
+**SP populated:** `get_all_tags`
+- `GET /rpc/get_all_tags` — no params, returns ALL tags (no filter)
+- Returns: tag_id, tag_name
+- tag_name can be null — UI must handle gracefully
+- SECURITY DEFINER, json_agg result
+
+**Files changed:**
+- `docs/database/tables/04_tags.md` — full column table, business rules, seed data, referenced-by list
+- `schema/tables/04_tags.sql` — CREATE TABLE + seed INSERT (13 tags)
+- `functions/tags/get_all_tags.sql` — actual SP SQL
+- `docs/api/tags/get_all_tags.md` — params, request/response, error cases, diff vs get_all_platforms
+
+---
+
 ### [2026-03-30 18:00] | TABLE + SP | platforms table + get_all_platforms SP populated
 
 **Table:** `platforms`
