@@ -10,6 +10,26 @@
 
 ## 2026-03-31
 
+### [2026-03-31 00:30] | SP | create_event — event_mst + event_platforms atomic insert
+
+**SP:** `create_event` (POST /rpc/create_event)
+**Tables written:** `event_mst` (INSERT), `event_platforms` (INSERT)
+
+**Params:** p_profile_id (uuid, required), p_user_id (uuid, required), p_title (text, required), p_event_link (text, required), p_event_date (date, required), p_event_time (time, required), p_description (nullable), p_livestream (bool, default false), p_video (bool, default false), p_is_recurring (bool, default false), p_platforms (jsonb, optional)
+
+**Key design decisions:**
+- Ownership check: profile must exist, belong to p_user_id AND status='active'
+- p_platforms format: [{platform_id, stream_url}] — stream_url required per entry
+- ⚠️ platform_id validated as ::bigint (matches platforms.plat_id) but inserted as ::int4 (matches event_platforms.platform_id column type)
+- p_platforms null or [] → no event_platforms rows created
+- Returns event_id on success
+
+**Files changed:**
+- `functions/events/create_event.sql` — full SP SQL
+- `docs/api/events/create_event.md` — full API docs with type warning
+
+---
+
 ### [2026-03-31 00:00] | SP | update_profile — generated from create_profile pattern
 
 **SP:** `update_profile` (POST /rpc/update_profile)
