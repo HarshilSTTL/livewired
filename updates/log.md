@@ -8,6 +8,30 @@
 
 ## 2026-03-31
 
+### [2026-03-31 04:00] | SP | get_profiles_by_username + get_single_profile_by_username populated
+
+**`get_profiles_by_username`** (POST /rpc/get_profiles_by_username):
+- Param: p_user_id (uuid)
+- Returns ALL profiles for a user (all statuses) — used for "Select Profile" dropdown
+- Ordered: is_default DESC, created_at ASC
+- followers count always included (no show_followers restriction — creator's own view)
+- platforms + tags as nested arrays per profile
+
+**`get_single_profile_by_username`** (POST /rpc/get_single_profile_by_username):
+- Param: p_username (text)
+- Returns single profile object by unique username — used for public profile view
+- Respects show_followers: followers = null if show_followers = false
+- Returns profile regardless of status (UI handles suspended/deleted display)
+- is_default NOT returned (irrelevant for public view)
+
+**Files changed:**
+- `functions/profiles/get_profiles_by_username.md` — full SP SQL
+- `docs/api/profiles/get_profiles_by_username.md` — full API docs
+- `functions/profiles/get_single_profile_by_username.md` — full SP SQL
+- `docs/api/profiles/get_single_profile_by_username.md` — full API docs
+
+---
+
 ### [2026-03-31 03:30] | FIX | Removed event_link column from event_mst + create_event SP
 
 `event_link` column removed — stream URLs belong in `event_platforms.stream_url` only.
