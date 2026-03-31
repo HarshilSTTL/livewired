@@ -2,7 +2,7 @@
 
 **Endpoint:** `POST /rpc/create_event`
 **Group:** Events
-**SQL:** [`functions/events/create_event.sql`](../../../functions/events/create_event.sql)
+**SQL:** [`functions/events/create_event.md`](../../../functions/events/create_event.md)
 **Tables written:** `event_mst` (INSERT) · `event_platforms` (INSERT)
 
 ---

@@ -1,0 +1,8 @@
+# `pg_trgm`
+
+```sql
+-- Extension: pg_trgm
+-- Required for: search_profiles, search_events stored procedures
+-- Status: Pending SQL population
+-- Will contain: CREATE EXTENSION IF NOT EXISTS pg_trgm;
+```

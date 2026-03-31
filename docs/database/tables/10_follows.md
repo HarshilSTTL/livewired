@@ -45,4 +45,4 @@
 
 ## SQL Reference
 
-See [`schema/tables/10_follows.sql`](../../../schema/tables/10_follows.sql)
+See [`schema/tables/10_follows.md`](../../../schema/tables/10_follows.md)

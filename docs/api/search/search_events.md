@@ -141,11 +141,11 @@
 - `description` nullable — handled with `coalesce(e.description, '')` in fuzzy match
 - `streaming` always an array (never null) via `coalesce(..., '[]'::json)`
 - `ep.platform_id::bigint` cast required due to int4/int8 type mismatch
-- `pg_trgm` extension must be enabled: see `schema/extensions/pg_trgm.sql`
-- Trigram indexes on `event_mst.title` and `event_mst.description` improve performance: see `schema/indexes/trigram_indexes.sql`
+- `pg_trgm` extension must be enabled: see `schema/extensions/pg_trgm.md`
+- Trigram indexes on `event_mst.title` and `event_mst.description` improve performance: see `schema/indexes/trigram_indexes.md`
 
 ---
 
 ## SQL Reference
 
-See [`functions/search/search_events.sql`](../../../functions/search/search_events.sql)
+See [`functions/search/search_events.md`](../../../functions/search/search_events.md)

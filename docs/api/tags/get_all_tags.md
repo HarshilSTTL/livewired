@@ -89,11 +89,11 @@ Authorization: Bearer <token>
 
 ## Differences vs `get_all_platforms`
 
-| Feature | `get_all_platforms` | `get_all_tags` |
-|---------|-------------------|----------------|
-| Filter | `WHERE is_active = 1` | No filter — returns all |
-| Fields returned | plat_id, plat_name, logo_url, is_active, created_at | tag_id, tag_name only |
-| Nullable field | logo_url | tag_name |
+| Feature         | `get_all_platforms`                                 | `get_all_tags`          |
+| --------------- | --------------------------------------------------- | ----------------------- |
+| Filter          | `WHERE is_active = 1`                               | No filter — returns all |
+| Fields returned | plat_id, plat_name, logo_url, is_active, created_at | tag_id, tag_name only   |
+| Nullable field  | logo_url                                            | tag_name                |
 
 ---
 
@@ -108,4 +108,4 @@ Authorization: Bearer <token>
 
 ## SQL Reference
 
-See [`functions/tags/get_all_tags.sql`](../../../functions/tags/get_all_tags.sql)
+See [`functions/tags/get_all_tags.md`](../../../functions/tags/get_all_tags.md)

@@ -49,4 +49,4 @@ This cast is used in `get_event_list`, `search_events`, `search_profiles`, `get_
 
 ## SQL Reference
 
-See [`schema/tables/09_event_platforms.sql`](../../../schema/tables/09_event_platforms.sql)
+See [`schema/tables/09_event_platforms.md`](../../../schema/tables/09_event_platforms.md)

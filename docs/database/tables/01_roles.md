@@ -44,4 +44,4 @@ None — this is a lookup/seed table. It is referenced by:
 
 ## SQL Reference
 
-See [`schema/tables/01_roles.sql`](../../../schema/tables/01_roles.sql)
+See [`schema/tables/01_roles.md`](../../../schema/tables/01_roles.md)

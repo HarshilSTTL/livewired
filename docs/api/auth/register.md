@@ -81,4 +81,4 @@
 
 ## SQL Reference
 
-See [`functions/auth/register.sql`](../../../functions/auth/register.sql)
+See [`functions/auth/register.md`](../../../functions/auth/register.md)

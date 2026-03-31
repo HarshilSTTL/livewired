@@ -31,4 +31,4 @@
 
 ## SQL Reference
 
-See [`schema/tables/12_user_interests.sql`](../../../schema/tables/12_user_interests.sql)
+See [`schema/tables/12_user_interests.md`](../../../schema/tables/12_user_interests.md)

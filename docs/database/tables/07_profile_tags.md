@@ -33,4 +33,4 @@
 
 ## SQL Reference
 
-See [`schema/tables/07_profile_tags.sql`](../../../schema/tables/07_profile_tags.sql)
+See [`schema/tables/07_profile_tags.md`](../../../schema/tables/07_profile_tags.md)

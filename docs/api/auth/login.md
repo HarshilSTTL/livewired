@@ -98,4 +98,4 @@
 
 ## SQL Reference
 
-See [`functions/auth/login.sql`](../../../functions/auth/login.sql)
+See [`functions/auth/login.md`](../../../functions/auth/login.md)

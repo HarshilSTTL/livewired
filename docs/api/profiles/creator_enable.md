@@ -95,4 +95,4 @@ After `is_creator` sets `role_id = 1`:
 
 ## SQL Reference
 
-See [`functions/profiles/creator_enable.sql`](../../../functions/profiles/creator_enable.sql)
+See [`functions/profiles/creator_enable.md`](../../../functions/profiles/creator_enable.md)

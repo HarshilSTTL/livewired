@@ -99,4 +99,4 @@ Authorization: Bearer <token>
 
 ## SQL Reference
 
-See [`functions/platforms/get_all_platforms.sql`](../../../functions/platforms/get_all_platforms.sql)
+See [`functions/platforms/get_all_platforms.md`](../../../functions/platforms/get_all_platforms.md)

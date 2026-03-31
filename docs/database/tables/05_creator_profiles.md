@@ -57,4 +57,4 @@
 
 ## SQL Reference
 
-See [`schema/tables/05_creator_profiles.sql`](../../../schema/tables/05_creator_profiles.sql)
+See [`schema/tables/05_creator_profiles.md`](../../../schema/tables/05_creator_profiles.md)

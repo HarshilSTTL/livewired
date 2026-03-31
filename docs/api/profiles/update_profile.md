@@ -2,7 +2,7 @@
 
 **Endpoint:** `POST /rpc/update_profile`
 **Group:** Profile
-**SQL:** [`functions/profiles/update_profile.sql`](../../../functions/profiles/update_profile.sql)
+**SQL:** [`functions/profiles/update_profile.md`](../../../functions/profiles/update_profile.md)
 **Tables written:** `creator_profiles` · `creator_platform_accounts` · `profile_tags`
 
 ---
@@ -18,19 +18,19 @@ rows are deleted and replaced. When passed as `null`, those tables are untouched
 
 ## Parameters
 
-| Parameter | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `p_profile_id` | uuid | ✅ | — | Profile to update |
-| `p_user_id` | uuid | ✅ | — | Must be the profile owner (ownership check) |
-| `p_profile_name` | text | ❌ | null | New display name (omit to keep current) |
-| `p_username` | text | ❌ | null | New username — must be globally unique |
-| `p_avatar_url` | text | ❌ | null | New avatar URL |
-| `p_bio` | text | ❌ | null | New bio |
-| `p_is_default` | boolean | ❌ | null | Set as default profile (unsets all others) |
-| `p_status` | text | ❌ | null | `'active'` · `'suspended'` · `'deleted'` |
-| `p_show_followers` | boolean | ❌ | null | Toggle follower count visibility |
-| `p_platforms` | jsonb | ❌ | null | Replace all platforms (see format below) |
-| `p_tag_ids` | bigint[] | ❌ | null | Replace all tags (max 10) |
+| Parameter          | Type     | Required | Default | Description                                 |
+| ------------------ | -------- | -------- | ------- | ------------------------------------------- |
+| `p_profile_id`     | uuid     | ✅        | —       | Profile to update                           |
+| `p_user_id`        | uuid     | ✅        | —       | Must be the profile owner (ownership check) |
+| `p_profile_name`   | text     | ❌        | null    | New display name (omit to keep current)     |
+| `p_username`       | text     | ❌        | null    | New username — must be globally unique      |
+| `p_avatar_url`     | text     | ❌        | null    | New avatar URL                              |
+| `p_bio`            | text     | ❌        | null    | New bio                                     |
+| `p_is_default`     | boolean  | ❌        | null    | Set as default profile (unsets all others)  |
+| `p_status`         | text     | ❌        | null    | `'active'` · `'suspended'` · `'deleted'`    |
+| `p_show_followers` | boolean  | ❌        | null    | Toggle follower count visibility            |
+| `p_platforms`      | jsonb    | ❌        | null    | Replace all platforms (see format below)    |
+| `p_tag_ids`        | bigint[] | ❌        | null    | Replace all tags (max 10)                   |
 
 ### p_platforms format
 

@@ -101,4 +101,4 @@
 
 ## SQL Reference
 
-See [`functions/tags/submit_tags.sql`](../../../functions/tags/submit_tags.sql)
+See [`functions/tags/submit_tags.md`](../../../functions/tags/submit_tags.md)

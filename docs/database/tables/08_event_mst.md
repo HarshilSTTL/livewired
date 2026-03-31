@@ -4,20 +4,20 @@
 
 ## Columns
 
-| Column | Type | Default | Nullable | Constraints | Notes |
-|--------|------|---------|----------|-------------|-------|
-| event_id | uuid | gen_random_uuid() | No | PRIMARY KEY | Event ID |
-| profile_id | uuid | NULL | Yes | FK → creator_profiles.id | Which creator profile owns this event |
-| title | text | NULL | Yes | — | Event title |
-| description | text | NULL | **Yes** | — | Event description (nullable) |
-| event_link | text | NULL | Yes | — | Primary stream link |
-| event_date | date | NULL | Yes | — | Date of the event |
-| event_time | time | NULL | Yes | — | Time of the event |
-| livestream | bool | false | No | — | Is this a live stream? |
-| video | bool | false | No | — | Is this a video premiere? |
-| is_recurring | bool | false | No | — | Is this a repeating event? |
-| created_at | timestamptz | now() | Yes | — | Record creation time |
-| updated_at | timestamptz | now() | **Yes** | — | Last update time (nullable) |
+| Column       | Type        | Default           | Nullable | Constraints              | Notes                                 |
+| ------------ | ----------- | ----------------- | -------- | ------------------------ | ------------------------------------- |
+| event_id     | uuid        | gen_random_uuid() | No       | PRIMARY KEY              | Event ID                              |
+| profile_id   | uuid        | NULL              | Yes      | FK → creator_profiles.id | Which creator profile owns this event |
+| title        | text        | NULL              | Yes      | —                        | Event title                           |
+| description  | text        | NULL              | **Yes**  | —                        | Event description (nullable)          |
+| event_link   | text        | NULL              | Yes      | —                        | Primary stream link                   |
+| event_date   | date        | NULL              | Yes      | —                        | Date of the event                     |
+| event_time   | time        | NULL              | Yes      | —                        | Time of the event                     |
+| livestream   | bool        | false             | No       | —                        | Is this a live stream?                |
+| video        | bool        | false             | No       | —                        | Is this a video premiere?             |
+| is_recurring | bool        | false             | No       | —                        | Is this a repeating event?            |
+| created_at   | timestamptz | now()             | Yes      | —                        | Record creation time                  |
+| updated_at   | timestamptz | now()             | **Yes**  | —                        | Last update time (nullable)           |
 
 ## Foreign Keys
 
@@ -46,4 +46,4 @@
 
 ## SQL Reference
 
-See [`schema/tables/08_event_mst.sql`](../../../schema/tables/08_event_mst.sql)
+See [`schema/tables/08_event_mst.md`](../../../schema/tables/08_event_mst.md)

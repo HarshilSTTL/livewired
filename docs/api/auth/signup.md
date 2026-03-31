@@ -111,4 +111,4 @@
 
 ## SQL Reference
 
-See [`functions/auth/signup.sql`](../../../functions/auth/signup.sql)
+See [`functions/auth/signup.md`](../../../functions/auth/signup.md)

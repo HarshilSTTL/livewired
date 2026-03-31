@@ -17,4 +17,4 @@ _Content pending_
 
 ## SQL Reference
 
-See [`functions/profiles/get_profiles_by_username.sql`](../../../functions/profiles/get_profiles_by_username.sql)
+See [`functions/profiles/get_profiles_by_username.md`](../../../functions/profiles/get_profiles_by_username.md)

@@ -10,6 +10,16 @@
 
 ## 2026-03-31
 
+### [2026-03-31 02:00] | DOCS | Converted all 37 SQL files to Markdown (.md)
+
+All .sql files under functions/ and schema/ converted to .md format.
+SQL content preserved inside ```sql code blocks.
+All internal doc links updated from .sql → .md references.
+
+**Files changed:** 37 .sql files deleted, 37 .md files created
+
+---
+
 ### [2026-03-31 01:00] | TABLE | roles table schema populated
 
 **Table:** `roles`

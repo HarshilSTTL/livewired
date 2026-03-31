@@ -89,4 +89,4 @@
 
 ## SQL Reference
 
-See [`functions/platforms/submit_platform.sql`](../../../functions/platforms/submit_platform.sql)
+See [`functions/platforms/submit_platform.md`](../../../functions/platforms/submit_platform.md)

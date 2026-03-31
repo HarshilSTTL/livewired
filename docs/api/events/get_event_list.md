@@ -136,4 +136,4 @@
 
 ## SQL Reference
 
-See [`functions/events/get_event_list.sql`](../../../functions/events/get_event_list.sql)
+See [`functions/events/get_event_list.md`](../../../functions/events/get_event_list.md)

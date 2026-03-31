@@ -39,4 +39,4 @@
 
 ## SQL Reference
 
-See [`schema/tables/06_creator_platform_accounts.sql`](../../../schema/tables/06_creator_platform_accounts.sql)
+See [`schema/tables/06_creator_platform_accounts.md`](../../../schema/tables/06_creator_platform_accounts.md)

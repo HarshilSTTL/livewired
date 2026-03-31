@@ -171,4 +171,4 @@
 
 ## SQL Reference
 
-See [`functions/profiles/create_profile.sql`](../../../functions/profiles/create_profile.sql)
+See [`functions/profiles/create_profile.md`](../../../functions/profiles/create_profile.md)

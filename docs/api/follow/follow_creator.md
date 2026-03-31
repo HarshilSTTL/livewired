@@ -121,4 +121,4 @@
 
 ## SQL Reference
 
-See [`functions/follow/follow_creator.sql`](../../../functions/follow/follow_creator.sql)
+See [`functions/follow/follow_creator.md`](../../../functions/follow/follow_creator.md)

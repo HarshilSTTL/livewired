@@ -32,4 +32,4 @@
 
 ## SQL Reference
 
-See [`schema/tables/11_user_preferred_platforms.sql`](../../../schema/tables/11_user_preferred_platforms.sql)
+See [`schema/tables/11_user_preferred_platforms.md`](../../../schema/tables/11_user_preferred_platforms.md)

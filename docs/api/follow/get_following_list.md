@@ -109,4 +109,4 @@
 
 ## SQL Reference
 
-See [`functions/follow/get_following_list.sql`](../../../functions/follow/get_following_list.sql)
+See [`functions/follow/get_following_list.md`](../../../functions/follow/get_following_list.md)

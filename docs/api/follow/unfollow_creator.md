@@ -94,4 +94,4 @@
 
 ## SQL Reference
 
-See [`functions/follow/unfollow_creator.sql`](../../../functions/follow/unfollow_creator.sql)
+See [`functions/follow/unfollow_creator.md`](../../../functions/follow/unfollow_creator.md)

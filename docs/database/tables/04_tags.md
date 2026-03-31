@@ -49,4 +49,4 @@ None — `tags` is a lookup/master table with no FK dependencies.
 
 ## SQL Reference
 
-See [`schema/tables/04_tags.sql`](../../../schema/tables/04_tags.sql)
+See [`schema/tables/04_tags.md`](../../../schema/tables/04_tags.md)

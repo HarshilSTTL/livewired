@@ -99,4 +99,4 @@ Authorization: Bearer <token>
 
 ## SQL Reference
 
-See [`functions/follow/get_creators.sql`](../../../functions/follow/get_creators.sql)
+See [`functions/follow/get_creators.md`](../../../functions/follow/get_creators.md)

@@ -52,4 +52,4 @@ None — `users` is a root table. `role_id` references the `roles` table logical
 
 ## SQL Reference
 
-See [`schema/tables/02_users.sql`](../../../schema/tables/02_users.sql)
+See [`schema/tables/02_users.md`](../../../schema/tables/02_users.md)

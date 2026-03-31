@@ -1,5 +1,0 @@
--- Function: get_profiles_by_username
--- Group: profiles
--- Status: Pending SQL population
--- Doc: docs/api/profiles/get_profiles_by_username.md
--- Will contain: CREATE OR REPLACE FUNCTION get_profiles_by_username(...) RETURNS json AS $$...$$ LANGUAGE plpgsql;

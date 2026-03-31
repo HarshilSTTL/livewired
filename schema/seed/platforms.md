@@ -1,0 +1,7 @@
+# `platforms`
+
+```sql
+-- Seed: platforms
+-- Status: Pending SQL population
+-- Will contain: INSERT statements for initial platforms data
+```

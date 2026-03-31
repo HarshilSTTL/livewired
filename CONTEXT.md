@@ -102,7 +102,7 @@ SQL function code → `functions/`
 
 1. All APIs use Supabase RPC — `POST /rpc/<function_name>` or `GET /rpc/<function_name>`
 2. `event_platforms.platform_id` is `integer` — must cast to `bigint` when joining `platforms.plat_id`
-3. Search requires `pg_trgm` extension — see `schema/extensions/pg_trgm.sql`
+3. Search requires `pg_trgm` extension — see `schema/extensions/pg_trgm.md`
 4. Follower count is always calculated live via `COUNT(*) WHERE is_active = true`
 5. Unfollowing is soft delete — row kept with `is_active = false`
 6. Only `role_id = 2` users can create creator profiles
@@ -140,7 +140,7 @@ Register → Login → Select Platforms → Select Tags → Follow Creators → 
 | Table column definitions | `docs/database/tables/` |
 | SQL CREATE TABLE | `schema/tables/` |
 | API parameters + response | `docs/api/<group>/<sp_name>.md` |
-| SQL stored procedure code | `functions/<group>/<sp_name>.sql` |
+| SQL stored procedure code | `functions/<group>/<sp_name>.md` |
 | Business rules | `docs/business-rules.md` |
 | Change history | `updates/log.md` |
 | Seed data SQL | `schema/seed/` |
