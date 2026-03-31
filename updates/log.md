@@ -10,6 +10,20 @@
 
 ## 2026-03-31
 
+### [2026-03-31 01:00] | TABLE | roles table schema populated
+
+**Table:** `roles`
+- Columns: role_id (int8 PK), role_name (text, nullable)
+- Seed: role_id=1 → 'user', role_id=2 → 'creator'
+- Referenced by users.role_id FK
+- Role promoted/demoted via is_creator SP
+
+**Files changed:**
+- `docs/database/tables/01_roles.md` — full schema, seed data, referenced-by list
+- `schema/tables/01_roles.sql` — CREATE TABLE + seed INSERT
+
+---
+
 ### [2026-03-31 00:30] | SP | create_event — event_mst + event_platforms atomic insert
 
 **SP:** `create_event` (POST /rpc/create_event)
