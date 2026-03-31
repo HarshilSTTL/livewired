@@ -24,7 +24,6 @@ schedule details. All three tables are written atomically.
 | `p_profile_id` | uuid | ✅ | — | Profile creating the event |
 | `p_user_id` | uuid | ✅ | — | Caller's user ID (ownership check) |
 | `p_title` | text | ✅ | — | Event title |
-| `p_event_link` | text | ✅ | — | Primary stream/event URL |
 | `p_event_date` | date | ✅ | — | Date of the event (`YYYY-MM-DD`) |
 | `p_event_time` | time | ✅ | — | Time of the event (`HH:MM:SS`) |
 | `p_description` | text | ❌ | null | Event description |
@@ -76,7 +75,6 @@ schedule details. All three tables are written atomically.
   "p_profile_id": "profile-uuid",
   "p_user_id":    "user-uuid",
   "p_title":      "Special Stream",
-  "p_event_link": "https://youtube.com/live/xyz",
   "p_event_date": "2026-04-15",
   "p_event_time": "18:00:00",
   "p_livestream": true
@@ -89,7 +87,6 @@ schedule details. All three tables are written atomically.
   "p_profile_id":             "profile-uuid",
   "p_user_id":                "user-uuid",
   "p_title":                  "Weekly Gaming Session",
-  "p_event_link":             "https://youtube.com/live/xyz",
   "p_event_date":             "2026-04-08",
   "p_event_time":             "20:00:00",
   "p_livestream":             true,
@@ -111,7 +108,6 @@ schedule details. All three tables are written atomically.
   "p_profile_id":           "profile-uuid",
   "p_user_id":              "user-uuid",
   "p_title":                "Monthly Recap",
-  "p_event_link":           "https://twitch.tv/handle",
   "p_event_date":           "2026-04-06",
   "p_event_time":           "19:00:00",
   "p_is_recurring":         true,
@@ -154,7 +150,6 @@ schedule details. All three tables are written atomically.
 | `User ID is required` | `p_user_id` is null |
 | `Profile not found, access denied, or profile is not active` | Profile doesn't exist, wrong owner, or status ≠ 'active' |
 | `Event title is required` | `p_title` null or empty |
-| `Event link is required` | `p_event_link` null or empty |
 | `Event date is required` | `p_event_date` is null |
 | `Event time is required` | `p_event_time` is null |
 | `One or more platform IDs are invalid` | `platform_id` not in `platforms` table |
@@ -176,7 +171,7 @@ schedule details. All three tables are written atomically.
 ```
 1. Null check: p_profile_id, p_user_id
 2. Ownership + active check on creator_profiles
-3. Required field checks: title, event_link, event_date, event_time
+3. Required field checks: title, event_date, event_time
 4. Platform validation (if p_platforms non-null/non-empty)
 5. Recurring validation (only if p_is_recurring = true):
    ├── recurring_days: non-null, non-empty, all valid abbreviations

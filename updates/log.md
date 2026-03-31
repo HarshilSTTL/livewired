@@ -8,6 +8,18 @@
 
 ## 2026-03-31
 
+### [2026-03-31 03:30] | FIX | Removed event_link column from event_mst + create_event SP
+
+`event_link` column removed — stream URLs belong in `event_platforms.stream_url` only.
+
+**Files changed:**
+- `schema/tables/08_event_mst.md` — removed event_link column
+- `docs/database/tables/08_event_mst.md` — removed event_link row from column table
+- `functions/events/create_event.md` — removed p_event_link param, validation, and INSERT column
+- `docs/api/events/create_event.md` — removed p_event_link from params, examples, error cases
+
+---
+
 ### [2026-03-31 03:00] | TABLE + SP | event_recurring table (new) + create_event updated for recurring support
 
 **New table:** `event_recurring` (table #13)

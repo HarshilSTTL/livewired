@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS public.event_mst (
     profile_id   uuid        REFERENCES public.creator_profiles(id) ON DELETE CASCADE,
     title        text,
     description  text        NULL,   -- nullable
-    event_link   text,
     event_date   date,
     event_time   time,
     livestream   bool        DEFAULT false,

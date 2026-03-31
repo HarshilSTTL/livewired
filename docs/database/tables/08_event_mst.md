@@ -10,7 +10,6 @@
 | profile_id   | uuid        | NULL              | Yes      | FK → creator_profiles.id | Which creator profile owns this event |
 | title        | text        | NULL              | Yes      | —                        | Event title                           |
 | description  | text        | NULL              | **Yes**  | —                        | Event description (nullable)          |
-| event_link   | text        | NULL              | Yes      | —                        | Primary stream link                   |
 | event_date   | date        | NULL              | Yes      | —                        | Date of the event                     |
 | event_time   | time        | NULL              | Yes      | —                        | Time of the event                     |
 | livestream   | bool        | false             | No       | —                        | Is this a live stream?                |

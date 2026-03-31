@@ -5,6 +5,7 @@
 -- Group:    events
 -- Endpoint: POST /rpc/create_event
 -- Tables:   event_mst (INSERT), event_platforms (INSERT), event_recurring (INSERT if recurring)
+-- Note:     event_link column removed — stream URLs live in event_platforms only
 -- Doc:      docs/api/events/create_event.md
 --
 -- Notes:
@@ -20,7 +21,6 @@ CREATE OR REPLACE FUNCTION create_event(
     p_profile_id             uuid,
     p_user_id                uuid,
     p_title                  text,
-    p_event_link             text,
     p_event_date             date,
     p_event_time             time,
     p_description            text     DEFAULT null,
@@ -67,10 +67,6 @@ BEGIN
     -- ── Required field validation ─────────────────────────────────────────────
     IF p_title IS NULL OR trim(p_title) = '' THEN
         RETURN json_build_object('status', false, 'message', 'Event title is required');
-    END IF;
-
-    IF p_event_link IS NULL OR trim(p_event_link) = '' THEN
-        RETURN json_build_object('status', false, 'message', 'Event link is required');
     END IF;
 
     IF p_event_date IS NULL THEN
@@ -152,13 +148,13 @@ BEGIN
     -- ── Insert into event_mst ─────────────────────────────────────────────────
     INSERT INTO event_mst (
         event_id, profile_id, title, description,
-        event_link, event_date, event_time,
+        event_date, event_time,
         livestream, video, is_recurring,
         created_at, updated_at
     )
     VALUES (
         gen_random_uuid(), p_profile_id, p_title, p_description,
-        p_event_link, p_event_date, p_event_time,
+        p_event_date, p_event_time,
         COALESCE(p_livestream, false), COALESCE(p_video, false), COALESCE(p_is_recurring, false),
         now(), now()
     )
