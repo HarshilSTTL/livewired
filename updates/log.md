@@ -6,6 +6,35 @@
 
 ---
 
+## 2026-03-31
+
+### [2026-03-31 03:00] | TABLE + SP | event_recurring table (new) + create_event updated for recurring support
+
+**New table:** `event_recurring` (table #13)
+- Columns: id (uuid PK), event_id (uuid FK → event_mst ON DELETE CASCADE), recurring_days (text[]), recurring_type (text), recurring_interval (int, nullable), recurring_start_date (date), recurring_end_date (date, nullable), created_at (timestamptz)
+- `recurring_type` values: `'weekly'` | `'first'` | `'last'`
+- `recurring_interval` 1–12 (weeks): required for 'weekly', must be NULL for 'first'/'last'
+- Separate table (not columns on event_mst) — keeps event_mst clean; only recurring events have a row
+
+**SP updated:** `create_event`
+- Added 5 new params: p_recurring_days (text[]), p_recurring_type (text), p_recurring_interval (int), p_recurring_start_date (date), p_recurring_end_date (date)
+- Added full recurring validation block (only runs when p_is_recurring = true)
+- Inserts into event_recurring after event_mst + event_platforms if recurring
+- Backward compatible: non-recurring events unaffected
+
+**UI dropdown → DB mapping:**
+- Every week/2nd/3rd/4th week → type='weekly', interval=1/2/3/4
+- Custom slider (1–12) → type='weekly', interval=1–12
+- First / Last → type='first' or 'last', interval=NULL
+
+**Files changed:**
+- `schema/tables/13_event_recurring.md` — CREATE TABLE SQL (new)
+- `docs/database/tables/13_event_recurring.md` — full table docs (new)
+- `functions/events/create_event.md` — updated SP with recurring params + validation + insert
+- `docs/api/events/create_event.md` — updated docs with recurring params, examples, error cases
+
+---
+
 ## 2026-03-30
 
 ## 2026-03-31
