@@ -8,6 +8,19 @@
 
 ## 2026-03-31
 
+### [2026-03-31 04:30] | FIX | Corrected get_profiles_by_username param + renamed get_single_profile_by_username → get_profiles_by_userid
+
+**get_profiles_by_username** — fixed param from p_user_id → p_username (returns single profile by username, public view, respects show_followers)
+**get_profiles_by_userid** — renamed from get_single_profile_by_username; takes p_user_id, returns all profiles for that user (profile switcher)
+
+**Files changed:**
+- `functions/profiles/get_profiles_by_username.md` — fixed param to p_username
+- `docs/api/profiles/get_profiles_by_username.md` — fixed docs
+- `functions/profiles/get_single_profile_by_username.md` → renamed to `get_profiles_by_userid.md`, param changed to p_user_id
+- `docs/api/profiles/get_single_profile_by_username.md` → renamed to `get_profiles_by_userid.md`, param changed to p_user_id
+
+---
+
 ### [2026-03-31 04:00] | SP | get_profiles_by_username + get_single_profile_by_username populated
 
 **`get_profiles_by_username`** (POST /rpc/get_profiles_by_username):

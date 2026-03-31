@@ -7,12 +7,12 @@
 -- Tables:   creator_profiles (SELECT), creator_platform_accounts (SELECT), profile_tags (SELECT), follows (COUNT)
 -- Doc:      docs/api/profiles/get_profiles_by_username.md
 --
--- Purpose:  Returns ALL profiles belonging to a given user_id.
---           Used for the "Select Profile" dropdown and profile switcher in the app.
---           Returns all statuses (active, suspended, deleted) so the creator sees their full list.
+-- Purpose:  Returns a single profile by its unique username.
+--           Used for public profile view. Respects show_followers flag.
+--           Returns any status so UI can handle suspended/deleted cases.
 
 CREATE OR REPLACE FUNCTION get_profiles_by_username(
-    p_user_id uuid
+    p_username text
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -20,75 +20,77 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-    v_result json;
+    v_profile    json;
+    v_profile_id uuid;
 BEGIN
 
-    IF p_user_id IS NULL THEN
-        RETURN json_build_object('status', false, 'message', 'User ID is required');
+    IF p_username IS NULL OR trim(p_username) = '' THEN
+        RETURN json_build_object('status', false, 'message', 'Username is required');
     END IF;
 
-    IF NOT EXISTS (SELECT 1 FROM users WHERE id = p_user_id) THEN
-        RETURN json_build_object('status', false, 'message', 'User not found');
+    SELECT id INTO v_profile_id
+    FROM creator_profiles
+    WHERE username = p_username;
+
+    IF v_profile_id IS NULL THEN
+        RETURN json_build_object('status', false, 'message', 'Profile not found');
     END IF;
 
-    SELECT json_agg(
-        json_build_object(
-            'profile_id',      cp.id,
-            'profile_name',    cp.profile_name,
-            'username',        cp.username,
-            'avatar_url',      cp.avatar_url,
-            'bio',             cp.bio,
-            'is_default',      cp.is_default,
-            'status',          cp.status,
-            'show_followers',  cp.show_followers,
-            'followers',       (
-                SELECT count(*) FROM follows f
-                WHERE f.profile_id = cp.id AND f.is_active = true
-            ),
-            'platforms', (
-                SELECT coalesce(
-                    json_agg(
-                        json_build_object(
-                            'platform_id',   cpa.platform_id,
-                            'platform_name', p.plat_name,
-                            'logo_url',      p.logo_url,
-                            'channel_url',   cpa.channel_url,
-                            'is_default',    cpa.is_default
-                        )
-                    ),
-                    '[]'::json
-                )
-                FROM creator_platform_accounts cpa
-                LEFT JOIN platforms p ON p.plat_id = cpa.platform_id
-                WHERE cpa.profile_id = cp.id
-            ),
-            'tags', (
-                SELECT coalesce(
-                    json_agg(
-                        json_build_object(
-                            'tag_id',   t.tag_id,
-                            'tag_name', t.tag_name
-                        )
-                    ),
-                    '[]'::json
-                )
-                FROM profile_tags pt
-                LEFT JOIN tags t ON t.tag_id = pt.tag_id
-                WHERE pt.profile_id = cp.id
+    SELECT json_build_object(
+        'profile_id',      cp.id,
+        'profile_name',    cp.profile_name,
+        'username',        cp.username,
+        'avatar_url',      cp.avatar_url,
+        'bio',             cp.bio,
+        'status',          cp.status,
+        'show_followers',  cp.show_followers,
+        'followers',       CASE
+                               WHEN cp.show_followers = true THEN (
+                                   SELECT count(*) FROM follows f
+                                   WHERE f.profile_id = cp.id AND f.is_active = true
+                               )
+                               ELSE null
+                           END,
+        'platforms', (
+            SELECT coalesce(
+                json_agg(
+                    json_build_object(
+                        'platform_id',   cpa.platform_id,
+                        'platform_name', p.plat_name,
+                        'logo_url',      p.logo_url,
+                        'channel_url',   cpa.channel_url,
+                        'is_default',    cpa.is_default
+                    )
+                ),
+                '[]'::json
             )
+            FROM creator_platform_accounts cpa
+            LEFT JOIN platforms p ON p.plat_id = cpa.platform_id
+            WHERE cpa.profile_id = cp.id
+        ),
+        'tags', (
+            SELECT coalesce(
+                json_agg(
+                    json_build_object(
+                        'tag_id',   t.tag_id,
+                        'tag_name', t.tag_name
+                    )
+                ),
+                '[]'::json
+            )
+            FROM profile_tags pt
+            LEFT JOIN tags t ON t.tag_id = pt.tag_id
+            WHERE pt.profile_id = cp.id
         )
-        ORDER BY cp.is_default DESC, cp.created_at ASC
     )
-    INTO v_result
+    INTO v_profile
     FROM creator_profiles cp
-    WHERE cp.user_id = p_user_id;
+    WHERE cp.id = v_profile_id;
 
     RETURN json_build_object(
         'status',  true,
-        'message', 'Profiles fetched successfully',
-        'data', json_build_object(
-            'profiles', coalesce(v_result, '[]'::json)
-        )
+        'message', 'Profile fetched successfully',
+        'data',    v_profile
     );
 
 EXCEPTION

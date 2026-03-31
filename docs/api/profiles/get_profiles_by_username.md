@@ -9,9 +9,9 @@
 
 ## Overview
 
-Returns **all profiles** belonging to a given user. Used for the "Select Profile" dropdown
-and profile switcher in the app. Returns all statuses (`active`, `suspended`, `deleted`) so
-the creator sees their complete list. Default profile is always first in the array.
+Returns a **single profile** by its unique `username`. Used for the **public profile view page**
+when a user taps on a creator. Respects `show_followers` — if the creator has disabled
+follower count visibility, `followers` returns `null`.
 
 ---
 
@@ -19,7 +19,7 @@ the creator sees their complete list. Default profile is always first in the arr
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `p_user_id` | uuid | ✅ | The user whose profiles to fetch |
+| `p_username` | text | ✅ | The unique profile username to look up |
 
 ---
 
@@ -27,7 +27,7 @@ the creator sees their complete list. Default profile is always first in the arr
 
 ```json
 {
-  "p_user_id": "user-uuid"
+  "p_username": "handle123"
 }
 ```
 
@@ -39,55 +39,38 @@ the creator sees their complete list. Default profile is always first in the arr
 ```json
 {
   "status":  true,
-  "message": "Profiles fetched successfully",
+  "message": "Profile fetched successfully",
   "data": {
-    "profiles": [
+    "profile_id":     "uuid",
+    "profile_name":   "Gaming Channel",
+    "username":       "handle123",
+    "avatar_url":     "https://cdn.example.com/avatar.jpg",
+    "bio":            "My gaming channel",
+    "status":         "active",
+    "show_followers": true,
+    "followers":      142,
+    "platforms": [
       {
-        "profile_id":     "uuid",
-        "profile_name":   "Gaming Channel",
-        "username":       "handle123",
-        "avatar_url":     "https://cdn.example.com/avatar.jpg",
-        "bio":            "My gaming channel",
-        "is_default":     true,
-        "status":         "active",
-        "show_followers": true,
-        "followers":      142,
-        "platforms": [
-          {
-            "platform_id":   1,
-            "platform_name": "YouTube",
-            "logo_url":      "https://cdn.example.com/yt.png",
-            "channel_url":   "https://youtube.com/@handle123",
-            "is_default":    true
-          }
-        ],
-        "tags": [
-          { "tag_id": 1, "tag_name": "Gaming" },
-          { "tag_id": 2, "tag_name": "Tech" }
-        ]
+        "platform_id":   1,
+        "platform_name": "YouTube",
+        "logo_url":      "https://cdn.example.com/yt.png",
+        "channel_url":   "https://youtube.com/@handle123",
+        "is_default":    true
       }
+    ],
+    "tags": [
+      { "tag_id": 1, "tag_name": "Gaming" }
     ]
   }
 }
 ```
 
-### No profiles yet
-```json
-{
-  "status":  true,
-  "message": "Profiles fetched successfully",
-  "data": {
-    "profiles": []
-  }
-}
-```
+### show_followers = false
+`followers` field returns `null`. All other fields returned normally.
 
 ### Error
 ```json
-{
-  "status":  false,
-  "message": "<reason>"
-}
+{ "status": false, "message": "<reason>" }
 ```
 
 ---
@@ -96,13 +79,14 @@ the creator sees their complete list. Default profile is always first in the arr
 
 | Field | Notes |
 |---|---|
-| `profiles` | Always an array, never null. Empty `[]` if user has no profiles |
-| `is_default` | Default profile is sorted first (`ORDER BY is_default DESC`) |
-| `followers` | Always included — this is the creator's own view so no show_followers restriction |
-| `platforms` | Always an array (`[]` if none linked) |
-| `tags` | Always an array (`[]` if none selected) |
-| `avatar_url` | Nullable — UI must handle null |
-| `bio` | Nullable — UI must handle null |
+| `data` | Single object (not array) |
+| `followers` | `null` when `show_followers = false`; integer count otherwise |
+| `status` | Returned as-is (`active` / `suspended` / `deleted`) — UI decides display |
+| `is_default` | Not returned — irrelevant for public view |
+| `platforms` | Always array, `[]` if none |
+| `tags` | Always array, `[]` if none |
+| `avatar_url` | Nullable |
+| `bio` | Nullable |
 
 ---
 
@@ -110,42 +94,42 @@ the creator sees their complete list. Default profile is always first in the arr
 
 | Message | Cause |
 |---|---|
-| `User ID is required` | `p_user_id` is null |
-| `User not found` | No user with that ID in `users` table |
-| `Something went wrong` | Unhandled exception — `error` field contains `SQLERRM` |
+| `Username is required` | `p_username` is null or empty |
+| `Profile not found` | No profile with that username |
+| `Something went wrong` | Unhandled exception |
 
 ---
 
 ## Logic Flow
 
 ```
-1. Null check: p_user_id
-2. Check user exists in users table
-3. SELECT all profiles WHERE user_id = p_user_id
-   ├── For each profile: COUNT follows WHERE is_active = true
-   ├── For each profile: subquery platforms from creator_platform_accounts + platforms
-   └── For each profile: subquery tags from profile_tags + tags
-4. ORDER BY is_default DESC, created_at ASC
-5. RETURN profiles array (empty [] if none)
+1. Null/empty check: p_username
+2. SELECT id FROM creator_profiles WHERE username = p_username
+3. If not found → return error
+4. SELECT full profile with:
+   ├── followers: COUNT only if show_followers = true, else null
+   ├── platforms: subquery from creator_platform_accounts + platforms
+   └── tags: subquery from profile_tags + tags
+5. RETURN single profile object in data
 ```
 
 ---
 
-## Key Differences vs `get_single_profile_by_username`
+## Key Differences vs `get_profiles_by_userid`
 
-| Aspect | `get_profiles_by_username` | `get_single_profile_by_username` |
+| Aspect | `get_profiles_by_username` | `get_profiles_by_userid` |
 |---|---|---|
-| Input | `p_user_id` (uuid) | `p_username` (text) |
-| Returns | All profiles for the user | Single profile |
-| Use case | Creator's own profile list/switcher | Public profile view |
-| `show_followers` respected? | No — always returns count | Yes — returns null if false |
-| Status filter | None — returns all statuses | None — returns any status |
+| Input | `p_username` (text) | `p_user_id` (uuid) |
+| Returns | Single profile object | Array of all user's profiles |
+| Use case | Public profile view | Creator's own profile switcher |
+| `show_followers` respected? | Yes — null if false | No — always returns count |
+| `is_default` in response | No | Yes |
 
 ---
 
 ## Related
 
-- [`get_single_profile_by_username`](get_single_profile_by_username.md) — single public profile view
-- [`create_profile`](create_profile.md) — creates a profile
-- [`update_profile`](update_profile.md) — updates a profile
+- [`get_profiles_by_userid`](get_profiles_by_userid.md) — all profiles for a user
+- [`search_profiles`](../search/search_profiles.md) — search profiles by keyword
+- [`follow_creator`](../follow/follow_creator.md) — follow this profile
 - [`creator_profiles` table](../../database/tables/05_creator_profiles.md)
