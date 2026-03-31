@@ -8,6 +8,20 @@
 
 ## 2026-03-31
 
+### [2026-03-31 05:15] | SP | get_profile_by_id — full profile detail by profile_id
+
+**SP:** `get_profile_by_id` (POST /rpc/get_profile_by_id)
+- Param: p_profile_id (uuid)
+- Returns full profile: profile_id, user_id, profile_name, username, avatar_url, bio, is_default, status, show_followers, followers, platforms[], tags[], created_at, updated_at
+- Respects show_followers flag
+- Used after post-login profile picker (get_user_profiles → select → get_profile_by_id)
+
+**Files changed:**
+- `functions/profiles/get_profile_by_id.md` — full SP SQL
+- `docs/api/profiles/get_profile_by_id.md` — full API docs with usage flow
+
+---
+
 ### [2026-03-31 05:00] | SP | get_user_profiles — lightweight post-login profile selector
 
 **SP:** `get_user_profiles` (POST /rpc/get_user_profiles)
