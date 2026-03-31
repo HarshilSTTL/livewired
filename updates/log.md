@@ -8,6 +8,21 @@
 
 ## 2026-03-31
 
+### [2026-03-31 05:00] | SP | get_user_profiles — lightweight post-login profile selector
+
+**SP:** `get_user_profiles` (POST /rpc/get_user_profiles)
+- Param: p_user_id (uuid)
+- Returns: profile_id, profile_name, avatar_url, is_default — nothing else
+- Active profiles only (status = 'active')
+- Ordered: is_default DESC, created_at ASC
+- Used immediately after login to show profile picker
+
+**Files changed:**
+- `functions/profiles/get_user_profiles.md` — full SP SQL
+- `docs/api/profiles/get_user_profiles.md` — full API docs
+
+---
+
 ### [2026-03-31 04:30] | FIX | Corrected get_profiles_by_username param + renamed get_single_profile_by_username → get_profiles_by_userid
 
 **get_profiles_by_username** — fixed param from p_user_id → p_username (returns single profile by username, public view, respects show_followers)
