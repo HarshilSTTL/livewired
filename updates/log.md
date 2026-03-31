@@ -8,6 +8,29 @@
 
 ## 2026-03-30
 
+## 2026-03-31
+
+### [2026-03-31 00:00] | SP | update_profile — generated from create_profile pattern
+
+**SP:** `update_profile` (POST /rpc/update_profile)
+**Tables written:** `creator_profiles` (UPDATE), `creator_platform_accounts` (DELETE+INSERT), `profile_tags` (DELETE+INSERT)
+
+**Params:** p_profile_id (uuid, required), p_user_id (uuid, required), p_profile_name, p_username, p_avatar_url, p_bio, p_is_default, p_status, p_show_followers, p_platforms (jsonb), p_tag_ids (bigint[])
+
+**Key design decisions:**
+- COALESCE pattern on `creator_profiles` — only passed (non-null) fields update
+- Ownership check: profile must belong to p_user_id (no role_id check needed)
+- Username uniqueness excludes current profile (`id != p_profile_id`)
+- Platform/tag replace-all: null = don't touch, `[]` = clear all, `[...]` = replace
+- Fetches `v_final_username` after profile UPDATE so platform accounts always get resolved username (handles same-call username change)
+- is_default=true unsets all other profiles for same user_id before setting this one
+
+**Files changed:**
+- `functions/profiles/update_profile.sql` — full SP SQL
+- `docs/api/profiles/update_profile.md` — full API docs with diff table vs create_profile
+
+---
+
 ### [2026-03-30 21:00] | TABLE + SP | user_preferred_platforms, user_interests tables + submit_platform, submit_tags, get_creators, search_profiles SPs — ALL 12 TABLES AND 20 SPs COMPLETE
 
 **Tables populated:**
