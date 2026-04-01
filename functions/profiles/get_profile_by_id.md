@@ -42,7 +42,7 @@ BEGIN
         'user_id',         cp.user_id,
         'profile_name',    cp.profile_name,
         'username',        cp.username,
-        'avatar_url',      cp.avatar_url,
+        'avatar',          cp.avatar,
         'bio',             cp.bio,
         'is_default',      cp.is_default,
         'status',          cp.status,

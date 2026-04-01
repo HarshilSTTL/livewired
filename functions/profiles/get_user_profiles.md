@@ -8,7 +8,7 @@
 -- Doc:      docs/api/profiles/get_user_profiles.md
 --
 -- Purpose:  Lightweight profile list for post-login profile selector.
---           Returns only profile_id, profile_name, avatar_url, is_default.
+--           Returns only profile_id, profile_name, avatar, is_default.
 --           No platforms, no tags, no follower counts.
 --           Default profile is first in array.
 
@@ -36,7 +36,7 @@ BEGIN
         json_build_object(
             'profile_id',   cp.id,
             'profile_name', cp.profile_name,
-            'avatar_url',   cp.avatar_url,
+            'avatar',       cp.avatar,
             'is_default',   cp.is_default
         )
         ORDER BY cp.is_default DESC, cp.created_at ASC

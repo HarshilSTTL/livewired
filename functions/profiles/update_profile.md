@@ -20,7 +20,7 @@ CREATE OR REPLACE FUNCTION update_profile(
     p_user_id        uuid,
     p_profile_name   text     DEFAULT null,
     p_username       text     DEFAULT null,
-    p_avatar_url     text     DEFAULT null,
+    p_avatar         text     DEFAULT null,
     p_bio            text     DEFAULT null,
     p_is_default     boolean  DEFAULT null,
     p_status         text     DEFAULT null,
@@ -123,7 +123,7 @@ BEGIN
     UPDATE creator_profiles SET
         profile_name   = COALESCE(p_profile_name,   profile_name),
         username       = COALESCE(p_username,        username),
-        avatar_url     = COALESCE(p_avatar_url,      avatar_url),
+        avatar         = COALESCE(p_avatar,           avatar),
         bio            = COALESCE(p_bio,             bio),
         is_default     = COALESCE(p_is_default,      is_default),
         status         = COALESCE(p_status,          status),

@@ -49,7 +49,7 @@ BEGIN
             'is_recurring',  e.is_recurring,
             'profile_name',  cp.profile_name,
             'username',      cp.username,
-            'avatar_url',    cp.avatar_url,
+            'avatar',        cp.avatar,
             'followers',     (
                 SELECT count(*) FROM follows f
                 WHERE f.profile_id = cp.id AND f.is_active = true

@@ -10,7 +10,7 @@ CREATE OR REPLACE FUNCTION create_profile(
     p_user_id        uuid,
     p_profile_name   text,
     p_username       text,
-    p_avatar_url     text     DEFAULT null,
+    p_avatar         text     DEFAULT null,
     p_bio            text     DEFAULT null,
     p_is_default     boolean  DEFAULT false,
     p_status         text     DEFAULT 'active',
@@ -94,12 +94,12 @@ BEGIN
 
     INSERT INTO creator_profiles (
         id, user_id, profile_name, username,
-        avatar_url, bio, is_default, status,
+        avatar, bio, is_default, status,
         show_followers, created_at, updated_at
     )
     VALUES (
         gen_random_uuid(), p_user_id, p_profile_name, p_username,
-        p_avatar_url, p_bio, p_is_default, p_status,
+        p_avatar, p_bio, p_is_default, p_status,
         p_show_followers, now(), now()
     )
     RETURNING id INTO v_profile_id;

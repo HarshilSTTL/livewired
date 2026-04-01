@@ -13,7 +13,7 @@
 | p_user_id | uuid | Yes | — | Must belong to a user with role_id = 2 |
 | p_profile_name | text | Yes | — | Display name |
 | p_username | text | Yes | — | Unique handle — checked against all profiles |
-| p_avatar_url | text | No | null | Profile picture URL (nullable) |
+| p_avatar | text | No | null | Profile picture Base64 (nullable) |
 | p_bio | text | No | null | Short bio (nullable) |
 | p_is_default | boolean | No | false | Set as primary profile |
 | p_status | text | No | 'active' | `active` / `suspended` / `deleted` |

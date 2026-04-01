@@ -71,7 +71,7 @@ Authorization: Bearer <token>
 | Profile ID | `id` | uuid |
 | Display name | `name` | `creator_profiles.profile_name` |
 | Handle | `username` | — |
-| Avatar | `profilepic` | nullable — `creator_profiles.avatar_url` |
+| Avatar | `profilepic` | nullable — `creator_profiles.avatar` |
 | Follower count | `followers` | ⚠️ No is_active filter — all follow rows counted |
 | Platforms | `platforms` | ⚠️ Array of strings (plat_name only), not objects |
 

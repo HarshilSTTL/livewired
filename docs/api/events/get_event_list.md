@@ -111,7 +111,7 @@
 |-------|--------|-------|
 | event_id | event_mst.event_id | — |
 | profile_name | creator_profiles.profile_name | — |
-| profile_pic | creator_profiles.avatar_url | nullable |
+| profile_pic | creator_profiles.avatar | nullable |
 | username | creator_profiles.username | — |
 | followers | COUNT from follows WHERE is_active=true | live calculated |
 | event_title | event_mst.title | — |

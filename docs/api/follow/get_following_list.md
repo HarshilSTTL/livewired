@@ -36,7 +36,7 @@
       "profile_id": "uuid",
       "profile_name": "Harshil Gaming",
       "username": "harshil_gaming",
-      "avatar_url": "url or null",
+      "avatar": null,
       "bio": "I stream games daily",
       "status": "active",
       "followers": 150,
@@ -99,7 +99,7 @@
 
 | Field | Notes |
 |-------|-------|
-| `avatar_url` | nullable — handle in UI |
+| `avatar` | nullable — handle in UI |
 | `bio` | nullable — handle in UI |
 | `followers` | live COUNT from follows WHERE is_active=true |
 | `platforms` | from `creator_platform_accounts` JOIN `platforms` — always array |

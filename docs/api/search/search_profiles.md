@@ -52,7 +52,7 @@
       "profile_id": "uuid",
       "profile_name": "Radhe Gaming",
       "username": "radhe_gaming",
-      "avatar_url": "url or null",
+      "avatar": null,
       "bio": "I stream daily",
       "followers": 320,
       "platforms": [
@@ -125,7 +125,7 @@
 ## Notes
 
 - `match_score` is `0.0 – 1.0` — higher = better match
-- `avatar_url` and `bio` are nullable — handle in UI
+- `avatar` and `bio` are nullable — handle in UI
 - `platforms` always an array (never null) via `coalesce(..., '[]'::json)`
 - `pg_trgm` extension must be enabled: see `schema/extensions/pg_trgm.md`
 - Trigram indexes on `creator_profiles.profile_name`, `.username`, `.bio` improve performance: see `schema/indexes/trigram_indexes.md`

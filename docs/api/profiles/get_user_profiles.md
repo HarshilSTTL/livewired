@@ -47,13 +47,13 @@ Only returns `active` profiles.
       {
         "profile_id":   "uuid-1",
         "profile_name": "Gaming Channel",
-        "avatar_url":   "https://cdn.example.com/avatar1.jpg",
+        "avatar":       "<base64-encoded-image>",
         "is_default":   true
       },
       {
         "profile_id":   "uuid-2",
         "profile_name": "Tech Reviews",
-        "avatar_url":   null,
+        "avatar":       null,
         "is_default":   false
       }
     ]
@@ -85,7 +85,7 @@ Only returns `active` profiles.
 |---|---|
 | `profile_id` | Pass this to all subsequent API calls (create_event, update_profile, etc.) |
 | `profile_name` | Display name shown on the profile card |
-| `avatar_url` | Nullable — show placeholder if null |
+| `avatar` | Nullable — show placeholder if null |
 | `is_default` | Default profile is always first in the array |
 | `profiles` | Always array, `[]` if no active profiles |
 
@@ -106,7 +106,7 @@ Only returns `active` profiles.
 | | `get_user_profiles` | `get_profiles_by_userid` |
 |---|---|---|
 | **Use case** | Post-login profile picker | Profile management screen |
-| **Fields returned** | profile_id, profile_name, avatar_url, is_default | Full profile with platforms, tags, followers |
+| **Fields returned** | profile_id, profile_name, avatar, is_default | Full profile with platforms, tags, followers |
 | **Status filter** | `active` only | All statuses |
 | **Speed** | Fast — single table, 4 fields | Heavier — 4 tables, nested subqueries |
 

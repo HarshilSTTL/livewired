@@ -32,7 +32,7 @@ BEGIN
             json_build_object(
                 'event_id',      e.event_id,
                 'profile_name',  cp.profile_name,
-                'profile_pic',   cp.avatar_url,
+                'profile_pic',   cp.avatar,
                 'username',      cp.username,
                 'followers',     (
                     SELECT count(*) FROM follows f
@@ -80,7 +80,7 @@ BEGIN
             json_build_object(
                 'event_id',      e.event_id,
                 'profile_name',  cp.profile_name,
-                'profile_pic',   cp.avatar_url,
+                'profile_pic',   cp.avatar,
                 'username',      cp.username,
                 'followers',     (
                     SELECT count(*) FROM follows f
@@ -129,7 +129,7 @@ BEGIN
             json_build_object(
                 'event_id',      e.event_id,
                 'profile_name',  cp.profile_name,
-                'profile_pic',   cp.avatar_url,
+                'profile_pic',   cp.avatar,
                 'username',      cp.username,
                 'followers',     (
                     SELECT count(*) FROM follows f
@@ -179,7 +179,7 @@ BEGIN
             json_build_object(
                 'event_id',      e.event_id,
                 'profile_name',  cp.profile_name,
-                'profile_pic',   cp.avatar_url,
+                'profile_pic',   cp.avatar,
                 'username',      cp.username,
                 'followers',     (
                     SELECT count(*) FROM follows f

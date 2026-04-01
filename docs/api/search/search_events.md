@@ -56,7 +56,7 @@
       "is_recurring": true,
       "profile_name": "Yoga With Priya",
       "username": "yogapriya",
-      "avatar_url": "url or null",
+      "avatar": null,
       "followers": 320,
       "streaming": [
         {

@@ -45,7 +45,7 @@ to load everything about that profile.
     "user_id":        "user-uuid",
     "profile_name":   "Gaming Channel",
     "username":       "handle123",
-    "avatar_url":     "https://cdn.example.com/avatar.jpg",
+    "avatar":         "<base64-encoded-image>",
     "bio":            "My gaming channel",
     "is_default":     true,
     "status":         "active",
@@ -87,7 +87,7 @@ to load everything about that profile.
 | `status` | `active` / `suspended` / `deleted` |
 | `platforms` | Always array, `[]` if none |
 | `tags` | Always array, `[]` if none |
-| `avatar_url` | Nullable |
+| `avatar` | Nullable |
 | `bio` | Nullable |
 | `created_at` / `updated_at` | Nullable timestamptz |
 

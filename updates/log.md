@@ -8,6 +8,36 @@
 
 ## 2026-04-01
 
+### [2026-04-01 12:00] | SCHEMA + SP | avatar_url → avatar — store Base64 instead of URL
+
+**Scope:** `creator_profiles.avatar_url` column renamed to `avatar`. Data type stays `text`
+but now holds a Base64-encoded image string instead of a URL.
+
+**Note:** `platforms.logo_url` was NOT changed — platform icons are system-managed URLs.
+
+**Files changed (25):**
+- `schema/tables/05_creator_profiles.md` — column renamed
+- `docs/database/tables/05_creator_profiles.md` — column renamed, description updated
+- `functions/profiles/create_profile.md` — `p_avatar_url` → `p_avatar`, INSERT updated
+- `functions/profiles/update_profile.md` — `p_avatar_url` → `p_avatar`, COALESCE updated
+- `functions/profiles/get_user_profiles.md` — json key + column updated
+- `functions/profiles/get_profile_by_id.md` — json key + column updated
+- `functions/profiles/get_profile_by_username.md` — json key + column updated
+- `functions/profiles/get_profile_by_userid.md` — json key + column updated
+- `functions/follow/get_creators.md` — column updated
+- `functions/follow/get_following_list.md` — json key + column updated
+- `functions/events/get_event_list.md` — column updated (all 3 query branches)
+- `functions/search/search_profiles.md` — json key + column updated
+- `functions/search/search_events.md` — json key + column updated
+- All corresponding `docs/api/` files updated (param names, response examples, field notes)
+
+**Supabase migration required:**
+```sql
+ALTER TABLE public.creator_profiles RENAME COLUMN avatar_url TO avatar;
+```
+
+---
+
 ### [2026-04-01 11:00] | FIX | create_event + get_profile_events — switch to pre-generated occurrence rows
 
 **Problem:** The previous fix (dynamic expansion in get_profile_events) was replaced with a

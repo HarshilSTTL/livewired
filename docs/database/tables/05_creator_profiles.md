@@ -10,7 +10,7 @@
 | user_id | uuid | — | No | FK → users.id | Owner of the profile |
 | profile_name | text | — | No | — | Display name |
 | username | text | — | No | **UNIQUE** | Unique handle across all profiles |
-| avatar_url | text | NULL | **Yes** | — | Profile picture URL (nullable) |
+| avatar | text | NULL | **Yes** | — | Profile picture Base64 (nullable) |
 | bio | text | NULL | **Yes** | — | Short bio (nullable) |
 | is_default | boolean | false | No | — | Is this the primary profile? |
 | status | text | 'active' | No | — | `active` / `suspended` / `deleted` |
@@ -30,7 +30,7 @@
 - `username` is **globally unique** across all creator profiles
 - First profile created is automatically set as `is_default = true`
 - When a new profile is set as default, all other profiles for the same user are set to `is_default = false`
-- `avatar_url` and `bio` are optional (nullable)
+- `avatar` and `bio` are optional (nullable)
 - Valid `status` values: `active`, `suspended`, `deleted`
   - `suspended` → UI shows "This account has been suspended"
   - `deleted` → UI shows "This account no longer exists"

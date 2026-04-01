@@ -27,7 +27,7 @@ begin
                             'id',         cp.id,
                             'name',       cp.profile_name,
                             'username',   cp.username,
-                            'profilepic', cp.avatar_url,
+                            'profilepic', cp.avatar,
                             'followers',  (
                                 select count(*)
                                 from follows f

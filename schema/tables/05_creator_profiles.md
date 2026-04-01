@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS public.creator_profiles (
     user_id        uuid        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     profile_name   text        NOT NULL,
     username       text        NOT NULL UNIQUE,   -- globally unique
-    avatar_url     text        NULL,              -- nullable
+    avatar         text        NULL,              -- nullable
     bio            text        NULL,              -- nullable
     is_default     boolean     DEFAULT false,
     status         text        DEFAULT 'active',  -- active | suspended | deleted

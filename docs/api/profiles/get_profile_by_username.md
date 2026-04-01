@@ -44,7 +44,7 @@ follower count visibility, `followers` returns `null`.
     "profile_id":     "uuid",
     "profile_name":   "Gaming Channel",
     "username":       "handle123",
-    "avatar_url":     "https://cdn.example.com/avatar.jpg",
+    "avatar":         "<base64-encoded-image>",
     "bio":            "My gaming channel",
     "status":         "active",
     "show_followers": true,
@@ -85,7 +85,7 @@ follower count visibility, `followers` returns `null`.
 | `is_default` | Not returned — irrelevant for public view                                |
 | `platforms`  | Always array, `[]` if none                                               |
 | `tags`       | Always array, `[]` if none                                               |
-| `avatar_url` | Nullable                                                                 |
+| `avatar` | Nullable                                                                     |
 | `bio`        | Nullable                                                                 |
 
 ---

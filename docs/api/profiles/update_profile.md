@@ -24,7 +24,7 @@ rows are deleted and replaced. When passed as `null`, those tables are untouched
 | `p_user_id`        | uuid     | ✅        | —       | Must be the profile owner (ownership check) |
 | `p_profile_name`   | text     | ❌        | null    | New display name (omit to keep current)     |
 | `p_username`       | text     | ❌        | null    | New username — must be globally unique      |
-| `p_avatar_url`     | text     | ❌        | null    | New avatar URL                              |
+| `p_avatar`         | text     | ❌        | null    | New avatar Base64                           |
 | `p_bio`            | text     | ❌        | null    | New bio                                     |
 | `p_is_default`     | boolean  | ❌        | null    | Set as default profile (unsets all others)  |
 | `p_status`         | text     | ❌        | null    | `'active'` · `'suspended'` · `'deleted'`    |
@@ -75,7 +75,7 @@ rows are deleted and replaced. When passed as `null`, those tables are untouched
   "p_user_id":        "user456",
   "p_profile_name":   "New Display Name",
   "p_username":       "new_handle",
-  "p_avatar_url":     "https://cdn.example.com/avatar.jpg",
+  "p_avatar":         "<base64-encoded-image>",
   "p_bio":            "Creator bio here",
   "p_is_default":     true,
   "p_show_followers": true,

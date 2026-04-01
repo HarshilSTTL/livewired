@@ -46,7 +46,7 @@ dropdown** and profile switcher in the app. Returns all statuses (`active`, `sus
         "profile_id":     "uuid",
         "profile_name":   "Gaming Channel",
         "username":       "handle123",
-        "avatar_url":     "https://cdn.example.com/avatar.jpg",
+        "avatar":         "<base64-encoded-image>",
         "bio":            "My gaming channel",
         "is_default":     true,
         "status":         "active",
@@ -95,7 +95,7 @@ dropdown** and profile switcher in the app. Returns all statuses (`active`, `sus
 | `followers` | Always shown — creator's own view, no show_followers restriction |
 | `platforms` | Always array, `[]` if none |
 | `tags` | Always array, `[]` if none |
-| `avatar_url` | Nullable |
+| `avatar` | Nullable |
 | `bio` | Nullable |
 
 ---

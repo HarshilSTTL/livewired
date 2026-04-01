@@ -177,7 +177,7 @@ DateTime nextWeekStart = currentWeekStart.add(Duration(days: 7));
 User taps a profile card
  │
  ├── get_profile_by_id(p_profile_id)
- │     → profile_name, avatar_url, followers, bio, status
+ │     → profile_name, avatar, followers, bio, status
  │     → platforms[{ logo_url, channel_url }]   ← icons shown in Links row
  │     → tags[]
  │
