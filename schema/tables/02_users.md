@@ -21,4 +21,7 @@ CREATE TABLE IF NOT EXISTS public.users (
 -- Note: role_id has no FK constraint enforced at DB level
 -- Note: is_creator SP sets role_id = 2 (creator) or 1 (user)
 -- Note: create_profile SP checks role_id = 2 before allowing profile creation
+-- Migration: run once in Supabase SQL editor to allow Google users (password = NULL)
+--   ALTER TABLE public.users ALTER COLUMN password DROP NOT NULL;
+--   ALTER TABLE public.users ADD COLUMN IF NOT EXISTS auth_provider text DEFAULT 'email';
 ```
