@@ -56,14 +56,14 @@ schedule details. All three tables are written atomically.
 ## `recurring_type` + `recurring_interval` Mapping
 
 | UI (Repeats dropdown) | `p_recurring_type` | `p_recurring_interval` |
-|---|---|---|
-| Every week | `"weekly"` | `1` |
-| Every 2nd week | `"weekly"` | `2` |
-| Every 3rd week | `"weekly"` | `3` |
-| Every 4th week | `"weekly"` | `4` |
-| Custom (slider 1–12) | `"weekly"` | `1`–`12` |
-| First | `"first"` | omit / null |
-| Last | `"last"` | omit / null |
+| --------------------- | ------------------ | ---------------------- |
+| Every week            | `"weekly"`         | `1`                    |
+| Every 2nd week        | `"weekly"`         | `2`                    |
+| Every 3rd week        | `"weekly"`         | `3`                    |
+| Every 4th week        | `"weekly"`         | `4`                    |
+| Custom (slider 1–12)  | `"weekly"`         | `1`–`12`               |
+| First                 | `"first"`          | omit / null            |
+| Last                  | `"last"`           | omit / null            |
 
 ---
 

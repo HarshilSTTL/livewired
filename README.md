@@ -88,15 +88,15 @@ livewired/
 
 ## API Groups
 
-| Group | APIs | Status |
-|-------|------|--------|
-| Auth | register, signup, login | ✅ Done |
-| Platform | get_all_platforms, submit_platform | ✅ Done |
-| Tags | get_all_tags, submit_tags | ✅ Done |
-| Profile | creator_enable, create_profile, update_profile, get_profiles_by_username, get_single_profile_by_username | ✅ Done |
-| Follow | get_creators, follow_creator, unfollow_creator, get_following_list, get_followers_list | ✅ Done |
-| Events | get_event_list | ✅ Done |
-| Search | search_profiles, search_events | ✅ Done |
-| Events (CRUD) | create, update, delete, get by ID | ⏳ Pending |
-| Notifications | send, get | ⏳ Pending |
-| Settings | update | ⏳ Pending |
+| Group         | APIs                                                                                                     | Status    |
+| ------------- | -------------------------------------------------------------------------------------------------------- | --------- |
+| Auth          | register, signup, login                                                                                  | ✅ Done    |
+| Platform      | get_all_platforms, submit_platform                                                                       | ✅ Done    |
+| Tags          | get_all_tags, submit_tags                                                                                | ✅ Done    |
+| Profile       | creator_enable, create_profile, update_profile, get_profiles_by_username, get_single_profile_by_username | ✅ Done    |
+| Follow        | get_creators, follow_creator, unfollow_creator, get_following_list, get_followers_list                   | ✅ Done    |
+| Events        | get_event_list                                                                                           | ✅ Done    |
+| Search        | search_profiles, search_events                                                                           | ✅ Done    |
+| Events (CRUD) | create, update, delete, get by ID                                                                        | ⏳ Pending |
+| Notifications | send, get                                                                                                | ⏳ Pending |
+| Settings      | update                                                                                                   | ⏳ Pending |

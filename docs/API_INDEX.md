@@ -9,17 +9,17 @@
 
 ## Quick Navigation
 
-| Group | SPs | Jump |
-|---|---|---|
-| 🔐 Auth | 3 | [→ Auth](#-auth) |
-| 👤 Profiles | 7 | [→ Profiles](#-profiles) |
-| 🎯 Platforms | 2 | [→ Platforms](#-platforms) |
-| 🏷️ Tags | 2 | [→ Tags](#-tags) |
-| 📅 Events | 3 | [→ Events](#-events) |
-| 👥 Follow | 5 | [→ Follow](#-follow) |
-| 🔍 Search | 2 | [→ Search](#-search) |
-| | | [→ Table Index](#table-index) |
-| | | [→ File Map](#file-map) |
+| Group        | SPs | Jump                          |
+| ------------ | --- | ----------------------------- |
+| 🔐 Auth      | 3   | [→ Auth](#-auth)              |
+| 👤 Profiles  | 7   | [→ Profiles](#-profiles)      |
+| 🎯 Platforms | 2   | [→ Platforms](#-platforms)    |
+| 🏷️ Tags     | 2   | [→ Tags](#-tags)              |
+| 📅 Events    | 3   | [→ Events](#-events)          |
+| 👥 Follow    | 5   | [→ Follow](#-follow)          |
+| 🔍 Search    | 2   | [→ Search](#-search)          |
+|              |     | [→ Table Index](#table-index) |
+|              |     | [→ File Map](#file-map)       |
 
 ---
 
@@ -98,11 +98,11 @@
 
 ## 📅 Events
 
-| SP | Endpoint | Input | Tables | SQL | Doc |
-|---|---|---|---|---|---|
-| `create_event` | POST /rpc/create_event | p_profile_id, p_user_id, p_title, p_event_date, p_event_time, p_platforms (jsonb), recurring params... | `event_mst` ✏️ `event_platforms` ✏️ `event_recurring` ✏️ | [SQL](../functions/events/create_event.md) | [Doc](events/create_event.md) |
-| `get_event_list` | POST /rpc/get_event_list | p_date, p_device_ip | `event_mst` 👁️ `event_platforms` 👁️ `creator_profiles` 👁️ `follows` 👁️ | [SQL](../functions/events/get_event_list.md) | [Doc](events/get_event_list.md) |
-| `get_profile_events` | POST /rpc/get_profile_events | p_profile_id, p_week_start | `event_mst` 👁️ `event_platforms` 👁️ `platforms` 👁️ | [SQL](../functions/events/get_profile_events.md) | [Doc](events/get_profile_events.md) |
+| SP                   | Endpoint                     | Input                                                                                                  | Tables                                                                     | SQL                                              | Doc                                 |
+| -------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------- |
+| `create_event`       | POST /rpc/create_event       | p_profile_id, p_user_id, p_title, p_event_date, p_event_time, p_platforms (jsonb), recurring params... | `event_mst` ✏️ `event_platforms` ✏️ `event_recurring` ✏️                   | [SQL](../functions/events/create_event.md)       | [Doc](events/create_event.md)       |
+| `get_event_list`     | POST /rpc/get_event_list     | p_date, p_device_ip                                                                                    | `event_mst` 👁️ `event_platforms` 👁️ `creator_profiles` 👁️ `follows` 👁️ | [SQL](../functions/events/get_event_list.md)     | [Doc](events/get_event_list.md)     |
+| `get_profile_events` | POST /rpc/get_profile_events | p_profile_id, p_week_start                                                                             | `event_mst` 👁️ `event_platforms` 👁️ `platforms` 👁️                      | [SQL](../functions/events/get_profile_events.md) | [Doc](events/get_profile_events.md) |
 
 **Tables involved:** [`event_mst`](database/tables/08_event_mst.md) · [`event_platforms`](database/tables/09_event_platforms.md) · [`event_recurring`](database/tables/13_event_recurring.md) · [`creator_profiles`](database/tables/05_creator_profiles.md)
 
@@ -122,13 +122,13 @@
 
 ## 👥 Follow
 
-| SP | Endpoint | Input | Tables | SQL | Doc |
-|---|---|---|---|---|---|
-| `follow_creator` | POST /rpc/follow_creator | p_user_id, p_profile_id | `follows` ✏️ `users` 👁️ | [SQL](../functions/follow/follow_creator.md) | [Doc](follow/follow_creator.md) |
-| `unfollow_creator` | POST /rpc/unfollow_creator | p_user_id, p_profile_id | `follows` ✏️ | [SQL](../functions/follow/unfollow_creator.md) | [Doc](follow/unfollow_creator.md) |
-| `get_following_list` | POST /rpc/get_following_list | p_user_id | `follows` 👁️ `creator_profiles` 👁️ `creator_platform_accounts` 👁️ | [SQL](../functions/follow/get_following_list.md) | [Doc](follow/get_following_list.md) |
-| `get_followers_list` | POST /rpc/get_followers_list | p_profile_id | `follows` 👁️ `users` 👁️ | [SQL](../functions/follow/get_followers_list.md) | [Doc](follow/get_followers_list.md) |
-| `get_creators` | GET /rpc/get_creators | none | `creator_profiles` 👁️ `creator_platform_accounts` 👁️ `follows` 👁️ | [SQL](../functions/follow/get_creators.md) | [Doc](follow/get_creators.md) |
+| SP                   | Endpoint                     | Input                   | Tables                                                               | SQL                                              | Doc                                 |
+| -------------------- | ---------------------------- | ----------------------- | -------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------- |
+| `follow_creator`     | POST /rpc/follow_creator     | p_user_id, p_profile_id | `follows` ✏️ `users` 👁️                                             | [SQL](../functions/follow/follow_creator.md)     | [Doc](follow/follow_creator.md)     |
+| `unfollow_creator`   | POST /rpc/unfollow_creator   | p_user_id, p_profile_id | `follows` ✏️                                                         | [SQL](../functions/follow/unfollow_creator.md)   | [Doc](follow/unfollow_creator.md)   |
+| `get_following_list` | POST /rpc/get_following_list | p_user_id               | `follows` 👁️ `creator_profiles` 👁️ `creator_platform_accounts` 👁️ | [SQL](../functions/follow/get_following_list.md) | [Doc](follow/get_following_list.md) |
+| `get_followers_list` | POST /rpc/get_followers_list | p_profile_id            | `follows` 👁️ `users` 👁️                                            | [SQL](../functions/follow/get_followers_list.md) | [Doc](follow/get_followers_list.md) |
+| `get_creators`       | GET /rpc/get_creators        | none                    | `creator_profiles` 👁️ `creator_platform_accounts` 👁️ `follows` 👁️ | [SQL](../functions/follow/get_creators.md)       | [Doc](follow/get_creators.md)       |
 
 **Tables involved:** [`follows`](database/tables/10_follows.md) · [`users`](database/tables/02_users.md) · [`creator_profiles`](database/tables/05_creator_profiles.md) · [`creator_platform_accounts`](database/tables/06_creator_platform_accounts.md)
 
@@ -161,21 +161,21 @@
 
 Every table with the SPs that read (👁️) or write (✏️) it.
 
-| Table | Doc | Schema | SPs |
-|---|---|---|---|
-| `roles` | [Doc](database/tables/01_roles.md) | [Schema](../schema/tables/01_roles.md) | `is_creator` ✏️ · `create_profile` 👁️ |
-| `users` | [Doc](database/tables/02_users.md) | [Schema](../schema/tables/02_users.md) | `register` ✏️ · `signup` ✏️ · `login` 👁️ · `is_creator` ✏️ · `create_profile` 👁️ · `get_profile_by_userid` 👁️ · `submit_platform` 👁️ · `submit_tags` 👁️ · `follow_creator` 👁️ · `get_followers_list` 👁️ |
-| `platforms` | [Doc](database/tables/03_platforms.md) | [Schema](../schema/tables/03_platforms.md) | `get_all_platforms` 👁️ · `create_profile` 👁️ · `update_profile` 👁️ · `submit_platform` 👁️ · `get_event_list` 👁️ · `get_profile_events` 👁️ · `search_events` 👁️ · `get_creators` 👁️ · `get_following_list` 👁️ |
-| `tags` | [Doc](database/tables/04_tags.md) | [Schema](../schema/tables/04_tags.md) | `get_all_tags` 👁️ · `create_profile` 👁️ · `update_profile` 👁️ · `submit_tags` 👁️ |
-| `creator_profiles` | [Doc](database/tables/05_creator_profiles.md) | [Schema](../schema/tables/05_creator_profiles.md) | `create_profile` ✏️ · `update_profile` ✏️ · `get_user_profiles` 👁️ · `get_profile_by_id` 👁️ · `get_profile_by_username` 👁️ · `get_profile_by_userid` 👁️ · `get_creators` 👁️ · `follow_creator` 👁️ · `get_following_list` 👁️ · `get_event_list` 👁️ · `get_profile_events` 👁️ · `search_profiles` 👁️ · `search_events` 👁️ |
-| `creator_platform_accounts` | [Doc](database/tables/06_creator_platform_accounts.md) | [Schema](../schema/tables/06_creator_platform_accounts.md) | `create_profile` ✏️ · `update_profile` ✏️ · `get_profile_by_id` 👁️ · `get_profile_by_username` 👁️ · `get_profile_by_userid` 👁️ · `get_creators` 👁️ · `get_following_list` 👁️ · `search_profiles` 👁️ |
-| `profile_tags` | [Doc](database/tables/07_profile_tags.md) | [Schema](../schema/tables/07_profile_tags.md) | `create_profile` ✏️ · `update_profile` ✏️ · `get_profile_by_id` 👁️ · `get_profile_by_username` 👁️ · `get_profile_by_userid` 👁️ |
-| `event_mst` | [Doc](database/tables/08_event_mst.md) | [Schema](../schema/tables/08_event_mst.md) | `create_event` ✏️ · `get_event_list` 👁️ · `get_profile_events` 👁️ · `search_events` 👁️ |
-| `event_platforms` | [Doc](database/tables/09_event_platforms.md) | [Schema](../schema/tables/09_event_platforms.md) | `create_event` ✏️ · `get_event_list` 👁️ · `get_profile_events` 👁️ · `search_events` 👁️ |
-| `follows` | [Doc](database/tables/10_follows.md) | [Schema](../schema/tables/10_follows.md) | `follow_creator` ✏️ · `unfollow_creator` ✏️ · `get_following_list` 👁️ · `get_followers_list` 👁️ · `get_creators` 👁️ · `get_profile_by_id` 👁️ · `get_profile_by_username` 👁️ · `get_profile_by_userid` 👁️ · `get_event_list` 👁️ |
-| `user_preferred_platforms` | [Doc](database/tables/11_user_preferred_platforms.md) | [Schema](../schema/tables/11_user_preferred_platforms.md) | `submit_platform` ✏️ |
-| `user_interests` | [Doc](database/tables/12_user_interests.md) | [Schema](../schema/tables/12_user_interests.md) | `submit_tags` ✏️ |
-| `event_recurring` | [Doc](database/tables/13_event_recurring.md) | [Schema](../schema/tables/13_event_recurring.md) | `create_event` ✏️ |
+| Table                       | Doc                                                    | Schema                                                     | SPs                                                                                                                                                                                                                                                                                                                                |
+| --------------------------- | ------------------------------------------------------ | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `roles`                     | [Doc](database/tables/01_roles.md)                     | [Schema](../schema/tables/01_roles.md)                     | `is_creator` ✏️ · `create_profile` 👁️                                                                                                                                                                                                                                                                                             |
+| `users`                     | [Doc](database/tables/02_users.md)                     | [Schema](../schema/tables/02_users.md)                     | `register` ✏️ · `signup` ✏️ · `login` 👁️ · `is_creator` ✏️ · `create_profile` 👁️ · `get_profile_by_userid` 👁️ · `submit_platform` 👁️ · `submit_tags` 👁️ · `follow_creator` 👁️ · `get_followers_list` 👁️                                                                                                                     |
+| `platforms`                 | [Doc](database/tables/03_platforms.md)                 | [Schema](../schema/tables/03_platforms.md)                 | `get_all_platforms` 👁️ · `create_profile` 👁️ · `update_profile` 👁️ · `submit_platform` 👁️ · `get_event_list` 👁️ · `get_profile_events` 👁️ · `search_events` 👁️ · `get_creators` 👁️ · `get_following_list` 👁️                                                                                                              |
+| `tags`                      | [Doc](database/tables/04_tags.md)                      | [Schema](../schema/tables/04_tags.md)                      | `get_all_tags` 👁️ · `create_profile` 👁️ · `update_profile` 👁️ · `submit_tags` 👁️                                                                                                                                                                                                                                               |
+| `creator_profiles`          | [Doc](database/tables/05_creator_profiles.md)          | [Schema](../schema/tables/05_creator_profiles.md)          | `create_profile` ✏️ · `update_profile` ✏️ · `get_user_profiles` 👁️ · `get_profile_by_id` 👁️ · `get_profile_by_username` 👁️ · `get_profile_by_userid` 👁️ · `get_creators` 👁️ · `follow_creator` 👁️ · `get_following_list` 👁️ · `get_event_list` 👁️ · `get_profile_events` 👁️ · `search_profiles` 👁️ · `search_events` 👁️ |
+| `creator_platform_accounts` | [Doc](database/tables/06_creator_platform_accounts.md) | [Schema](../schema/tables/06_creator_platform_accounts.md) | `create_profile` ✏️ · `update_profile` ✏️ · `get_profile_by_id` 👁️ · `get_profile_by_username` 👁️ · `get_profile_by_userid` 👁️ · `get_creators` 👁️ · `get_following_list` 👁️ · `search_profiles` 👁️                                                                                                                          |
+| `profile_tags`              | [Doc](database/tables/07_profile_tags.md)              | [Schema](../schema/tables/07_profile_tags.md)              | `create_profile` ✏️ · `update_profile` ✏️ · `get_profile_by_id` 👁️ · `get_profile_by_username` 👁️ · `get_profile_by_userid` 👁️                                                                                                                                                                                                  |
+| `event_mst`                 | [Doc](database/tables/08_event_mst.md)                 | [Schema](../schema/tables/08_event_mst.md)                 | `create_event` ✏️ · `get_event_list` 👁️ · `get_profile_events` 👁️ · `search_events` 👁️                                                                                                                                                                                                                                          |
+| `event_platforms`           | [Doc](database/tables/09_event_platforms.md)           | [Schema](../schema/tables/09_event_platforms.md)           | `create_event` ✏️ · `get_event_list` 👁️ · `get_profile_events` 👁️ · `search_events` 👁️                                                                                                                                                                                                                                          |
+| `follows`                   | [Doc](database/tables/10_follows.md)                   | [Schema](../schema/tables/10_follows.md)                   | `follow_creator` ✏️ · `unfollow_creator` ✏️ · `get_following_list` 👁️ · `get_followers_list` 👁️ · `get_creators` 👁️ · `get_profile_by_id` 👁️ · `get_profile_by_username` 👁️ · `get_profile_by_userid` 👁️ · `get_event_list` 👁️                                                                                              |
+| `user_preferred_platforms`  | [Doc](database/tables/11_user_preferred_platforms.md)  | [Schema](../schema/tables/11_user_preferred_platforms.md)  | `submit_platform` ✏️                                                                                                                                                                                                                                                                                                               |
+| `user_interests`            | [Doc](database/tables/12_user_interests.md)            | [Schema](../schema/tables/12_user_interests.md)            | `submit_tags` ✏️                                                                                                                                                                                                                                                                                                                   |
+| `event_recurring`           | [Doc](database/tables/13_event_recurring.md)           | [Schema](../schema/tables/13_event_recurring.md)           | `create_event` ✏️                                                                                                                                                                                                                                                                                                                  |
 
 ---
 
