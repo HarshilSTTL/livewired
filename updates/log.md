@@ -37,6 +37,15 @@
 
 ---
 
+### [2026-03-31 07:00] | DOCS | Created docs/API_INDEX.md — master cross-reference for all APIs
+
+Full index linking every SP to its tables, SQL file, and API doc.
+Includes: API group tables (24 SPs), table index (13 tables with SP usage), file map, legend.
+
+**File created:** `docs/API_INDEX.md`
+
+---
+
 ### [2026-03-31 06:00] | SP | get_profile_events — 7-day event window for profile view page
 
 **SP:** `get_profile_events` (POST /rpc/get_profile_events)
