@@ -8,6 +8,39 @@
 
 ## 2026-04-01
 
+### [2026-04-01 11:00] | FIX | create_event + get_profile_events — switch to pre-generated occurrence rows
+
+**Problem:** The previous fix (dynamic expansion in get_profile_events) was replaced with a
+pre-generation approach at user request. When a recurring event is created, individual rows
+are now inserted into event_mst for every occurrence date — no runtime expansion is needed.
+
+**Schema change:** `event_mst` gets a new column `parent_event_id uuid NULL REFERENCES event_mst(event_id) ON DELETE CASCADE`.
+- Parent/template row: `parent_event_id = NULL`, `is_recurring = true`
+- Child occurrence rows: `parent_event_id = <parent uuid>`, `is_recurring = true`, each with their specific `event_date`
+
+**create_event changes:**
+- After inserting the parent row + event_platforms + event_recurring, loops through all occurrence dates
+- `weekly` type: per day, find first occurrence on/after start_date, step +7×interval days until end_date
+- `first` type: per day, per month — find first occurrence of that weekday in the month
+- `last` type: per day, per month — find last occurrence of that weekday in the month
+- If recurring_end_date is null, generates up to 1 year from start_date
+- event_platforms stored on parent only — children inherit via COALESCE in get_profile_events
+
+**get_profile_events changes:**
+- Reverted to simple date-range query
+- Filter: `WHERE event_date BETWEEN ... AND (is_recurring = false OR parent_event_id IS NOT NULL)`
+- Platform subquery: `WHERE ep.event_id = COALESCE(e.parent_event_id, e.event_id)`
+
+**Files changed:**
+- `schema/tables/08_event_mst.md` — added parent_event_id column + comments
+- `docs/database/tables/08_event_mst.md` — documented parent/child row model with example table
+- `functions/events/create_event.md` — added occurrence generation loop (weekly + first + last)
+- `functions/events/get_profile_events.md` — simplified back to plain date-range query
+- `docs/api/events/create_event.md` — documented pre-generation, algorithm, example table
+- `docs/api/events/get_profile_events.md` — updated logic flow + field notes
+
+---
+
 ### [2026-04-01 10:00] | FIX | get_profile_events — recurring events now expand correctly across weeks
 
 **Root cause:** `get_profile_events` was querying `event_mst` by exact `event_date` only.

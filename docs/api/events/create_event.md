@@ -10,8 +10,52 @@
 ## Overview
 
 Creates a new event for a creator profile and optionally links it to streaming platforms.
-If the event is recurring, a row is also inserted into `event_recurring` with the full
-schedule details. All three tables are written atomically.
+
+For **recurring events**, the SP automatically pre-generates individual rows in `event_mst`
+for every matching date between `recurring_start_date` and `recurring_end_date`. This means
+querying events for any specific date will find them directly — no runtime expansion required.
+
+---
+
+## Recurring Event Pre-generation
+
+When `p_is_recurring = true`, `create_event` inserts:
+
+| What | `parent_event_id` | Purpose |
+|---|---|---|
+| **1 parent row** in `event_mst` | `NULL` | Stores the event definition (title, time, type) |
+| **1 row** in `event_recurring` | — | Stores the recurrence rule (days, type, interval, dates) |
+| **1 row** in `event_platforms` per platform | — | Stored on parent; all children inherit |
+| **N child rows** in `event_mst` | `<parent event_id>` | One row per computed occurrence date |
+
+Each child row has the correct `event_date` for its occurrence. `get_profile_events` returns
+child rows directly by date — no calculation at query time.
+
+If `p_recurring_end_date` is not provided, occurrences are generated **up to 1 year** from `p_recurring_start_date`.
+
+### Occurrence date generation algorithm
+
+| `recurring_type` | How occurrence dates are computed |
+|---|---|
+| `weekly` | For each day in `recurring_days`: find first occurrence of that weekday on/after `start_date`, then step +7×interval days until `end_date` |
+| `first` | For each day in `recurring_days`: find the first occurrence of that weekday in each calendar month from `start_date` to `end_date` |
+| `last` | For each day in `recurring_days`: find the last occurrence of that weekday in each calendar month |
+
+### Example — weekly / Mon+Wed / every 2 weeks / Apr–May 2026
+
+`p_recurring_days=["Mon","Wed"]`, `p_recurring_type="weekly"`, `p_recurring_interval=2`, `p_recurring_start_date=2026-04-06`
+
+Rows inserted into `event_mst`:
+
+| Row | `parent_event_id` | `event_date` |
+|---|---|---|
+| Parent | NULL | 2026-04-06 (p_event_date) |
+| Child 1 | parent id | 2026-04-06 (Mon) |
+| Child 2 | parent id | 2026-04-08 (Wed) |
+| Child 3 | parent id | 2026-04-20 (Mon — skip week) |
+| Child 4 | parent id | 2026-04-22 (Wed — skip week) |
+| Child 5 | parent id | 2026-05-04 (Mon) |
+| ... | parent id | ... |
 
 ---
 
@@ -40,7 +84,7 @@ schedule details. All three tables are written atomically.
 | `p_recurring_type` | text | ✅ | `'weekly'` · `'first'` · `'last'` |
 | `p_recurring_interval` | int | ✅ when type=weekly | 1–12 weeks. Must be null for `first`/`last` |
 | `p_recurring_start_date` | date | ✅ | When the recurring schedule begins |
-| `p_recurring_end_date` | date | ❌ | When recurring ends (null = open-ended) |
+| `p_recurring_end_date` | date | ❌ | When recurring ends. If omitted, generates 1 year of occurrences |
 
 ### p_platforms format
 
@@ -56,7 +100,7 @@ schedule details. All three tables are written atomically.
 ## `recurring_type` + `recurring_interval` Mapping
 
 | UI (Repeats dropdown) | `p_recurring_type` | `p_recurring_interval` |
-| --------------------- | ------------------ | ---------------------- |
+|-----------------------|--------------------|------------------------|
 | Every week            | `"weekly"`         | `1`                    |
 | Every 2nd week        | `"weekly"`         | `2`                    |
 | Every 3rd week        | `"weekly"`         | `3`                    |
@@ -127,10 +171,13 @@ schedule details. All three tables are written atomically.
   "status":  true,
   "message": "Event created successfully",
   "data": {
-    "event_id": "generated-uuid"
+    "event_id": "parent-event-uuid"
   }
 }
 ```
+
+> `event_id` returned is the **parent** event_id. All child occurrences link back to it
+> via `parent_event_id`. Use this ID to update or delete the entire recurring series.
 
 ### Error
 ```json
@@ -180,12 +227,17 @@ schedule details. All three tables are written atomically.
    ├── If type='first'/'last': interval must be null
    ├── recurring_start_date: required
    └── recurring_end_date: if provided, must be > start_date
-6. INSERT INTO event_mst → returns event_id
+6. INSERT parent row into event_mst (parent_event_id = NULL) → returns v_event_id
 7. If p_platforms non-null/non-empty:
-   └── INSERT INTO event_platforms (platform_id stored as int4)
+   └── INSERT into event_platforms (on parent only; children inherit)
 8. If p_is_recurring = true:
-   └── INSERT INTO event_recurring
-9. RETURN success with event_id
+   ├── INSERT into event_recurring (recurrence rule for parent)
+   ├── v_safe_end = COALESCE(p_recurring_end_date, p_recurring_start_date + 1 year)
+   └── Generate child occurrence rows:
+       weekly → FOREACH day: find first_occ >= start, WHILE occ <= safe_end: INSERT, advance +7×interval
+       first  → FOREACH day: WHILE month <= safe_end: INSERT first weekday of month (if in range), advance month
+       last   → FOREACH day: WHILE month <= safe_end: INSERT last weekday of month (if in range), advance month
+9. RETURN success with parent event_id
 ```
 
 ---
@@ -193,7 +245,8 @@ schedule details. All three tables are written atomically.
 ## Related
 
 - [`update_event`](update_event.md) — update event + recurring schedule
-- [`delete_event`](delete_event.md) — delete event (cascades to event_recurring)
+- [`delete_event`](delete_event.md) — delete event (cascades to all child occurrences)
+- [`get_profile_events`](get_profile_events.md) — fetch events for a week (reads pre-generated child rows)
 - [`get_event_list`](get_event_list.md) — read events by date
 - [`event_mst` table](../../database/tables/08_event_mst.md)
 - [`event_platforms` table](../../database/tables/09_event_platforms.md)

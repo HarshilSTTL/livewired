@@ -5,7 +5,6 @@
 -- Group:    events
 -- Endpoint: POST /rpc/create_event
 -- Tables:   event_mst (INSERT), event_platforms (INSERT), event_recurring (INSERT if recurring)
--- Note:     event_link column removed — stream URLs live in event_platforms only
 -- Doc:      docs/api/events/create_event.md
 --
 -- Notes:
@@ -13,9 +12,24 @@
 --   • Validate platform IDs against platforms.plat_id (int8) using ::bigint cast.
 --   • Ownership check: profile must exist, belong to p_user_id, and be 'active'.
 --   • p_platforms null/[] → no event_platforms rows created.
---   • p_is_recurring = true → recurring params required + INSERT into event_recurring.
---   • recurring_type = 'weekly' → recurring_interval required (1–12).
---   • recurring_type = 'first' or 'last' → recurring_interval must be null.
+--
+-- Recurring event pre-generation:
+--   When p_is_recurring = true, create_event inserts:
+--     1. ONE parent row in event_mst (parent_event_id = NULL) — stores the definition
+--     2. event_platforms rows on the parent only — children inherit
+--     3. ONE row in event_recurring — stores the recurrence rule
+--     4. N child rows in event_mst (parent_event_id = parent event_id) —
+--        one per computed occurrence date between recurring_start_date and recurring_end_date
+--
+--   Child rows have individual event_date values but share all other fields with the parent.
+--   If recurring_end_date is null, occurrences are generated up to 1 year from start_date.
+--
+-- Occurrence date generation:
+--   weekly → for each day in recurring_days, find first occurrence on/after start_date,
+--            then add (7 × interval) days per step until end_date
+--   first  → for each day in recurring_days, find the first occurrence of that weekday
+--            in each calendar month between start_date and end_date
+--   last   → same but last occurrence of the weekday in each calendar month
 
 CREATE OR REPLACE FUNCTION create_event(
     p_profile_id             uuid,
@@ -41,10 +55,22 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-    v_event_id    uuid;
-    v_platform    jsonb;
-    v_platform_id bigint;
-    v_stream_url  text;
+    v_event_id           uuid;
+    v_platform           jsonb;
+    v_platform_id        bigint;
+    v_stream_url         text;
+
+    -- Recurring generation variables
+    v_safe_end           date;
+    v_day_name           text;
+    v_dow_target         int;
+    v_dow_start          int;
+    v_days_ahead         int;
+    v_first_occ          date;
+    v_occ_date           date;
+    v_month_start        date;
+    v_month_end          date;
+    v_dow_month_end      int;
 BEGIN
 
     -- ── Null guards ───────────────────────────────────────────────────────────
@@ -127,7 +153,6 @@ BEGIN
                 RETURN json_build_object('status', false, 'message', 'recurring_interval must be between 1 and 12');
             END IF;
         ELSE
-            -- first / last — interval must not be set
             IF p_recurring_interval IS NOT NULL THEN
                 RETURN json_build_object('status', false, 'message', 'recurring_interval must be null for first/last type');
             END IF;
@@ -145,23 +170,30 @@ BEGIN
 
     END IF;
 
-    -- ── Insert into event_mst ─────────────────────────────────────────────────
+    -- ── Insert parent row into event_mst ──────────────────────────────────────
+    -- For recurring events this is the "template" row (parent_event_id = NULL).
+    -- It stores the definition (title, time, platforms) but is excluded from
+    -- date-based queries by get_profile_events.
     INSERT INTO event_mst (
-        event_id, profile_id, title, description,
+        event_id, profile_id, parent_event_id,
+        title, description,
         event_date, event_time,
         livestream, video, is_recurring,
         created_at, updated_at
     )
     VALUES (
-        gen_random_uuid(), p_profile_id, p_title, p_description,
+        gen_random_uuid(), p_profile_id, NULL,
+        p_title, p_description,
         p_event_date, p_event_time,
         COALESCE(p_livestream, false), COALESCE(p_video, false), COALESCE(p_is_recurring, false),
         now(), now()
     )
     RETURNING event_id INTO v_event_id;
 
-    -- ── Insert into event_platforms ───────────────────────────────────────────
+    -- ── Insert into event_platforms (parent only) ─────────────────────────────
     -- ⚠️ platform_id column is int4 — cast ::int4 on INSERT
+    -- Child occurrence rows do NOT get event_platforms rows — they inherit from
+    -- the parent via COALESCE(parent_event_id, event_id) in get_profile_events.
     IF p_platforms IS NOT NULL AND jsonb_array_length(p_platforms) > 0 THEN
         FOR v_platform IN SELECT * FROM jsonb_array_elements(p_platforms)
         LOOP
@@ -177,7 +209,7 @@ BEGIN
         END LOOP;
     END IF;
 
-    -- ── Insert into event_recurring ───────────────────────────────────────────
+    -- ── Insert recurrence rule into event_recurring ───────────────────────────
     IF COALESCE(p_is_recurring, false) = true THEN
         INSERT INTO event_recurring (
             id, event_id, recurring_days, recurring_type,
@@ -189,7 +221,105 @@ BEGIN
             p_recurring_interval, p_recurring_start_date, p_recurring_end_date,
             now()
         );
-    END IF;
+
+        -- ── Generate child occurrence rows ────────────────────────────────────
+        -- Safety end cap: if no end date given, generate up to 1 year from start.
+        v_safe_end := COALESCE(p_recurring_end_date, p_recurring_start_date + INTERVAL '1 year');
+
+        IF p_recurring_type = 'weekly' THEN
+
+            -- For each selected day, compute its first occurrence on/after start_date,
+            -- then step forward by (7 × interval) days until v_safe_end.
+            FOREACH v_day_name IN ARRAY p_recurring_days LOOP
+
+                v_dow_target := CASE v_day_name
+                    WHEN 'Sun' THEN 0 WHEN 'Mon' THEN 1 WHEN 'Tue' THEN 2
+                    WHEN 'Wed' THEN 3 WHEN 'Thu' THEN 4 WHEN 'Fri' THEN 5
+                    WHEN 'Sat' THEN 6
+                END;
+                v_dow_start  := EXTRACT(DOW FROM p_recurring_start_date)::int;
+                v_days_ahead := (7 + v_dow_target - v_dow_start) % 7;
+                v_first_occ  := p_recurring_start_date + v_days_ahead;
+
+                v_occ_date := v_first_occ;
+                WHILE v_occ_date <= v_safe_end LOOP
+                    INSERT INTO event_mst (
+                        event_id, profile_id, parent_event_id,
+                        title, description,
+                        event_date, event_time,
+                        livestream, video, is_recurring,
+                        created_at, updated_at
+                    )
+                    VALUES (
+                        gen_random_uuid(), p_profile_id, v_event_id,
+                        p_title, p_description,
+                        v_occ_date, p_event_time,
+                        COALESCE(p_livestream, false), COALESCE(p_video, false), true,
+                        now(), now()
+                    );
+                    v_occ_date := v_occ_date + (7 * p_recurring_interval);
+                END LOOP;
+
+            END LOOP;
+
+        ELSIF p_recurring_type IN ('first', 'last') THEN
+
+            -- For each selected day, walk month-by-month and find the first or last
+            -- occurrence of that weekday in each calendar month.
+            FOREACH v_day_name IN ARRAY p_recurring_days LOOP
+
+                v_dow_target  := CASE v_day_name
+                    WHEN 'Sun' THEN 0 WHEN 'Mon' THEN 1 WHEN 'Tue' THEN 2
+                    WHEN 'Wed' THEN 3 WHEN 'Thu' THEN 4 WHEN 'Fri' THEN 5
+                    WHEN 'Sat' THEN 6
+                END;
+
+                v_month_start := DATE_TRUNC('month', p_recurring_start_date)::date;
+
+                WHILE v_month_start <= v_safe_end LOOP
+
+                    IF p_recurring_type = 'first' THEN
+                        -- First occurrence of v_dow_target in v_month_start's month
+                        v_days_ahead := (7 + v_dow_target
+                                           - EXTRACT(DOW FROM v_month_start)::int) % 7;
+                        v_occ_date := v_month_start + v_days_ahead;
+                    ELSE
+                        -- Last occurrence of v_dow_target in v_month_start's month
+                        v_month_end     := (DATE_TRUNC('month', v_month_start)
+                                            + INTERVAL '1 month')::date - 1;
+                        v_dow_month_end := EXTRACT(DOW FROM v_month_end)::int;
+                        v_occ_date      := v_month_end
+                                         - ((7 + v_dow_month_end - v_dow_target) % 7);
+                    END IF;
+
+                    -- Only insert if the occurrence falls within [start_date, safe_end]
+                    IF v_occ_date >= p_recurring_start_date AND v_occ_date <= v_safe_end THEN
+                        INSERT INTO event_mst (
+                            event_id, profile_id, parent_event_id,
+                            title, description,
+                            event_date, event_time,
+                            livestream, video, is_recurring,
+                            created_at, updated_at
+                        )
+                        VALUES (
+                            gen_random_uuid(), p_profile_id, v_event_id,
+                            p_title, p_description,
+                            v_occ_date, p_event_time,
+                            COALESCE(p_livestream, false), COALESCE(p_video, false), true,
+                            now(), now()
+                        );
+                    END IF;
+
+                    -- Advance to next month
+                    v_month_start := (DATE_TRUNC('month', v_month_start)
+                                      + INTERVAL '1 month')::date;
+                END LOOP;
+
+            END LOOP;
+
+        END IF; -- recurring type
+
+    END IF; -- is_recurring
 
     RETURN json_build_object(
         'status',  true,
