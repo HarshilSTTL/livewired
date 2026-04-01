@@ -17,7 +17,7 @@ security definer
 set search_path = public
 as $$
 declare
-    v_user_id bigint;
+    v_user_id uuid;
 
 begin
     -- ✅ Email validation

@@ -29,7 +29,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-    v_user_id bigint;
+    v_user_id uuid;
 BEGIN
 
     -- ── Null / empty guard ────────────────────────────────────────────────────

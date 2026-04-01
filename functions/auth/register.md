@@ -13,7 +13,7 @@ create or replace function register(
 )
 returns json as $$
 declare
-    v_user_id bigint;
+    v_user_id uuid;
 begin
     if exists (
         select 1 from users u where u.email = email

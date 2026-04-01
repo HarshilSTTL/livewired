@@ -6,7 +6,7 @@
 -- Doc: docs/database/tables/02_users.md
 
 CREATE TABLE IF NOT EXISTS public.users (
-    id                int8        PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id                uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
     created_at        timestamptz DEFAULT now(),
     email             text        UNIQUE,                -- unique, nullable
     is_creator        bool        DEFAULT false,         -- legacy; role_id is used by SPs

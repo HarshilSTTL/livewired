@@ -48,7 +48,7 @@ succeeds and you have the user's email from the Supabase session.
   "status":  true,
   "message": "Account created successfully",
   "data": {
-    "user_id": 42
+    "user_id": "178fa2d8-97a4-49e0-aa2c-763f35f36634"
   }
 }
 ```
@@ -59,7 +59,7 @@ succeeds and you have the user's email from the Supabase session.
   "status":  true,
   "message": "Login successful",
   "data": {
-    "user_id": 42
+    "user_id": "178fa2d8-97a4-49e0-aa2c-763f35f36634"
   }
 }
 ```

@@ -6,7 +6,7 @@
 
 | Column | Type | Default | Nullable | Constraints | Notes |
 |--------|------|---------|----------|-------------|-------|
-| id | int8 | — | No | PRIMARY KEY | Auto-generated user ID |
+| id | uuid | gen_random_uuid() | No | PRIMARY KEY | Auto-generated user ID |
 | created_at | timestamptz | now() | Yes | — | Registration timestamp |
 | email | text | NULL | Yes | UNIQUE | Login email — unique across all users |
 | is_creator | bool | false | No | — | Legacy field — role now tracked via `role_id` |
