@@ -5,7 +5,6 @@
 -- Group: Follow
 -- Endpoint: POST /rpc/follow_creator
 -- Doc: docs/api/follow/follow_creator.md
--- ⚠️ Note: p_device_ip is referenced in body but NOT in function signature
 
 CREATE OR REPLACE FUNCTION follow_creator(
     p_user_id    UUID,
@@ -71,13 +70,6 @@ BEGIN
     -- Fresh follow → insert
     INSERT INTO public.follows (user_id, profile_id, is_active, created_at)
     VALUES (p_user_id, p_profile_id, true, now());
-    -- Update device ip
-    IF p_device_ip IS NOT NULL THEN
-        UPDATE public.users
-        SET updated_device_ip = p_device_ip,
-            updated_at        = now()
-        WHERE id = p_user_id;
-    END IF;
     RETURN json_build_object('status', true, 'message', 'Creator followed successfully');
 EXCEPTION
     WHEN OTHERS THEN
