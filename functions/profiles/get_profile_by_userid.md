@@ -1,18 +1,18 @@
-# `get_profiles_by_userid`
+# `get_profile_by_userid`
 
 ```sql
--- Function: get_profiles_by_userid
+-- Function: get_profile_by_userid
 -- Group:    profiles
--- Endpoint: POST /rpc/get_profiles_by_userid
+-- Endpoint: POST /rpc/get_profile_by_userid
 -- Tables:   creator_profiles (SELECT), creator_platform_accounts (SELECT), profile_tags (SELECT), follows (COUNT)
--- Doc:      docs/api/profiles/get_profiles_by_userid.md
+-- Doc:      docs/api/profiles/get_profile_by_userid.md
 --
 -- Purpose:  Returns ALL profiles belonging to a given user_id.
 --           Used for the "Select Profile" dropdown and profile switcher in the app.
 --           Returns all statuses (active, suspended, deleted) so the creator sees their full list.
 --           Default profile is always first (ORDER BY is_default DESC).
 
-CREATE OR REPLACE FUNCTION get_profiles_by_userid(
+CREATE OR REPLACE FUNCTION get_profile_by_userid(
     p_user_id uuid
 )
 RETURNS JSON

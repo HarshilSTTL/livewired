@@ -1,8 +1,8 @@
-# SP: `get_profiles_by_userid`
+# SP: `get_profile_by_userid`
 
-**Endpoint:** `POST /rpc/get_profiles_by_userid`
+**Endpoint:** `POST /rpc/get_profile_by_userid`
 **Group:** Profile
-**SQL:** [`functions/profiles/get_profiles_by_userid.md`](../../../functions/profiles/get_profiles_by_userid.md)
+**SQL:** [`functions/profiles/get_profile_by_userid.md`](../../../functions/profiles/get_profile_by_userid.md)
 **Tables read:** `creator_profiles` · `creator_platform_accounts` · `profile_tags` · `follows`
 
 ---
@@ -125,9 +125,9 @@ dropdown** and profile switcher in the app. Returns all statuses (`active`, `sus
 
 ---
 
-## Key Differences vs `get_profiles_by_username`
+## Key Differences vs `get_profile_by_username`
 
-| Aspect | `get_profiles_by_userid` | `get_profiles_by_username` |
+| Aspect | `get_profile_by_userid` | `get_profile_by_username` |
 |---|---|---|
 | Input | `p_user_id` (uuid) | `p_username` (text) |
 | Returns | Array of all profiles | Single profile object |
@@ -139,7 +139,7 @@ dropdown** and profile switcher in the app. Returns all statuses (`active`, `sus
 
 ## Related
 
-- [`get_profiles_by_username`](get_profiles_by_username.md) — single public profile by username
+- [`get_profile_by_username`](get_profile_by_username.md) — single public profile by username
 - [`create_profile`](create_profile.md) — creates a profile
 - [`update_profile`](update_profile.md) — updates a profile
 - [`creator_profiles` table](../../database/tables/05_creator_profiles.md)

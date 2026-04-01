@@ -1,8 +1,8 @@
-# SP: `get_profiles_by_username`
+# SP: `get_profile_by_username`
 
-**Endpoint:** `POST /rpc/get_profiles_by_username`
+**Endpoint:** `POST /rpc/get_profile_by_username`
 **Group:** Profile
-**SQL:** [`functions/profiles/get_profiles_by_username.md`](../../../functions/profiles/get_profiles_by_username.md)
+**SQL:** [`functions/profiles/get_profile_by_username.md`](../../../functions/profiles/get_profile_by_username.md)
 **Tables read:** `creator_profiles` · `creator_platform_accounts` · `profile_tags` · `follows`
 
 ---
@@ -77,16 +77,16 @@ follower count visibility, `followers` returns `null`.
 
 ## Response Field Notes
 
-| Field | Notes |
-|---|---|
-| `data` | Single object (not array) |
-| `followers` | `null` when `show_followers = false`; integer count otherwise |
-| `status` | Returned as-is (`active` / `suspended` / `deleted`) — UI decides display |
-| `is_default` | Not returned — irrelevant for public view |
-| `platforms` | Always array, `[]` if none |
-| `tags` | Always array, `[]` if none |
-| `avatar_url` | Nullable |
-| `bio` | Nullable |
+| Field        | Notes                                                                    |
+| ------------ | ------------------------------------------------------------------------ |
+| `data`       | Single object (not array)                                                |
+| `followers`  | `null` when `show_followers = false`; integer count otherwise            |
+| `status`     | Returned as-is (`active` / `suspended` / `deleted`) — UI decides display |
+| `is_default` | Not returned — irrelevant for public view                                |
+| `platforms`  | Always array, `[]` if none                                               |
+| `tags`       | Always array, `[]` if none                                               |
+| `avatar_url` | Nullable                                                                 |
+| `bio`        | Nullable                                                                 |
 
 ---
 
@@ -115,9 +115,9 @@ follower count visibility, `followers` returns `null`.
 
 ---
 
-## Key Differences vs `get_profiles_by_userid`
+## Key Differences vs `get_profile_by_userid`
 
-| Aspect | `get_profiles_by_username` | `get_profiles_by_userid` |
+| Aspect | `get_profile_by_username` | `get_profile_by_userid` |
 |---|---|---|
 | Input | `p_username` (text) | `p_user_id` (uuid) |
 | Returns | Single profile object | Array of all user's profiles |
@@ -129,7 +129,7 @@ follower count visibility, `followers` returns `null`.
 
 ## Related
 
-- [`get_profiles_by_userid`](get_profiles_by_userid.md) — all profiles for a user
+- [`get_profile_by_userid`](get_profile_by_userid.md) — all profiles for a user
 - [`search_profiles`](../search/search_profiles.md) — search profiles by keyword
 - [`follow_creator`](../follow/follow_creator.md) — follow this profile
 - [`creator_profiles` table](../../database/tables/05_creator_profiles.md)
