@@ -37,6 +37,24 @@
 
 ---
 
+### [2026-03-31 06:00] | SP | get_profile_events — 7-day event window for profile view page
+
+**SP:** `get_profile_events` (POST /rpc/get_profile_events)
+- Params: p_profile_id (uuid), p_week_start (date)
+- Returns all events for profile for 7 days from p_week_start (week_end = week_start + 6)
+- Each event includes platforms with logo_url (icon) + stream_url (tap to open)
+- Sorted: event_date ASC, event_time ASC — Flutter groups by date client-side
+- is_recurring flag returned so UI can show ↻ icon
+- ⚠️ event_platforms.platform_id cast ::bigint when joining platforms.plat_id
+
+**Note:** get_profile_by_id (already built) covers API 1 — returns platform logo_url + channel_url for the Links row on the profile page.
+
+**Files changed:**
+- `functions/events/get_profile_events.md` — full SP SQL
+- `docs/api/events/get_profile_events.md` — full API docs with Flutter usage + flow diagram
+
+---
+
 ### [2026-03-31 04:30] | FIX | Corrected get_profiles_by_username param + renamed get_single_profile_by_username → get_profiles_by_userid
 
 **get_profiles_by_username** — fixed param from p_user_id → p_username (returns single profile by username, public view, respects show_followers)
