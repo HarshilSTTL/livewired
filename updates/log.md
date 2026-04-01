@@ -8,6 +8,23 @@
 
 ## 2026-04-01
 
+### [2026-04-01 13:00] | FIX | get_profile_events — input changed from p_profile_id (uuid) to p_username (text)
+
+**Problem:** SP was taking p_profile_id (uuid) but callers were passing a profile name (text),
+causing the profile_id filter to fail and returning events for all profiles.
+
+**Fix:** Replaced p_profile_id uuid input with p_username text. The SP now resolves the
+username → profile_id internally via SELECT id FROM creator_profiles WHERE username = p_username,
+then filters event_mst by that resolved profile_id.
+
+**Response:** added "username" field to the data object to echo back the input.
+
+**Files changed:**
+- `functions/events/get_profile_events.md` — new param p_username, lookup block added
+- `docs/api/events/get_profile_events.md` — updated params, request example, response, errors, logic flow
+
+---
+
 ### [2026-04-01 12:00] | SCHEMA + SP | avatar_url → avatar — store Base64 instead of URL
 
 **Scope:** `creator_profiles.avatar_url` column renamed to `avatar`. Data type stays `text`

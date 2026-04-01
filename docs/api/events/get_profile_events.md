@@ -3,7 +3,7 @@
 **Endpoint:** `POST /rpc/get_profile_events`
 **Group:** Events
 **SQL:** [`functions/events/get_profile_events.md`](../../../functions/events/get_profile_events.md)
-**Tables read:** `event_mst` · `event_platforms` · `platforms`
+**Tables read:** `creator_profiles` · `event_mst` · `event_platforms` · `platforms`
 
 ---
 
@@ -30,7 +30,7 @@ parent/template row (which holds the definition but has no meaningful display da
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `p_profile_id` | uuid | ✅ | The profile whose events to fetch |
+| `p_username` | text | ✅ | The profile's username (resolved to profile_id internally) |
 | `p_week_start` | date | ✅ | First day of the week to display (`YYYY-MM-DD`) |
 
 > `p_week_start` should be the **Sunday** of the displayed week (e.g. `2026-04-05`
@@ -42,7 +42,7 @@ parent/template row (which holds the definition but has no meaningful display da
 
 ```json
 {
-  "p_profile_id": "profile-uuid",
+  "p_username":   "john_doe",
   "p_week_start": "2026-04-05"
 }
 ```
@@ -57,6 +57,7 @@ parent/template row (which holds the definition but has no meaningful display da
   "status":  true,
   "message": "Events fetched successfully",
   "data": {
+    "username":   "john_doe",
     "week_start": "2026-04-05",
     "week_end":   "2026-04-11",
     "events": [
@@ -90,6 +91,7 @@ parent/template row (which holds the definition but has no meaningful display da
   "status":  true,
   "message": "Events fetched successfully",
   "data": {
+    "username":   "john_doe",
     "week_start": "2026-04-05",
     "week_end":   "2026-04-11",
     "events": []
@@ -108,6 +110,7 @@ parent/template row (which holds the definition but has no meaningful display da
 
 | Field | Notes |
 |---|---|
+| `username` | Echoes back the username passed in |
 | `week_start` / `week_end` | Echo back the date range fetched |
 | `events` | Flat array sorted by `event_date ASC`, `event_time ASC`. Always array, never null |
 | `event_id` | The child occurrence row's own UUID (use for single-event actions) |
@@ -143,9 +146,9 @@ DateTime nextWeekStart = currentWeekStart.add(Duration(days: 7));
 
 | Message | Cause |
 |---|---|
-| `Profile ID is required` | `p_profile_id` is null |
+| `Username is required` | `p_username` is null or empty |
 | `Week start date is required` | `p_week_start` is null |
-| `Profile not found` | No profile with that ID |
+| `Profile not found` | No profile matches that username |
 | `Something went wrong` | Unhandled exception |
 
 ---
@@ -153,11 +156,12 @@ DateTime nextWeekStart = currentWeekStart.add(Duration(days: 7));
 ## Logic Flow
 
 ```
-1. Null check: p_profile_id, p_week_start
-2. Check profile exists in creator_profiles
+1. Null check: p_username, p_week_start
+2. SELECT id FROM creator_profiles WHERE username = p_username → v_profile_id
+   Return error if not found
 3. Calculate v_week_end = p_week_start + 6 days
 4. SELECT from event_mst WHERE:
-   - profile_id = p_profile_id
+   - profile_id = v_profile_id
    - event_date BETWEEN p_week_start AND v_week_end
    - (is_recurring = false OR parent_event_id IS NOT NULL)
      → returns non-recurring events + recurring child occurrences

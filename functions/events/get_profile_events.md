@@ -4,12 +4,13 @@
 -- Function: get_profile_events
 -- Group:    events
 -- Endpoint: POST /rpc/get_profile_events
--- Tables:   event_mst (SELECT), event_platforms (SELECT), platforms (SELECT)
+-- Tables:   event_mst (SELECT), event_platforms (SELECT), platforms (SELECT),
+--           creator_profiles (SELECT — username lookup)
 -- Doc:      docs/api/events/get_profile_events.md
 --
 -- Purpose:  Returns all events for a specific profile for a 7-day window
---           starting from p_week_start. Used for the calendar/event list on
---           the profile view page. Events sorted by date ASC, time ASC.
+--           starting from p_week_start. Accepts username (text) as input —
+--           the SP resolves it to the internal profile_id before querying.
 --
 -- Recurring event design:
 --   create_event pre-generates child rows in event_mst — one row per occurrence.
@@ -25,7 +26,7 @@
 -- ⚠️ event_platforms.platform_id is int4 — cast ::bigint when joining platforms.plat_id
 
 CREATE OR REPLACE FUNCTION get_profile_events(
-    p_profile_id  uuid,
+    p_username    text,
     p_week_start  date
 )
 RETURNS JSON
@@ -34,23 +35,27 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-    v_week_end date;
-    v_events   json;
+    v_profile_id  uuid;
+    v_week_end    date;
+    v_events      json;
 BEGIN
 
     -- ── Null guards ───────────────────────────────────────────────────────────
-    IF p_profile_id IS NULL THEN
-        RETURN json_build_object('status', false, 'message', 'Profile ID is required');
+    IF p_username IS NULL OR trim(p_username) = '' THEN
+        RETURN json_build_object('status', false, 'message', 'Username is required');
     END IF;
 
     IF p_week_start IS NULL THEN
         RETURN json_build_object('status', false, 'message', 'Week start date is required');
     END IF;
 
-    -- ── Existence check ───────────────────────────────────────────────────────
-    IF NOT EXISTS (
-        SELECT 1 FROM creator_profiles WHERE id = p_profile_id
-    ) THEN
+    -- ── Resolve username → profile_id ─────────────────────────────────────────
+    SELECT id INTO v_profile_id
+    FROM creator_profiles
+    WHERE username = p_username
+    LIMIT 1;
+
+    IF v_profile_id IS NULL THEN
         RETURN json_build_object('status', false, 'message', 'Profile not found');
     END IF;
 
@@ -98,7 +103,7 @@ BEGIN
     )
     INTO v_events
     FROM event_mst e
-    WHERE e.profile_id  = p_profile_id
+    WHERE e.profile_id  = v_profile_id
       AND e.event_date  BETWEEN p_week_start AND v_week_end
       AND (e.is_recurring = false OR e.parent_event_id IS NOT NULL);
 
@@ -106,6 +111,7 @@ BEGIN
         'status',  true,
         'message', 'Events fetched successfully',
         'data', json_build_object(
+            'username',   p_username,
             'week_start', p_week_start,
             'week_end',   v_week_end,
             'events',     COALESCE(v_events, '[]'::json)
