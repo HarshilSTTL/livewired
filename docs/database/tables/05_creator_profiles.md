@@ -4,19 +4,19 @@
 
 ## Columns
 
-| Column | Type | Default | Nullable | Constraints | Notes |
-|--------|------|---------|----------|-------------|-------|
-| id | uuid | gen_random_uuid() | No | PRIMARY KEY | Profile ID |
-| user_id | uuid | — | No | FK → users.id | Owner of the profile |
-| profile_name | text | — | No | — | Display name |
-| username | text | — | No | **UNIQUE** | Unique handle across all profiles |
-| avatar | text | NULL | **Yes** | — | Profile picture Base64 (nullable) |
-| bio | text | NULL | **Yes** | — | Short bio (nullable) |
-| is_default | boolean | false | No | — | Is this the primary profile? |
-| status | text | 'active' | No | — | `active` / `suspended` / `deleted` |
-| show_followers | boolean | true | No | — | Whether to show follower count publicly |
-| created_at | timestamptz | now() | Yes | — | Profile creation time |
-| updated_at | timestamptz | now() | Yes | — | Last update time |
+| Column         | Type        | Default           | Nullable | Constraints   | Notes                                   |
+| -------------- | ----------- | ----------------- | -------- | ------------- | --------------------------------------- |
+| id             | uuid        | gen_random_uuid() | No       | PRIMARY KEY   | Profile ID                              |
+| user_id        | uuid        | —                 | No       | FK → users.id | Owner of the profile                    |
+| profile_name   | text        | —                 | No       | —             | Display name                            |
+| username       | text        | —                 | No       | **UNIQUE**    | Unique handle across all profiles       |
+| avatar         | text        | NULL              | **Yes**  | —             | Profile picture Base64 (nullable)       |
+| bio            | text        | NULL              | **Yes**  | —             | Short bio (nullable)                    |
+| is_default     | boolean     | false             | No       | —             | Is this the primary profile?            |
+| status         | text        | 'active'          | No       | —             | `active` / `suspended` / `deleted`      |
+| show_followers | boolean     | true              | No       | —             | Whether to show follower count publicly |
+| created_at     | timestamptz | now()             | Yes      | —             | Profile creation time                   |
+| updated_at     | timestamptz | now()             | Yes      | —             | Last update time                        |
 
 ## Foreign Keys
 
