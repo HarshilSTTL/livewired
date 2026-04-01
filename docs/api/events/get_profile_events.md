@@ -3,7 +3,7 @@
 **Endpoint:** `POST /rpc/get_profile_events`
 **Group:** Events
 **SQL:** [`functions/events/get_profile_events.md`](../../../functions/events/get_profile_events.md)
-**Tables read:** `event_mst` · `event_platforms` · `platforms`
+**Tables read:** `event_mst` · `event_recurring` · `event_platforms` · `platforms`
 
 ---
 
@@ -17,6 +17,21 @@ so Flutter can display platform icons directly on the event card.
 
 Events are returned as a flat array sorted by `event_date ASC`, `event_time ASC`.
 Flutter groups them by date to render the day-by-day list.
+
+### Recurring event expansion
+
+For recurring events, the SP **does not rely on a single stored `event_date`**.
+Instead it reads the recurrence rule from `event_recurring` and expands it
+dynamically into every matching day within the requested week:
+
+| `recurring_type` | An occurrence is generated when… |
+|---|---|
+| `weekly` | The day-of-week matches `recurring_days` AND weeks elapsed since the first matching day ÷ `recurring_interval` = 0 |
+| `first` | The day is the **first** occurrence of that weekday in its calendar month |
+| `last` | The day is the **last** occurrence of that weekday in its calendar month |
+
+The `event_date` in the response is always the **actual occurrence date** for
+that week — not the original date stored in `event_mst`.
 
 ---
 
@@ -78,35 +93,15 @@ Flutter groups them by date to render the day-by-day list.
             "stream_url":    "https://kick.com/handle"
           }
         ]
-      },
-      {
-        "event_id":     "uuid-2",
-        "title":        "Metroid Monday!",
-        "description":  null,
-        "event_date":   "2026-03-30",
-        "event_time":   "10:00:00",
-        "livestream":   true,
-        "video":        false,
-        "is_recurring": false,
-        "platforms": [
-          {
-            "platform_id":   2,
-            "platform_name": "Rumble",
-            "logo_url":      "https://cdn.example.com/rumble.png",
-            "stream_url":    "https://rumble.com/handle"
-          },
-          {
-            "platform_id":   3,
-            "platform_name": "Twitch",
-            "logo_url":      "https://cdn.example.com/twitch.png",
-            "stream_url":    "https://twitch.tv/handle"
-          }
-        ]
       }
     ]
   }
 }
 ```
+
+> **Note:** For the recurring "Metroid Monday!" event, `event_date` is `2026-03-30`
+> (this week's Monday). Querying week of `2026-04-06` returns `event_date: 2026-04-07`
+> (next Monday), and so on — the SP computes the occurrence date fresh each time.
 
 ### No events this week
 ```json
@@ -134,6 +129,7 @@ Flutter groups them by date to render the day-by-day list.
 |---|---|
 | `week_start` / `week_end` | Echo back the date range fetched |
 | `events` | Flat array sorted by `event_date ASC`, `event_time ASC`. Always array, never null |
+| `event_date` | For non-recurring: the stored date. For recurring: the **computed occurrence date** for this specific week |
 | `is_recurring` | `true` → show ↻ icon on the event card |
 | `livestream` | `true` → show live indicator |
 | `description` | Nullable — omit or show placeholder in UI |
@@ -176,13 +172,62 @@ DateTime nextWeekStart = currentWeekStart.add(Duration(days: 7));
 1. Null check: p_profile_id, p_week_start
 2. Check profile exists in creator_profiles
 3. Calculate v_week_end = p_week_start + 6 days
-4. SELECT events WHERE profile_id = p_profile_id
-   AND event_date BETWEEN p_week_start AND v_week_end
-   ├── For each event: subquery platforms from event_platforms + platforms
-   │   ⚠️ Cast event_platforms.platform_id::bigint to join platforms.plat_id
-   └── ORDER BY event_date ASC, event_time ASC
-5. RETURN week_start, week_end, events[]
+4. Generate all 7 days in the window (generate_series)
+5. Non-recurring branch:
+   SELECT events WHERE profile_id = p_profile_id
+   AND is_recurring = false
+   AND event_date BETWEEN week_start AND week_end
+6. Recurring branch (for each of the 7 days):
+   JOIN event_mst → event_recurring
+   Filter: day within [recurring_start_date, recurring_end_date]
+   Filter: TO_CHAR(day,'Dy') = ANY(recurring_days)
+   Filter by type:
+     weekly → (day - first_occurrence_of_weekday) % (7 × interval) = 0
+     first  → day - 7 < first_day_of_month
+     last   → day + 7 > last_day_of_month
+   occurrence_date = the matched day (not e.event_date)
+7. UNION non_recurring + recurring_expanded
+8. For each event: subquery platforms from event_platforms + platforms
+   ⚠️ Cast event_platforms.platform_id::bigint to join platforms.plat_id
+9. RETURN week_start, week_end, events[] sorted by occurrence_date ASC, event_time ASC
 ```
+
+---
+
+## Recurring Type Examples
+
+### weekly, interval=1, days=['Mon'] — every Monday
+
+| Week of | Mondays returned |
+|---|---|
+| 2026-03-29 | 2026-03-30 ✅ |
+| 2026-04-05 | 2026-04-06 ✅ |
+| 2026-04-12 | 2026-04-13 ✅ |
+
+### weekly, interval=2, days=['Mon'] — every 2nd Monday (start 2026-03-30)
+
+| Week of | Mondays returned |
+|---|---|
+| 2026-03-29 | 2026-03-30 ✅ |
+| 2026-04-05 | — (skip week) |
+| 2026-04-12 | 2026-04-13 ✅ |
+| 2026-04-19 | — (skip week) |
+| 2026-04-26 | 2026-04-27 ✅ |
+
+### first, days=['Mon'] — first Monday of each month
+
+| Month | First Monday |
+|---|---|
+| April 2026 | 2026-04-06 ✅ |
+| May 2026 | 2026-05-04 ✅ |
+| June 2026 | 2026-06-01 ✅ |
+
+### last, days=['Mon'] — last Monday of each month
+
+| Month | Last Monday |
+|---|---|
+| April 2026 | 2026-04-27 ✅ |
+| May 2026 | 2026-05-25 ✅ |
 
 ---
 
@@ -202,6 +247,7 @@ User taps a profile card
 
 User swipes week left/right
  └── get_profile_events(p_profile_id, new_week_start)   ← only this re-fetches
+     Recurring events automatically appear on their correct dates for the new week
 ```
 
 > **Note:** `platforms` in `get_profile_by_id` comes from `creator_platform_accounts`
@@ -217,4 +263,5 @@ User swipes week left/right
 - [`get_event_list`](get_event_list.md) — global event feed (all profiles, date-based)
 - [`create_event`](create_event.md) — create a new event
 - [`event_mst` table](../../database/tables/08_event_mst.md)
+- [`event_recurring` table](../../database/tables/13_event_recurring.md)
 - [`event_platforms` table](../../database/tables/09_event_platforms.md)

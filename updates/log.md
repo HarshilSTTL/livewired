@@ -6,6 +6,32 @@
 
 ---
 
+## 2026-04-01
+
+### [2026-04-01 10:00] | FIX | get_profile_events — recurring events now expand correctly across weeks
+
+**Root cause:** `get_profile_events` was querying `event_mst` by exact `event_date` only.
+When a recurring event was created, only one row was inserted into `event_mst` (the first occurrence date).
+The SP never read `event_recurring`, so recurring events only appeared on their original date and were
+invisible on all subsequent weeks.
+
+**Fix:** Complete rewrite of the query. The SP now uses two branches united with UNION ALL:
+
+1. **Non-recurring branch** — unchanged: `WHERE is_recurring = false AND event_date BETWEEN week_start AND week_end`
+2. **Recurring branch** — new: uses `generate_series` to enumerate all 7 days in the window,
+   cross-joins with `event_mst JOIN event_recurring`, and expands occurrences using the recurrence rule:
+   - `weekly`: `(day - first_occurrence_of_weekday_on_or_after_start) % (7 × interval) = 0`
+   - `first`: `(day - 7) < first_day_of_month` — true only for the first occurrence of that weekday in the month
+   - `last`: `(day + 7) > last_day_of_month` — true only for the last occurrence of that weekday in the month
+
+`event_date` in the response is now the **computed occurrence date** for recurring events (not the stored template date).
+
+**Files changed:**
+- `functions/events/get_profile_events.md` — full SP rewrite with recurring expansion
+- `docs/api/events/get_profile_events.md` — updated overview, logic flow, field notes, occurrence examples
+
+---
+
 ## 2026-03-31
 
 ### [2026-03-31 05:15] | SP | get_profile_by_id — full profile detail by profile_id
