@@ -13,8 +13,9 @@
 | updated_at | timestamptz | now() | Yes | — | Last update timestamp |
 | created_device_ip | text | NULL | **Yes** | — | IP address at registration (nullable) |
 | updated_device_ip | text | NULL | **Yes** | — | IP address at last update (nullable) |
-| password | text | NULL | Yes | — | Plain/hashed password |
+| password | text | NULL | **Yes** | — | Plain/hashed password — `NULL` for Google users |
 | role_id | int8 | — | Yes | — | 1 = user, 2 = creator — set by `is_creator` SP |
+| auth_provider | text | `'email'` | Yes | — | `'email'` = registered with password · `'google'` = Google OAuth |
 
 ## Foreign Keys
 
@@ -28,6 +29,9 @@ None — `users` is a root table. `role_id` references the `roles` table logical
 - `created_device_ip` and `updated_device_ip` are both set to the same value on initial registration
 - Password is stored as-is (no bcrypt in SP layer as of current implementation)
 - `create_profile` SP checks `role_id = 2` before allowing profile creation
+- `password` is `NULL` for Google users — they authenticate via Supabase OAuth, not this column
+- `auth_provider = 'google'` users are created/found via the `google_auth` SP
+- If a Google user signs in with an email that already exists (`auth_provider = 'email'`), they get the same account — no duplicate is created
 
 ## ⚠️ Design Notes
 
@@ -38,9 +42,10 @@ None — `users` is a root table. `role_id` references the `roles` table logical
 
 | SP | How |
 |----|-----|
-| `register` | INSERT into users |
-| `signup` | INSERT into users |
-| `login` | SELECT id, email, password |
+| `register` | INSERT into users (email/password flow) |
+| `signup` | INSERT into users (email/password flow) |
+| `login` | SELECT id, email, password (email/password flow) |
+| `google_auth` | INSERT or SELECT by email (Google OAuth flow) |
 | `is_creator` | UPDATE role_id, updated_device_ip, updated_at |
 | `create_profile` | CHECK role_id = 2 |
 | `submit_platform` | Validates user exists |

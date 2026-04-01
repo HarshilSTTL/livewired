@@ -13,8 +13,9 @@ CREATE TABLE IF NOT EXISTS public.users (
     updated_at        timestamptz DEFAULT now(),
     created_device_ip text        NULL,                  -- nullable
     updated_device_ip text        NULL,                  -- nullable
-    password          text,
-    role_id           int8                               -- 1 = user, 2 = creator; set by is_creator SP
+    password          text        NULL,                  -- null for Google users
+    role_id           int8,                              -- 1 = user, 2 = creator; set by is_creator SP
+    auth_provider     text        DEFAULT 'email'        -- 'email' or 'google'
 );
 
 -- Note: role_id has no FK constraint enforced at DB level

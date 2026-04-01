@@ -8,6 +8,32 @@
 
 ## 2026-04-01
 
+### [2026-04-01 14:00] | TABLE + SP | Google OAuth support — auth_provider column + google_auth SP
+
+**Table change:** `users` — added `auth_provider text DEFAULT 'email'`
+- Existing users automatically get `auth_provider = 'email'`
+- Google users get `auth_provider = 'google'`, `password = NULL`
+
+**New SP:** `google_auth` (POST /rpc/google_auth)
+- Input: `p_email text` (from Supabase OAuth session)
+- If email exists → return existing user_id (login)
+- If email not found → INSERT new user, return new user_id (signup)
+- Handles both signup + login in one call
+- `register` and `login` SPs unchanged — still used for email/password flow
+
+**Migration required:**
+```sql
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS auth_provider text DEFAULT 'email';
+```
+
+**Files changed:**
+- `schema/tables/02_users.md` — added auth_provider column
+- `docs/database/tables/02_users.md` — documented column + business rules
+- `functions/auth/google_auth.md` — new SP
+- `docs/api/auth/google_auth.md` — full API docs with Flutter integration guide
+
+---
+
 ### [2026-04-01 13:00] | FIX | get_profile_events — input changed from p_profile_id (uuid) to p_username (text)
 
 **Problem:** SP was taking p_profile_id (uuid) but callers were passing a profile name (text),
