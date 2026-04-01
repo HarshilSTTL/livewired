@@ -6,58 +6,61 @@
 -- Endpoint: POST /rpc/login
 -- Doc: docs/api/auth/login.md
 
-create or replace function login(
-    email text,
-    password text
+CREATE OR REPLACE FUNCTION login(
+    p_email    text,
+    p_password text
 )
-returns json
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
     v_user record;
-begin
-    -- 🔹 Validate input
-    if email is null or trim(email) = '' then
-        return json_build_object(
-            'status', false,
-            'message', 'Email is required'
-        );
-    end if;
-    if password is null or trim(password) = '' then
-        return json_build_object(
-            'status', false,
-            'message', 'Password is required'
-        );
-    end if;
-    -- 🔹 Fetch user
-    select u.id, u.email, u.password
-    into v_user
-    from users u
-    where u.email = login.email
-    limit 1;
-    -- 🔹 User not found
-    if v_user is null then
-        return json_build_object(
-            'status', false,
-            'message', 'Invalid email or password'
-        );
-    end if;
-    -- 🔹 Password mismatch
-    if v_user.password <> login.password then
-        return json_build_object(
-            'status', false,
-            'message', 'Invalid email or password'
-        );
-    end if;
-    -- 🔹 Success
-    return json_build_object(
-        'status', true,
-        'user_id', v_user.id,
-        'email', v_user.email,
-        'message', 'Login successful'
+BEGIN
+    -- ── Null guards ───────────────────────────────────────────────────────────
+    IF p_email IS NULL OR trim(p_email) = '' THEN
+        RETURN json_build_object('status', false, 'message', 'Email is required');
+    END IF;
+
+    IF p_password IS NULL OR trim(p_password) = '' THEN
+        RETURN json_build_object('status', false, 'message', 'Password is required');
+    END IF;
+
+    -- ── Fetch user ────────────────────────────────────────────────────────────
+    SELECT id, email, password
+    INTO v_user
+    FROM users
+    WHERE email = p_email
+    LIMIT 1;
+
+    -- ── User not found ────────────────────────────────────────────────────────
+    IF v_user IS NULL THEN
+        RETURN json_build_object('status', false, 'message', 'Invalid email or password');
+    END IF;
+
+    -- ── Password mismatch ─────────────────────────────────────────────────────
+    IF v_user.password <> p_password THEN
+        RETURN json_build_object('status', false, 'message', 'Invalid email or password');
+    END IF;
+
+    -- ── Success ───────────────────────────────────────────────────────────────
+    RETURN json_build_object(
+        'status',  true,
+        'message', 'Login successful',
+        'data', json_build_object(
+            'user_id', v_user.id,
+            'email',   v_user.email
+        )
     );
-end;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object(
+            'status',  false,
+            'message', 'Something went wrong',
+            'error',   SQLERRM
+        );
+END;
 $$;
 ```

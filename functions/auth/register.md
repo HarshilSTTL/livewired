@@ -6,41 +6,55 @@
 -- Endpoint: POST /rpc/register
 -- Doc: docs/api/auth/register.md
 
-create or replace function register(
-    email text,
-    password text,
-    created_device_i text default null
+CREATE OR REPLACE FUNCTION register(
+    p_email            text,
+    p_password         text,
+    p_created_device_ip text DEFAULT null
 )
-returns json as $$
-declare
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
     v_user_id uuid;
-begin
-    if exists (
-        select 1 from users u where u.email = email
-    ) then
-        return json_build_object(
-            'status', false,
-            'message', 'Email already exists'
-        );
-    end if;
+BEGIN
+    -- ── Null guards ───────────────────────────────────────────────────────────
+    IF p_email IS NULL OR trim(p_email) = '' THEN
+        RETURN json_build_object('status', false, 'message', 'Email is required');
+    END IF;
 
-    insert into users (email, password, created_device_ip, updated_device_ip)
-    values (email, password, created_device_i, created_device_i)
-    returning id into v_user_id;
+    IF p_password IS NULL OR trim(p_password) = '' THEN
+        RETURN json_build_object('status', false, 'message', 'Password is required');
+    END IF;
 
-    return json_build_object(
-        'status', true,
+    -- ── Duplicate email check ─────────────────────────────────────────────────
+    IF EXISTS (
+        SELECT 1 FROM users WHERE email = p_email
+    ) THEN
+        RETURN json_build_object('status', false, 'message', 'Email already exists');
+    END IF;
+
+    -- ── Insert new user ───────────────────────────────────────────────────────
+    INSERT INTO users (email, password, created_device_ip, updated_device_ip)
+    VALUES (p_email, p_password, p_created_device_ip, p_created_device_ip)
+    RETURNING id INTO v_user_id;
+
+    RETURN json_build_object(
+        'status',  true,
         'message', 'User registered successfully',
         'data', json_build_object(
             'user_id', v_user_id
         )
     );
-exception
-    when others then
-        return json_build_object(
-            'status', false,
-            'message', sqlerrm
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object(
+            'status',  false,
+            'message', 'Something went wrong',
+            'error',   SQLERRM
         );
-end;
-$$ language plpgsql;
+END;
+$$;
 ```
