@@ -2,7 +2,7 @@
 
 **Endpoint:** `POST /rpc/get_event_list`
 **Group:** Events
-**Description:** Returns events split into `live` and `today` sections based on date logic. Behavior changes depending on whether the requested date is in the past, today, or the future. Uses `SECURITY DEFINER`.
+**Description:** Returns events split into `live` and `today` sections based on date logic. When `p_user_id` is provided, only events from profiles the user follows are returned — used for the dashboard feed. Behavior changes depending on whether the requested date is in the past, today, or the future. Uses `SECURITY DEFINER`.
 
 ---
 
@@ -10,14 +10,22 @@
 
 | Param | Type | Required | Default | Notes |
 |-------|------|----------|---------|-------|
+| p_user_id | uuid | No | null | When provided — only events from followed profiles are returned |
 | p_date | date | No | CURRENT_DATE | Date to fetch events for |
 | p_device_ip | text | No | null | Device IP — accepted but not stored |
 
-### Request Example
+### Request Example — Dashboard (followed events only)
 ```json
 {
-  "p_date": "2026-03-27",
-  "p_device_ip": "197.65.65.23"
+  "p_user_id": "uuid...",
+  "p_date": "2026-04-02"
+}
+```
+
+### Request Example — All events (no filter)
+```json
+{
+  "p_date": "2026-04-02"
 }
 ```
 

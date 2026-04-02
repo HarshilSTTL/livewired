@@ -7,6 +7,7 @@
 -- Doc: docs/api/events/get_event_list.md
 
 CREATE OR REPLACE FUNCTION get_event_list(
+    p_user_id   uuid DEFAULT null,
     p_date      date DEFAULT CURRENT_DATE,
     p_device_ip text DEFAULT null
 )
@@ -67,7 +68,16 @@ BEGIN
         FROM event_mst e
         JOIN creator_profiles cp ON cp.id = e.profile_id
         WHERE e.event_date = p_date
-        AND   cp.status    = 'active';
+        AND   cp.status    = 'active'
+        -- ── Follow filter ──────────────────────────────────────
+        AND (
+            p_user_id IS NULL
+            OR cp.id IN (
+                SELECT profile_id FROM follows
+                WHERE  user_id    = p_user_id
+                AND    is_active  = true
+            )
+        );
 
     -- ── TODAY ─────────────────────────────────────────────────
     ELSIF p_date = CURRENT_DATE THEN
@@ -120,7 +130,16 @@ BEGIN
         -- Started → event_time has passed
         AND   e.event_time <= current_time
         -- Not terminated → within 3 hours of start time
-        AND   e.event_time >= (current_time - interval '3 hours');
+        AND   e.event_time >= (current_time - interval '3 hours')
+        -- ── Follow filter ──────────────────────────────────────
+        AND (
+            p_user_id IS NULL
+            OR cp.id IN (
+                SELECT profile_id FROM follows
+                WHERE  user_id    = p_user_id
+                AND    is_active  = true
+            )
+        );
 
         -- TODAY section
         -- Upcoming events that have NOT started yet
@@ -166,7 +185,16 @@ BEGIN
         WHERE e.event_date = CURRENT_DATE
         AND   cp.status    = 'active'
         -- Not yet started
-        AND   e.event_time > current_time;
+        AND   e.event_time > current_time
+        -- ── Follow filter ──────────────────────────────────────
+        AND (
+            p_user_id IS NULL
+            OR cp.id IN (
+                SELECT profile_id FROM follows
+                WHERE  user_id    = p_user_id
+                AND    is_active  = true
+            )
+        );
 
     -- ── FUTURE DATE ───────────────────────────────────────────
     -- live  = always empty
@@ -214,7 +242,16 @@ BEGIN
         FROM event_mst e
         JOIN creator_profiles cp ON cp.id = e.profile_id
         WHERE e.event_date = p_date
-        AND   cp.status    = 'active';
+        AND   cp.status    = 'active'
+        -- ── Follow filter ──────────────────────────────────────
+        AND (
+            p_user_id IS NULL
+            OR cp.id IN (
+                SELECT profile_id FROM follows
+                WHERE  user_id    = p_user_id
+                AND    is_active  = true
+            )
+        );
 
     END IF;
 
