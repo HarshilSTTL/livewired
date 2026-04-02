@@ -50,12 +50,21 @@ These require SQL migrations + file updates. Not done yet.
 
 ---
 
+## ✅ No SP Needed — Handled by Supabase Auth (Frontend Only)
+
+| Feature | How to implement |
+|---------|-----------------|
+| `change_password` | `supabase.auth.updateUser({ password: newPassword })` — call directly from Flutter |
+| `forgot_password` | `supabase.auth.resetPasswordForEmail(email)` — Supabase sends the reset email automatically |
+
+No stored procedures required for either. Both are handled entirely on the frontend via the Supabase client SDK.
+
+---
+
 ## 🔮 Future APIs (Build Later)
 
 | SP | Purpose |
 |----|---------|
-| `change_password` | Frontend-only via `supabase.auth.updateUser(password: newPass)` — no SP needed |
-| `forgot_password` | Handled by Supabase Auth `resetPasswordForEmail()` — no SP needed |
 | `register_device_token` | Store FCM token for push notifications — needs Firebase setup first |
 | `get_trending_events` | Discovery screen — popular upcoming events across all creators |
 | `get_trending_creators` | Creators with fastest follower growth |
