@@ -4,6 +4,13 @@
 **Group:** Tags
 **Description:** Returns all interest/category tags. Called during onboarding so the user can select their interests. Uses `SECURITY DEFINER`.
 
+## App Screen
+
+![Interests Screen](../../assets/screenshots/onboarding_interests.png)
+
+> Onboarding step: "What are you into?" — user picks interest categories (Gaming, Tech, Sports, etc.). Each button is a tag_name. Selected tags shown with blue border. Selection submitted via `submit_tags`.
+> Save screenshot as: `docs/assets/screenshots/onboarding_interests.png`
+
 ---
 
 ## Parameters

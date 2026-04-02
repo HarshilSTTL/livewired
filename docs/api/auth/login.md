@@ -4,6 +4,12 @@
 **Group:** Auth
 **Description:** Authenticates a user with email and password. Returns user ID and email on success. Uses `SECURITY DEFINER`.
 
+## App Screen
+
+![Login Screen](../../assets/screenshots/login.png)
+
+> Save screenshot as: `docs/assets/screenshots/login.png`
+
 ---
 
 ## Parameters

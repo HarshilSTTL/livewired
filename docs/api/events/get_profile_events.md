@@ -3,6 +3,13 @@
 **Endpoint:** `POST /rpc/get_profile_events`
 **Group:** Events
 **SQL:** [`functions/events/get_profile_events.md`](../../../functions/events/get_profile_events.md)
+
+## App Screen
+
+![Profile Events Screen](../../assets/screenshots/profile_events.png)
+
+> This screen shows the weekly calendar (week navigator + day strip) and events grouped by date, each with time, title, platform icons, and bell icon. The ↻ icon on event title indicates a recurring event.
+> Save screenshot as: `docs/assets/screenshots/profile_events.png`
 **Tables read:** `event_mst` · `event_platforms` · `platforms`
 
 ---

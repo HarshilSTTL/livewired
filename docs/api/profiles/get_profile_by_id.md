@@ -3,6 +3,13 @@
 **Endpoint:** `POST /rpc/get_profile_by_id`
 **Group:** Profile
 **SQL:** [`functions/profiles/get_profile_by_id.md`](../../../functions/profiles/get_profile_by_id.md)
+
+## App Screen
+
+![Profile View Screen](../../assets/screenshots/profile_view.png)
+
+> This screen shows the profile header (avatar, name, followers, Unfollow/bell buttons) and the platform Links row.
+> Save screenshot as: `docs/assets/screenshots/profile_view.png`
 **Tables read:** `creator_profiles` · `creator_platform_accounts` · `profile_tags` · `follows`
 
 ---

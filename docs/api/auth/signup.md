@@ -4,6 +4,12 @@
 **Group:** Auth
 **Description:** Improved user registration with full input validation. Preferred over `register`. Uses `SECURITY DEFINER`.
 
+## App Screen
+
+![Sign Up Screen](../../assets/screenshots/signup.png)
+
+> Save screenshot as: `docs/assets/screenshots/signup.png`
+
 ---
 
 ## Parameters

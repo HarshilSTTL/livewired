@@ -4,6 +4,13 @@
 **Group:** Platform
 **Description:** Returns all active streaming platforms. Called during onboarding so the user can select which platforms they use. Uses `SECURITY DEFINER`.
 
+## App Screen
+
+![Choose Platforms Screen](../../assets/screenshots/onboarding_platforms.png)
+
+> Onboarding step: user selects which platforms they use. Each card shows the platform logo (logo_url). Selection is submitted via `submit_platform`.
+> Save screenshot as: `docs/assets/screenshots/onboarding_platforms.png`
+
 ---
 
 ## Parameters
