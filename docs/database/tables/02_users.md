@@ -24,7 +24,8 @@ None — `users` is a root table. `role_id` references the `roles` table logical
 ## Business Rules
 
 - `email` must be unique across all users
-- `role_id` is set by the `is_creator` SP: `2` when creator enabled, `1` when disabled
+- `role_id` is automatically set to `2` by `create_profile` when a user creates their first creator profile — no separate step needed
+- Any registered user can create a creator profile — there is no pre-approval gate
 - `is_creator` boolean is also present but `role_id` is what SPs check for creator permission
 - `created_device_ip` and `updated_device_ip` are both set to the same value on initial registration
 - Password is stored as-is (no bcrypt in SP layer as of current implementation)

@@ -2,7 +2,7 @@
 
 **Endpoint:** `POST /rpc/create_profile`
 **Group:** Profile
-**Description:** Creates a new creator profile. Only users with `role_id = 2` can create profiles. Optionally links platforms and tags in the same call. Uses `SECURITY DEFINER`.
+**Description:** Creates a new creator profile. Any registered user can create a profile — no pre-approval or role required. The user is automatically promoted to `role_id = 2` (creator) upon success. Optionally links platforms and tags in the same call. Uses `SECURITY DEFINER`.
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Param | Type | Required | Default | Notes |
 |-------|------|----------|---------|-------|
-| p_user_id | uuid | Yes | — | Must belong to a user with role_id = 2 |
+| p_user_id | uuid | Yes | — | Must be a registered user — any user can create a profile |
 | p_profile_name | text | Yes | — | Display name |
 | p_username | text | Yes | — | Unique handle — checked against all profiles |
 | p_avatar | text | No | null | Profile picture Base64 (nullable) |

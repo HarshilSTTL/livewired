@@ -31,10 +31,12 @@ DECLARE
     v_is_default   boolean;
 BEGIN
 
+    -- ── User existence check ──────────────────────────────────────────────────
+    -- Any registered user can create a creator profile.
     IF NOT EXISTS (
-        SELECT 1 FROM users WHERE id = p_user_id AND role_id = 2
+        SELECT 1 FROM users WHERE id = p_user_id
     ) THEN
-        RETURN json_build_object('status', false, 'message', 'Only creators can create a profile');
+        RETURN json_build_object('status', false, 'message', 'User not found');
     END IF;
 
     IF p_profile_name IS NULL OR trim(p_profile_name) = '' THEN
@@ -103,6 +105,10 @@ BEGIN
         p_show_followers, now(), now()
     )
     RETURNING id INTO v_profile_id;
+
+    -- ── Auto-promote user to creator role ─────────────────────────────────────
+    -- Creating a profile makes the user a creator — set role_id = 2.
+    UPDATE users SET role_id = 2, updated_at = now() WHERE id = p_user_id;
 
     IF p_platforms IS NOT NULL AND jsonb_array_length(p_platforms) > 0 THEN
         FOR v_platform IN SELECT * FROM jsonb_array_elements(p_platforms)

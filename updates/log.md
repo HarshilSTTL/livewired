@@ -8,6 +8,22 @@
 
 ## 2026-04-01
 
+### [2026-04-01 15:00] | SP | create_profile — any user can now create a creator profile
+
+**Removed:** `role_id = 2` gate — users no longer need to be pre-approved as creators
+**Added:** plain user-exists check (`SELECT 1 FROM users WHERE id = p_user_id`)
+**Added:** auto-promote on success — `UPDATE users SET role_id = 2` after profile INSERT
+
+Any registered user can now create a creator profile. Creating the profile
+automatically promotes them to creator role — no separate `is_creator` SP call needed.
+
+**Files changed:**
+- `functions/profiles/create_profile.md` — removed role gate, added user-exists check, added auto-promote
+- `docs/database/tables/02_users.md` — updated role_id business rule
+- `docs/api/profiles/create_profile.md` — updated description and p_user_id notes
+
+---
+
 ### [2026-04-01 14:00] | TABLE + SP | Google OAuth support — auth_provider column + google_auth SP
 
 **Table change:** `users` — added `auth_provider text DEFAULT 'email'`
