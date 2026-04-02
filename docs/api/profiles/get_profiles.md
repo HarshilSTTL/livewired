@@ -2,7 +2,8 @@
 
 **Endpoint:** `POST /rpc/get_profiles`
 **Group:** Profile
-**Description:** Dashboard profile browser with optional search and pagination. Returns all active creator profiles by default. When a keyword is provided, results are filtered by profile name or username. Designed for the dashboard search screen — distinct from `search_profiles` which requires a keyword and uses fuzzy matching.
+**Description:** Dashboard profile browser with optional search, fuzzy matching, and pagination. Returns all active creator profiles by default. When a keyword is provided, results are filtered by profile name or username using both ILIKE and `word_similarity` (fuzzy match), ordered by relevance. Designed for the dashboard search screen — distinct from `search_profiles` which requires a keyword.
+**Requires:** `pg_trgm` extension
 
 ---
 
@@ -149,12 +150,12 @@ has_next     = offset + limit < total
 
 | Rule | Detail |
 |------|--------|
-| No keyword | All active profiles returned (paginated) |
-| Keyword provided | Filters `profile_name` and `username` with `ILIKE '%keyword%'` — case-insensitive |
-| `show_followers = false` | `followers` field returns `null` (respects creator's privacy setting) |
+| No keyword | All active profiles returned (paginated), ordered by `created_at DESC` |
+| Keyword provided | Matches on `profile_name` and `username` via ILIKE **and** `word_similarity > 0.3` (fuzzy) |
+| Keyword ordering | Results ordered by best fuzzy match score DESC, then `created_at DESC` |
+| Typo tolerance | `word_similarity` threshold 0.3 — catches partial matches and common typos |
+| `followers` | Always returned as a live count — no `show_followers` restriction |
 | `platforms` | Always an array — `[]` if no platforms linked |
-| `tags` | Always an array — `[]` if no tags linked |
-| Ordering | `created_at DESC` — newest profiles first |
 | `p_limit` max | Clamped to 100 — requests above 100 automatically use 100 |
 
 ---
@@ -166,9 +167,10 @@ has_next     = offset + limit < total
 | Keyword required | No — optional | Yes — min 2 chars |
 | No keyword → | Returns all profiles | Error |
 | Pagination | Yes (`total`, `limit`, `offset`) | No |
-| Fuzzy matching | No — ILIKE only | Yes — `word_similarity` (pg_trgm) |
+| Fuzzy matching | Yes — `word_similarity` (pg_trgm) | Yes — `word_similarity` (pg_trgm) |
 | `match_score` | Not returned | Returned |
 | Search scope | `profile_name`, `username` | `profile_name`, `username`, `bio` |
+| Fields returned | profile_id, profile_name, avatar, followers, platforms | profile_id, profile_name, username, avatar, bio, followers, platforms, match_score |
 | Use case | Dashboard browse + search | Dedicated search screen |
 
 ---
