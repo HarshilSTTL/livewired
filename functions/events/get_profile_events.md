@@ -99,6 +99,7 @@ BEGIN
     FROM event_mst e
     WHERE e.profile_id  = p_profile_id
       AND e.event_date  BETWEEN p_week_start AND v_week_end
+      AND e.is_deleted  = false
       AND (e.is_recurring = false OR e.parent_event_id IS NOT NULL);
 
     RETURN json_build_object(

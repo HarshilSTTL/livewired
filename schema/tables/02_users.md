@@ -15,13 +15,17 @@ CREATE TABLE IF NOT EXISTS public.users (
     updated_device_ip text        NULL,                  -- nullable
     password          text        NULL,                  -- null for Google users
     role_id           int8,                              -- 1 = user, 2 = creator; set by is_creator SP
-    auth_provider     text        DEFAULT 'email'        -- 'email' or 'google'
+    auth_provider     text        DEFAULT 'email',       -- 'email' or 'google'
+    is_deleted        boolean     NOT NULL DEFAULT false, -- soft delete flag
+    deleted_at        timestamptz NULL                    -- timestamp of soft delete
 );
 
 -- Note: role_id has no FK constraint enforced at DB level
 -- Note: is_creator SP sets role_id = 2 (creator) or 1 (user)
 -- Note: create_profile SP checks role_id = 2 before allowing profile creation
--- Migration: run once in Supabase SQL editor to allow Google users (password = NULL)
+-- Migration: run once in Supabase SQL editor
 --   ALTER TABLE public.users ALTER COLUMN password DROP NOT NULL;
 --   ALTER TABLE public.users ADD COLUMN IF NOT EXISTS auth_provider text DEFAULT 'email';
+--   ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT false;
+--   ALTER TABLE public.users ADD COLUMN IF NOT EXISTS deleted_at timestamptz NULL;
 ```

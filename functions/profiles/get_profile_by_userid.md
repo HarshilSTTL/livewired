@@ -28,7 +28,7 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'User ID is required');
     END IF;
 
-    IF NOT EXISTS (SELECT 1 FROM users WHERE id = p_user_id) THEN
+    IF NOT EXISTS (SELECT 1 FROM users WHERE id = p_user_id AND is_deleted = false) THEN
         RETURN json_build_object('status', false, 'message', 'User not found');
     END IF;
 
@@ -82,7 +82,8 @@ BEGIN
     )
     INTO v_result
     FROM creator_profiles cp
-    WHERE cp.user_id = p_user_id;
+    WHERE cp.user_id = p_user_id
+      AND cp.status != 'deleted';
 
     RETURN json_build_object(
         'status',  true,

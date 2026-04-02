@@ -28,10 +28,11 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'Profile ID is required');
     END IF;
 
-    -- Verify profile exists
+    -- Verify profile exists and is not deleted
     SELECT id INTO v_profile_id
     FROM creator_profiles
-    WHERE id = p_profile_id;
+    WHERE id     = p_profile_id
+      AND status != 'deleted';
 
     IF v_profile_id IS NULL THEN
         RETURN json_build_object('status', false, 'message', 'Profile not found');

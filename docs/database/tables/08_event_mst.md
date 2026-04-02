@@ -18,6 +18,8 @@
 | is_recurring     | bool        | false             | No       | —                              | Is this a repeating event?                                             |
 | created_at       | timestamptz | now()             | Yes      | —                              | Record creation time                                                   |
 | updated_at       | timestamptz | now()             | **Yes**  | —                              | Last update time (nullable)                                            |
+| is_deleted       | bool        | false             | No       | —                              | Soft delete flag — `true` = event is deleted                           |
+| deleted_at       | timestamptz | NULL              | **Yes**  | —                              | Timestamp when event was soft deleted                                  |
 
 ## Foreign Keys
 

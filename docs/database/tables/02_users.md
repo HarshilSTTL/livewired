@@ -16,6 +16,8 @@
 | password | text | NULL | **Yes** | — | Plain/hashed password — `NULL` for Google users |
 | role_id | int8 | — | Yes | — | 1 = user, 2 = creator — set by `is_creator` SP |
 | auth_provider | text | `'email'` | Yes | — | `'email'` = registered with password · `'google'` = Google OAuth |
+| is_deleted | bool | false | No | — | Soft delete flag — `true` = account is deleted |
+| deleted_at | timestamptz | NULL | **Yes** | — | Timestamp when account was soft deleted |
 
 ## Foreign Keys
 

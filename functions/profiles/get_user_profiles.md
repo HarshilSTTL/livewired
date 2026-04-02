@@ -28,7 +28,7 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'User ID is required');
     END IF;
 
-    IF NOT EXISTS (SELECT 1 FROM users WHERE id = p_user_id) THEN
+    IF NOT EXISTS (SELECT 1 FROM users WHERE id = p_user_id AND is_deleted = false) THEN
         RETURN json_build_object('status', false, 'message', 'User not found');
     END IF;
 

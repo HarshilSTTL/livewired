@@ -3,15 +3,17 @@
 **Endpoint:** `POST /rpc/delete_event`
 **Group:** Events
 **SQL:** [`functions/events/delete_event.md`](../../../functions/events/delete_event.md)
-**Tables written:** `event_mst` (CASCADE → `event_platforms` · `event_recurring` · child `event_mst` rows)
+**Tables written:** `event_mst`
 
 ---
 
 ## Overview
 
-Hard deletes a single event. The caller must own the profile that created the event.
+Soft deletes a single event. Sets `is_deleted = true` and `deleted_at = now()` on the event row. The caller must own the profile that created the event.
 
-For recurring parent events, the cascade automatically removes all child occurrence rows (any row in `event_mst` where `parent_event_id` matches). Platform links and recurring rules are also removed via CASCADE.
+For recurring parent events, all child occurrence rows are also soft deleted in the same operation.
+
+The rows are **not removed** from the database — they are hidden from all public queries automatically.
 
 ---
 
@@ -58,11 +60,10 @@ For recurring parent events, the cascade automatically removes all child occurre
 
 | Field | Notes |
 |-------|-------|
-| Ownership check | Event must belong to a `creator_profiles` row owned by `p_user_id` |
-| Recurring parent | Deleting the parent removes all child occurrence rows automatically (CASCADE on `parent_event_id`) |
-| `event_platforms` | Removed via CASCADE on `event_id` |
-| `event_recurring` | Removed via CASCADE on `event_id` |
-| Hard delete | Row is permanently removed — no soft delete / status change |
+| Soft delete | Sets `event_mst.is_deleted = true` + `deleted_at = now()` |
+| Recurring parent | All child occurrence rows (`parent_event_id = p_event_id`) are also soft deleted |
+| Already deleted | Returns "Event not found or access denied" if `is_deleted` is already `true` |
+| Public reads | `get_event_list`, `get_event_by_id`, `get_profile_events`, `search_events` all filter `is_deleted = false` |
 
 ---
 
@@ -71,7 +72,7 @@ For recurring parent events, the cascade automatically removes all child occurre
 | Message | Cause |
 |---------|-------|
 | `p_event_id and p_user_id are required` | Either param is null |
-| `Event not found or access denied` | No event with that ID, or it belongs to a different user |
+| `Event not found or access denied` | No event with that ID, already deleted, or belongs to a different user |
 | `Something went wrong` | Unhandled DB exception |
 
 ---
@@ -80,17 +81,15 @@ For recurring parent events, the cascade automatically removes all child occurre
 
 ```
 1. Null check: p_event_id, p_user_id
-2. DELETE FROM event_mst
-   USING creator_profiles
-   WHERE event_id   = p_event_id
-     AND profile_id = creator_profiles.id
-     AND user_id    = p_user_id
-3. Check FOUND:
-   - NOT FOUND → "Event not found or access denied"
-4. CASCADE automatically removes:
-   - child event_mst rows (parent_event_id FK)
-   - event_platforms rows (event_id FK)
-   - event_recurring rows (event_id FK)
+2. Ownership + existence check:
+   JOIN event_mst + creator_profiles
+   WHERE event_id = p_event_id AND user_id = p_user_id AND is_deleted = false
+3. Soft delete the event (parent or standalone):
+   UPDATE event_mst SET is_deleted = true, deleted_at = now()
+   WHERE event_id = p_event_id
+4. Soft delete all child occurrences:
+   UPDATE event_mst SET is_deleted = true, deleted_at = now()
+   WHERE parent_event_id = p_event_id AND is_deleted = false
 5. Return success
 ```
 
@@ -100,4 +99,4 @@ For recurring parent events, the cascade automatically removes all child occurre
 
 - [`get_event_by_id`](get_event_by_id.md) — confirm event details before deleting
 - [`update_event`](update_event.md) — edit instead of delete
-- [`create_event`](create_event.md) — original creation
+- [`delete_profile`](../profiles/delete_profile.md) — soft deletes a profile and all its events

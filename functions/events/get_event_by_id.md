@@ -68,7 +68,8 @@ BEGIN
     INTO v_result
     FROM event_mst e
     JOIN creator_profiles cp ON cp.id = e.profile_id
-    WHERE e.event_id = p_event_id;
+    WHERE e.event_id   = p_event_id
+      AND e.is_deleted = false;
 
     IF v_result IS NULL THEN
         RETURN json_build_object('status', false, 'message', 'Event not found');

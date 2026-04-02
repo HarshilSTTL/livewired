@@ -81,7 +81,8 @@ BEGIN
         ) AS score
         FROM event_mst e
         JOIN creator_profiles cp ON cp.id = e.profile_id
-        WHERE cp.status = 'active'
+        WHERE cp.status  = 'active'
+        AND   e.is_deleted = false
         AND (
             e.title          ILIKE '%' || v_keyword || '%'
             OR e.description ILIKE '%' || v_keyword || '%'

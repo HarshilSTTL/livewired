@@ -17,6 +17,7 @@
 | show_followers | boolean     | true              | No       | —             | Whether to show follower count publicly |
 | created_at     | timestamptz | now()             | Yes      | —             | Profile creation time                   |
 | updated_at     | timestamptz | now()             | Yes      | —             | Last update time                        |
+| deleted_at     | timestamptz | NULL              | **Yes**  | —             | Timestamp when profile was soft deleted (`status = 'deleted'`) |
 
 ## Foreign Keys
 

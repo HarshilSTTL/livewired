@@ -30,7 +30,8 @@ BEGIN
 
     SELECT id INTO v_profile_id
     FROM creator_profiles
-    WHERE username = p_username;
+    WHERE username = p_username
+      AND status  != 'deleted';
 
     IF v_profile_id IS NULL THEN
         RETURN json_build_object('status', false, 'message', 'Profile not found');

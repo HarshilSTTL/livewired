@@ -16,6 +16,10 @@ CREATE TABLE IF NOT EXISTS public.creator_profiles (
     status         text        DEFAULT 'active',  -- active | suspended | deleted
     show_followers boolean     DEFAULT true,
     created_at     timestamptz DEFAULT now(),
-    updated_at     timestamptz DEFAULT now()
+    updated_at     timestamptz DEFAULT now(),
+    deleted_at     timestamptz NULL            -- timestamp of soft delete (when status = 'deleted')
 );
+
+-- Migration: run once in Supabase SQL editor
+--   ALTER TABLE public.creator_profiles ADD COLUMN IF NOT EXISTS deleted_at timestamptz NULL;
 ```

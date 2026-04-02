@@ -17,8 +17,14 @@ CREATE TABLE IF NOT EXISTS public.event_mst (
     video             bool        DEFAULT false,
     is_recurring      bool        DEFAULT false,
     created_at        timestamptz DEFAULT now(),
-    updated_at        timestamptz NULL    -- nullable
+    updated_at        timestamptz NULL,    -- nullable
+    is_deleted        boolean     NOT NULL DEFAULT false, -- soft delete flag
+    deleted_at        timestamptz NULL                    -- timestamp of soft delete
 );
+
+-- Migration: run once in Supabase SQL editor
+--   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT false;
+--   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS deleted_at timestamptz NULL;
 
 -- FK name: event_mst_profile_id_fkey
 -- FK name: event_mst_parent_event_id_fkey

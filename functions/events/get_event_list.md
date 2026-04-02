@@ -67,8 +67,9 @@ BEGIN
         INTO v_today
         FROM event_mst e
         JOIN creator_profiles cp ON cp.id = e.profile_id
-        WHERE e.event_date = p_date
-        AND   cp.status    = 'active'
+        WHERE e.event_date  = p_date
+        AND   cp.status     = 'active'
+        AND   e.is_deleted  = false
         -- ── Follow filter ──────────────────────────────────────
         AND (
             p_user_id IS NULL
@@ -124,9 +125,10 @@ BEGIN
         INTO v_live
         FROM event_mst e
         JOIN creator_profiles cp ON cp.id = e.profile_id
-        WHERE e.event_date = CURRENT_DATE
-        AND   e.livestream = true
-        AND   cp.status    = 'active'
+        WHERE e.event_date  = CURRENT_DATE
+        AND   e.livestream  = true
+        AND   cp.status     = 'active'
+        AND   e.is_deleted  = false
         -- Started → event_time has passed
         AND   e.event_time <= current_time
         -- Not terminated → within 3 hours of start time
@@ -182,8 +184,9 @@ BEGIN
         INTO v_today
         FROM event_mst e
         JOIN creator_profiles cp ON cp.id = e.profile_id
-        WHERE e.event_date = CURRENT_DATE
-        AND   cp.status    = 'active'
+        WHERE e.event_date  = CURRENT_DATE
+        AND   cp.status     = 'active'
+        AND   e.is_deleted  = false
         -- Not yet started
         AND   e.event_time > current_time
         -- ── Follow filter ──────────────────────────────────────
@@ -241,8 +244,9 @@ BEGIN
         INTO v_today
         FROM event_mst e
         JOIN creator_profiles cp ON cp.id = e.profile_id
-        WHERE e.event_date = p_date
-        AND   cp.status    = 'active'
+        WHERE e.event_date  = p_date
+        AND   cp.status     = 'active'
+        AND   e.is_deleted  = false
         -- ── Follow filter ──────────────────────────────────────
         AND (
             p_user_id IS NULL
