@@ -69,9 +69,7 @@ BEGIN
                             SELECT COALESCE(
                                 json_agg(json_build_object(
                                     'platform_id',   p.plat_id,
-                                    'platform_name', p.plat_name,
-                                    'logo_url',      p.logo_url,
-                                    'channel_url',   cpa.channel_url
+                                    'logo_url',      p.logo_url
                                 )),
                                 '[]'::json
                             )

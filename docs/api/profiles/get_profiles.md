@@ -74,9 +74,7 @@
         "platforms": [
           {
             "platform_id": 1,
-            "platform_name": "YouTube",
-            "logo_url": "https://...",
-            "channel_url": "https://youtube.com/@harshil"
+            "logo_url": "https://..."
           }
         ],
         "tags": [
