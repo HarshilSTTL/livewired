@@ -7,11 +7,11 @@
 
 ## ✅ Just Completed (this session)
 
-| SP | File |
-|----|------|
-| `get_event_by_id` | `functions/events/get_event_by_id.md` |
-| `update_event` | `functions/events/update_event.md` |
-| `delete_event` | `functions/events/delete_event.md` |
+| SP | SQL File | API Doc |
+|----|----------|---------|
+| `get_event_by_id` | `functions/events/get_event_by_id.md` | `docs/api/events/get_event_by_id.md` |
+| `update_event` | `functions/events/update_event.md` | `docs/api/events/update_event.md` |
+| `delete_event` | `functions/events/delete_event.md` | `docs/api/events/delete_event.md` |
 | `toggle_event_notification` | `functions/notifications/toggle_event_notification.md` |
 | `get_user_notifications` | `functions/notifications/get_user_notifications.md` |
 | `init_user` | `functions/auth/init_user.md` |
