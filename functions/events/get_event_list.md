@@ -45,7 +45,7 @@ BEGIN
                 'time',          e.event_time,
                 'livestream',    e.livestream,
                 'is_recurring',  e.is_recurring,
-                'streaming', (
+                'platforms', (
                     SELECT coalesce(
                         json_agg(
                             json_build_object(
@@ -59,7 +59,8 @@ BEGIN
                     )
                     FROM event_platforms ep
                     LEFT JOIN platforms p ON p.plat_id = ep.platform_id::bigint
-                    WHERE ep.event_id = e.event_id
+                    -- Fix: recurring child rows inherit platforms from parent
+                    WHERE ep.event_id = COALESCE(e.parent_event_id, e.event_id)
                 )
             )
             ORDER BY e.event_time ASC
@@ -103,7 +104,7 @@ BEGIN
                 'time',          e.event_time,
                 'livestream',    e.livestream,
                 'is_recurring',  e.is_recurring,
-                'streaming', (
+                'platforms', (
                     SELECT coalesce(
                         json_agg(
                             json_build_object(
@@ -117,7 +118,8 @@ BEGIN
                     )
                     FROM event_platforms ep
                     LEFT JOIN platforms p ON p.plat_id = ep.platform_id::bigint
-                    WHERE ep.event_id = e.event_id
+                    -- Fix: recurring child rows inherit platforms from parent
+                    WHERE ep.event_id = COALESCE(e.parent_event_id, e.event_id)
                 )
             )
             ORDER BY e.event_time ASC
@@ -162,7 +164,7 @@ BEGIN
                 'time',          e.event_time,
                 'livestream',    e.livestream,
                 'is_recurring',  e.is_recurring,
-                'streaming', (
+                'platforms', (
                     SELECT coalesce(
                         json_agg(
                             json_build_object(
@@ -176,7 +178,8 @@ BEGIN
                     )
                     FROM event_platforms ep
                     LEFT JOIN platforms p ON p.plat_id = ep.platform_id::bigint
-                    WHERE ep.event_id = e.event_id
+                    -- Fix: recurring child rows inherit platforms from parent
+                    WHERE ep.event_id = COALESCE(e.parent_event_id, e.event_id)
                 )
             )
             ORDER BY e.event_time ASC
@@ -222,7 +225,7 @@ BEGIN
                 'time',          e.event_time,
                 'livestream',    e.livestream,
                 'is_recurring',  e.is_recurring,
-                'streaming', (
+                'platforms', (
                     SELECT coalesce(
                         json_agg(
                             json_build_object(
@@ -236,7 +239,8 @@ BEGIN
                     )
                     FROM event_platforms ep
                     LEFT JOIN platforms p ON p.plat_id = ep.platform_id::bigint
-                    WHERE ep.event_id = e.event_id
+                    -- Fix: recurring child rows inherit platforms from parent
+                    WHERE ep.event_id = COALESCE(e.parent_event_id, e.event_id)
                 )
             )
             ORDER BY e.event_time ASC
