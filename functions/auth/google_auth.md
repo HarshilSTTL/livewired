@@ -39,15 +39,6 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'Email is required');
     END IF;
 
-    -- ── Username uniqueness check (only if provided) ──────────────────────────
-    IF p_username IS NOT NULL AND trim(p_username) <> '' THEN
-        IF EXISTS (
-            SELECT 1 FROM users WHERE lower(username) = lower(trim(p_username))
-        ) THEN
-            RETURN json_build_object('status', false, 'message', 'Username already taken');
-        END IF;
-    END IF;
-
     -- ── Check if user already exists ──────────────────────────────────────────
     SELECT id INTO v_user_id
     FROM users

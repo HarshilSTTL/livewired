@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS public.users (
     created_device_ip text        NULL,                  -- nullable
     updated_device_ip text        NULL,                  -- nullable
     password          text        NULL,                  -- null for Google users
-    username          text        NULL UNIQUE,             -- account-level username (required on new registrations)
+    username          text        NULL,                    -- account-level username (required on new registrations, not unique)
     role_id           int8,                              -- 1 = user, 2 = creator; set by is_creator SP
     auth_provider     text        DEFAULT 'email',       -- 'email' or 'google'
     is_deleted        boolean     NOT NULL DEFAULT false, -- soft delete flag
@@ -30,5 +30,5 @@ CREATE TABLE IF NOT EXISTS public.users (
 --   ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT false;
 --   ALTER TABLE public.users ADD COLUMN IF NOT EXISTS deleted_at timestamptz NULL;
 --   ALTER TABLE public.users ADD COLUMN IF NOT EXISTS username text NULL;
---   CREATE UNIQUE INDEX IF NOT EXISTS users_username_key ON public.users (username) WHERE username IS NOT NULL;
+--   DROP INDEX IF EXISTS users_username_key; -- remove unique constraint if previously applied
 ```

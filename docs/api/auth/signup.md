@@ -104,7 +104,6 @@
 | Password is null or empty | `"Password is required"` |
 | Username is null or empty | `"Username is required"` |
 | Username shorter than 3 chars | `"Username must be at least 3 characters"` |
-| Username already taken (case-insensitive) | `"Username already taken"` |
 | Email already exists (case-insensitive) | `"Email already exists"` |
 | Any DB/runtime exception | `"Something went wrong in signup"` + sqlerrm |
 

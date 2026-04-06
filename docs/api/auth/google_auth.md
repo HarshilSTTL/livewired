@@ -81,7 +81,6 @@ succeeds and you have the user's email from the Supabase session.
 | Message | Cause |
 |---|---|
 | `Email is required` | `p_email` is null or empty |
-| `Username already taken` | `p_username` provided but already exists in users table |
 | `Something went wrong` | Unhandled exception — `error` field contains detail |
 
 ---

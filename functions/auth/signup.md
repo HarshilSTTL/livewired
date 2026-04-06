@@ -40,12 +40,6 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'Username must be at least 3 characters');
     END IF;
 
-    IF EXISTS (
-        SELECT 1 FROM users u WHERE lower(u.username) = lower(trim(p_username))
-    ) THEN
-        RETURN json_build_object('status', false, 'message', 'Username already taken');
-    END IF;
-
     -- ── Duplicate email check ─────────────────────────────────────────────────
     IF EXISTS (
         SELECT 1 FROM users u WHERE lower(u.email) = lower(trim(p_email))

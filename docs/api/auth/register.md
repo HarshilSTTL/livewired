@@ -67,7 +67,6 @@
 | Email or password is null/empty | `"Email/Password is required"` |
 | Username is null or empty | `"Username is required"` |
 | Username shorter than 3 chars | `"Username must be at least 3 characters"` |
-| Username already taken (case-insensitive) | `"Username already taken"` |
 | Email already in `users` table | `"Email already exists"` |
 | Any DB/runtime exception | `"Something went wrong"` + sqlerrm |
 
