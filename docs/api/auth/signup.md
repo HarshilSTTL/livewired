@@ -16,11 +16,10 @@
 
 | Param | Type | Required | Default | Notes |
 |-------|------|----------|---------|-------|
-| email | text | Yes | — | User's email address |
-| password | text | Yes | — | User's password |
-| ip | text | No | `'::1'` | Device IP (currently hardcoded to `::1` in INSERT) |
-
-> ⚠️ Note: The `ip` parameter is accepted but the INSERT currently hardcodes `'::1'` for both `created_device_ip` and `updated_device_ip`.
+| `email` | text | ✅ | — | User's email address |
+| `password` | text | ✅ | — | User's password |
+| `p_username` | text | ✅ | — | Unique account username — min 3 characters |
+| `ip` | text | ❌ | `'::1'` | Device IP address |
 
 ---
 
@@ -28,8 +27,9 @@
 
 ```json
 {
-  "email": "harshil@gmail.com",
-  "password": "mypassword123"
+  "email":      "harshil@gmail.com",
+  "password":   "mypassword123",
+  "p_username": "harshil_dev"
 }
 ```
 
@@ -62,6 +62,21 @@
 }
 ```
 
+### Fail — Username required
+```json
+{ "status": false, "message": "Username is required" }
+```
+
+### Fail — Username too short
+```json
+{ "status": false, "message": "Username must be at least 3 characters" }
+```
+
+### Fail — Username taken
+```json
+{ "status": false, "message": "Username already taken" }
+```
+
 ### Fail — Email already exists
 ```json
 {
@@ -85,9 +100,12 @@
 
 | Scenario | Response |
 |----------|----------|
-| Email is null or empty string | `"Email is required"` |
-| Password is null or empty string | `"Password is required"` |
-| Email already exists (case-insensitive check) | `"Email already exists"` |
+| Email is null or empty | `"Email is required"` |
+| Password is null or empty | `"Password is required"` |
+| Username is null or empty | `"Username is required"` |
+| Username shorter than 3 chars | `"Username must be at least 3 characters"` |
+| Username already taken (case-insensitive) | `"Username already taken"` |
+| Email already exists (case-insensitive) | `"Email already exists"` |
 | Any DB/runtime exception | `"Something went wrong in signup"` + sqlerrm |
 
 ---
@@ -96,10 +114,12 @@
 
 1. Validate email not null/empty
 2. Validate password not null/empty
-3. Case-insensitive check: `lower(u.email) = lower(signup.email)` — return error if exists
-4. INSERT into `users`
-5. Return `user_id` on success
-6. EXCEPTION block catches all other errors
+3. Validate username not null/empty
+4. Validate username length ≥ 3
+5. Case-insensitive username uniqueness check
+6. Case-insensitive email uniqueness check
+7. INSERT into `users` (email, password, username, device_ip)
+8. Return `user_id` on success
 
 ---
 

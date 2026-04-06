@@ -16,12 +16,14 @@
 --   • If no user with this email exists        → insert new row         (signup)
 --     password = NULL  (Google users have no password)
 --     auth_provider = 'google'
+--     username = p_username if provided, NULL otherwise (can be set later)
 --
 -- Note: If the email exists with auth_provider = 'email' (registered via
 --       email/password), the same account is returned — no duplicate created.
 
 CREATE OR REPLACE FUNCTION google_auth(
-    p_email text
+    p_email    text,
+    p_username text DEFAULT null
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -35,6 +37,15 @@ BEGIN
     -- ── Null / empty guard ────────────────────────────────────────────────────
     IF p_email IS NULL OR trim(p_email) = '' THEN
         RETURN json_build_object('status', false, 'message', 'Email is required');
+    END IF;
+
+    -- ── Username uniqueness check (only if provided) ──────────────────────────
+    IF p_username IS NOT NULL AND trim(p_username) <> '' THEN
+        IF EXISTS (
+            SELECT 1 FROM users WHERE lower(username) = lower(trim(p_username))
+        ) THEN
+            RETURN json_build_object('status', false, 'message', 'Username already taken');
+        END IF;
     END IF;
 
     -- ── Check if user already exists ──────────────────────────────────────────
@@ -55,8 +66,15 @@ BEGIN
     END IF;
 
     -- ── New user → Google signup ──────────────────────────────────────────────
-    INSERT INTO users (email, password, auth_provider, created_at, updated_at)
-    VALUES (p_email, NULL, 'google', now(), now())
+    INSERT INTO users (email, password, username, auth_provider, created_at, updated_at)
+    VALUES (
+        p_email,
+        NULL,
+        CASE WHEN trim(p_username) = '' THEN NULL ELSE trim(p_username) END,
+        'google',
+        now(),
+        now()
+    )
     RETURNING id INTO v_user_id;
 
     RETURN json_build_object(

@@ -10,11 +10,10 @@
 
 | Param | Type | Required | Default | Notes |
 |-------|------|----------|---------|-------|
-| email | text | Yes | — | User's email address |
-| password | text | Yes | — | User's password |
-| created_device_i | text | No | null | Device IP at registration |
-
-> ⚠️ Note: Parameter is `created_device_i` (not `created_device_ip`) — both `created_device_ip` and `updated_device_ip` columns are set to this same value on insert.
+| `p_email` | text | ✅ | — | User's email address |
+| `p_password` | text | ✅ | — | User's password |
+| `p_username` | text | ✅ | — | Unique account username — min 3 characters |
+| `p_created_device_ip` | text | ❌ | null | Device IP at registration |
 
 ---
 
@@ -22,9 +21,9 @@
 
 ```json
 {
-  "email": "harshil@gmail.com",
-  "password": "mypassword123",
-  "created_device_i": "192.168.1.1"
+  "p_email":    "harshil@gmail.com",
+  "p_password": "mypassword123",
+  "p_username": "harshil_dev"
 }
 ```
 
@@ -65,17 +64,23 @@
 
 | Scenario | Response |
 |----------|----------|
-| Email already in `users` table | `status: false, message: "Email already exists"` |
-| Any DB/runtime exception | `status: false, message: sqlerrm` |
+| Email or password is null/empty | `"Email/Password is required"` |
+| Username is null or empty | `"Username is required"` |
+| Username shorter than 3 chars | `"Username must be at least 3 characters"` |
+| Username already taken (case-insensitive) | `"Username already taken"` |
+| Email already in `users` table | `"Email already exists"` |
+| Any DB/runtime exception | `"Something went wrong"` + sqlerrm |
 
 ---
 
 ## Logic Flow
 
-1. Check if email exists in `users` → return error if yes
-2. INSERT into `users` (email, password, created_device_ip, updated_device_ip)
-3. Return `user_id` on success
-4. EXCEPTION block catches any other errors
+1. Validate email, password not null/empty
+2. Validate username not null/empty, length ≥ 3
+3. Case-insensitive username uniqueness check
+4. Email duplicate check
+5. INSERT into `users` (email, password, username, device_ip)
+6. Return `user_id` on success
 
 ---
 

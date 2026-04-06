@@ -18,6 +18,7 @@ AS $$
 DECLARE
     v_user record;
 BEGIN
+
     -- ── Null guards ───────────────────────────────────────────────────────────
     IF p_email IS NULL OR trim(p_email) = '' THEN
         RETURN json_build_object('status', false, 'message', 'Email is required');
@@ -28,10 +29,11 @@ BEGIN
     END IF;
 
     -- ── Fetch user ────────────────────────────────────────────────────────────
-    SELECT id, email, password
+    SELECT id, email, password, username
     INTO v_user
     FROM users
-    WHERE email = p_email
+    WHERE email      = p_email
+      AND is_deleted = false
     LIMIT 1;
 
     -- ── User not found ────────────────────────────────────────────────────────
@@ -49,8 +51,9 @@ BEGIN
         'status',  true,
         'message', 'Login successful',
         'data', json_build_object(
-            'user_id', v_user.id,
-            'email',   v_user.email
+            'user_id',  v_user.id,
+            'email',    v_user.email,
+            'username', v_user.username
         )
     );
 

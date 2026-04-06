@@ -37,10 +37,13 @@
 ### Success
 ```json
 {
-  "status": true,
-  "user_id": 1,
-  "email": "harshil@gmail.com",
-  "message": "Login successful"
+  "status":  true,
+  "message": "Login successful",
+  "data": {
+    "user_id":  "uuid...",
+    "email":    "harshil@gmail.com",
+    "username": "harshil_dev"
+  }
 }
 ```
 
@@ -87,10 +90,10 @@
 
 1. Validate email not null/empty
 2. Validate password not null/empty
-3. SELECT `id, email, password` FROM `users` WHERE `email = login.email` LIMIT 1
+3. SELECT `id, email, password, username` FROM `users` WHERE `email = p_email AND is_deleted = false` LIMIT 1
 4. If no row → `"Invalid email or password"`
 5. If `v_user.password <> login.password` → `"Invalid email or password"`
-6. Return `user_id`, `email`, success message
+6. Return `user_id`, `email`, `username`, success message
 
 ---
 

@@ -6,70 +6,71 @@
 -- Endpoint: POST /rpc/signup
 -- Doc: docs/api/auth/signup.md
 
-create or replace function signup(
-    email text,
-    password text,
-    ip text default '::1'
+CREATE OR REPLACE FUNCTION signup(
+    email      text,
+    password   text,
+    p_username text,
+    ip         text DEFAULT '::1'
 )
-returns json
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
     v_user_id uuid;
+BEGIN
 
-begin
-    -- ✅ Email validation
-    if signup.email is null or trim(signup.email) = '' then
-        return json_build_object(
-            'status', false,
-            'message', 'Email is required'
-        );
-    end if;
-    -- ✅ Password validation
-    if signup.password is null or trim(signup.password) = '' then
-        return json_build_object(
-            'status', false,
-            'message', 'Password is required'
-        );
-    end if;
-    -- ✅ Check email already exists
-    if exists (
-        select 1 from users u where lower(u.email) = lower(signup.email)
-    ) then
-        return json_build_object(
-            'status', false,
-            'message', 'Email already exists'
-        );
-    end if;
-    -- ✅ Insert user
-    insert into users (
-        email,
-        password,
-        created_device_ip,
-        updated_device_ip
-    )
-    values (
-        signup.email,
-        signup.password,
-        '::1',
-        '::1'
-    )
-    returning id into v_user_id;
-    -- ✅ Success response
-    return json_build_object(
-        'status', true,
-        'user_id', v_user_id,
-        'message', 'Registration successful'
+    -- ── Email validation ──────────────────────────────────────────────────────
+    IF email IS NULL OR trim(email) = '' THEN
+        RETURN json_build_object('status', false, 'message', 'Email is required');
+    END IF;
+
+    -- ── Password validation ───────────────────────────────────────────────────
+    IF password IS NULL OR trim(password) = '' THEN
+        RETURN json_build_object('status', false, 'message', 'Password is required');
+    END IF;
+
+    -- ── Username validation ───────────────────────────────────────────────────
+    IF p_username IS NULL OR trim(p_username) = '' THEN
+        RETURN json_build_object('status', false, 'message', 'Username is required');
+    END IF;
+
+    IF length(trim(p_username)) < 3 THEN
+        RETURN json_build_object('status', false, 'message', 'Username must be at least 3 characters');
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM users u WHERE lower(u.username) = lower(trim(p_username))
+    ) THEN
+        RETURN json_build_object('status', false, 'message', 'Username already taken');
+    END IF;
+
+    -- ── Duplicate email check ─────────────────────────────────────────────────
+    IF EXISTS (
+        SELECT 1 FROM users u WHERE lower(u.email) = lower(email)
+    ) THEN
+        RETURN json_build_object('status', false, 'message', 'Email already exists');
+    END IF;
+
+    -- ── Insert user ───────────────────────────────────────────────────────────
+    INSERT INTO users (email, password, username, created_device_ip, updated_device_ip)
+    VALUES (email, password, trim(p_username), ip, ip)
+    RETURNING id INTO v_user_id;
+
+    RETURN json_build_object(
+        'status',  true,
+        'message', 'Registration successful',
+        'user_id', v_user_id
     );
-exception
-    when others then
-        return json_build_object(
-            'status', false,
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object(
+            'status',  false,
             'message', 'Something went wrong in signup',
-            'error', sqlerrm
+            'error',   SQLERRM
         );
-end;
+END;
 $$;
 ```

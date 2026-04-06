@@ -14,6 +14,7 @@
 | created_device_ip | text | NULL | **Yes** | — | IP address at registration (nullable) |
 | updated_device_ip | text | NULL | **Yes** | — | IP address at last update (nullable) |
 | password | text | NULL | **Yes** | — | Plain/hashed password — `NULL` for Google users |
+| username | text | NULL | **Yes** | UNIQUE | Account-level username — required on new registrations, NULL for existing rows |
 | role_id | int8 | — | Yes | — | 1 = user, 2 = creator — set by `is_creator` SP |
 | auth_provider | text | `'email'` | Yes | — | `'email'` = registered with password · `'google'` = Google OAuth |
 | is_deleted | bool | false | No | — | Soft delete flag — `true` = account is deleted |
@@ -26,6 +27,8 @@ None — `users` is a root table. `role_id` references the `roles` table logical
 ## Business Rules
 
 - `email` must be unique across all users
+- `username` must be unique across all users (case-insensitive check in SPs); NULL allowed only for rows created before this column was added
+- `username` is required by `signup` and `register` SPs — minimum 3 characters
 - `role_id` is automatically set to `2` by `create_profile` when a user creates their first creator profile — no separate step needed
 - Any registered user can create a creator profile — there is no pre-approval gate
 - `is_creator` boolean is also present but `role_id` is what SPs check for creator permission

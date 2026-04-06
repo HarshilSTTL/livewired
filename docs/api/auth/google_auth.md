@@ -27,6 +27,7 @@ succeeds and you have the user's email from the Supabase session.
 | Parameter | Type | Required | Description |
 |---|---|---|---|
 | `p_email` | text | ✅ | Email returned from Supabase Google OAuth session |
+| `p_username` | text | ❌ | Optional username — if omitted, stored as NULL (can be set later) |
 
 ---
 
@@ -34,7 +35,8 @@ succeeds and you have the user's email from the Supabase session.
 
 ```json
 {
-  "p_email": "user@gmail.com"
+  "p_email":    "user@gmail.com",
+  "p_username": "harshil_dev"
 }
 ```
 
@@ -79,6 +81,7 @@ succeeds and you have the user's email from the Supabase session.
 | Message | Cause |
 |---|---|
 | `Email is required` | `p_email` is null or empty |
+| `Username already taken` | `p_username` provided but already exists in users table |
 | `Something went wrong` | Unhandled exception — `error` field contains detail |
 
 ---
