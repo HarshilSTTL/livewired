@@ -7,10 +7,10 @@
 -- Doc: docs/api/auth/signup.md
 
 CREATE OR REPLACE FUNCTION signup(
-    email      text,
-    password   text,
+    p_email    text,
+    p_password text,
     p_username text,
-    ip         text DEFAULT '::1'
+    p_ip       text DEFAULT '::1'
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -22,12 +22,12 @@ DECLARE
 BEGIN
 
     -- ── Email validation ──────────────────────────────────────────────────────
-    IF email IS NULL OR trim(email) = '' THEN
+    IF p_email IS NULL OR trim(p_email) = '' THEN
         RETURN json_build_object('status', false, 'message', 'Email is required');
     END IF;
 
     -- ── Password validation ───────────────────────────────────────────────────
-    IF password IS NULL OR trim(password) = '' THEN
+    IF p_password IS NULL OR trim(p_password) = '' THEN
         RETURN json_build_object('status', false, 'message', 'Password is required');
     END IF;
 
@@ -48,14 +48,14 @@ BEGIN
 
     -- ── Duplicate email check ─────────────────────────────────────────────────
     IF EXISTS (
-        SELECT 1 FROM users u WHERE lower(u.email) = lower(email)
+        SELECT 1 FROM users u WHERE lower(u.email) = lower(trim(p_email))
     ) THEN
         RETURN json_build_object('status', false, 'message', 'Email already exists');
     END IF;
 
     -- ── Insert user ───────────────────────────────────────────────────────────
     INSERT INTO users (email, password, username, created_device_ip, updated_device_ip)
-    VALUES (email, password, trim(p_username), ip, ip)
+    VALUES (trim(p_email), p_password, trim(p_username), p_ip, p_ip)
     RETURNING id INTO v_user_id;
 
     RETURN json_build_object(

@@ -16,10 +16,10 @@
 
 | Param | Type | Required | Default | Notes |
 |-------|------|----------|---------|-------|
-| `email` | text | ✅ | — | User's email address |
-| `password` | text | ✅ | — | User's password |
+| `p_email` | text | ✅ | — | User's email address |
+| `p_password` | text | ✅ | — | User's password |
 | `p_username` | text | ✅ | — | Unique account username — min 3 characters |
-| `ip` | text | ❌ | `'::1'` | Device IP address |
+| `p_ip` | text | ❌ | `'::1'` | Device IP address |
 
 ---
 
@@ -27,8 +27,8 @@
 
 ```json
 {
-  "email":      "harshil@gmail.com",
-  "password":   "mypassword123",
+  "p_email":    "harshil@gmail.com",
+  "p_password": "mypassword123",
   "p_username": "harshil_dev"
 }
 ```
