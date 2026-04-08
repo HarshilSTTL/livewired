@@ -3,7 +3,7 @@
 **Endpoint:** `POST /rpc/update_event`
 **Group:** Events
 **SQL:** [`functions/events/update_event.md`](../../../functions/events/update_event.md)
-**Tables written:** `event_mst` · `event_platforms`
+**Tables written:** `event_mst` · `event_platforms` · `event_recurring`
 
 ---
 
@@ -11,48 +11,63 @@
 
 Updates a single event. All fields except `p_event_id` and `p_user_id` are optional — only passed (non-null) fields are applied (COALESCE pattern). Ownership is verified before any changes are made.
 
-For platforms, three behaviours are supported based on what `p_platforms` is passed as:
-- `null` → platforms are not touched
-- `[]` → all platforms are cleared
-- `[{...}]` → existing platforms are replaced with the new list
+**Platforms:** `null` = don't touch · `[]` = clear all · `[{...}]` = replace all
+
+**Recurring:** Pass `p_recurring_days` to trigger a recurring rule update. All existing child occurrence rows are deleted and regenerated from the new rules. Any recurring field not passed keeps its existing value.
 
 ---
 
 ## Parameters
 
-| Parameter       | Type    | Required | Description                                                                               |
-| --------------- | ------- | -------- | ----------------------------------------------------------------------------------------- |
-| `p_event_id`    | uuid    | ✅        | The event to update                                                                       |
-| `p_user_id`     | uuid    | ✅        | Must own the profile that created this event                                              |
-| `p_title`       | text    | ❌        | New title                                                                                 |
-| `p_description` | text    | ❌        | New description                                                                           |
-| `p_event_date`  | date    | ❌        | New date in creator's local timezone (YYYY-MM-DD)                                         |
-| `p_event_time`  | time    | ❌        | New time in creator's local timezone (HH:MM:SS)                                           |
-| `p_timezone`    | text    | ❌        | Creator's IANA timezone — required when updating date or time (e.g. `'America/New_York'`) |
-| `p_livestream`  | boolean | ❌        | Toggle livestream flag                                                                    |
-| `p_video`       | boolean | ❌        | Toggle video flag                                                                         |
-| `p_platforms`   | jsonb   | ❌        | Platform list — `null` = no change · `[]` = clear · `[{...}]` = replace                   |
+### Core fields
 
-### `p_platforms` object shape
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `p_event_id` | uuid | ✅ | The event to update |
+| `p_user_id` | uuid | ✅ | Must own the profile that created this event |
+| `p_title` | text | ❌ | New title |
+| `p_description` | text | ❌ | New description |
+| `p_event_date` | date | ❌ | New date in creator's local timezone (`YYYY-MM-DD`) |
+| `p_event_time` | time | ❌ | New time in creator's local timezone (`HH:MM:SS`) |
+| `p_timezone` | text | ❌ | Creator's IANA timezone — e.g. `'America/New_York'` |
+| `p_livestream` | boolean | ❌ | Toggle livestream flag |
+| `p_video` | boolean | ❌ | Toggle video flag |
+| `p_platforms` | jsonb | ❌ | `null` = no change · `[]` = clear · `[{...}]` = replace |
 
-```json
-{
-  "platform_id": 1,
-  "stream_url":  "https://youtube.com/live/abc"
-}
-```
+### Recurring fields (pass `p_recurring_days` to trigger recurring update)
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `p_recurring_days` | text[] | ❌ | Days to recur — e.g. `["Mon","Wed"]`. Triggers full child regeneration |
+| `p_recurring_type` | text | ❌ | `'weekly'` · `'first'` · `'last'` — kept from existing if not passed |
+| `p_recurring_interval` | int | ❌ | 1–12 weeks (weekly type only) |
+| `p_recurring_start_date` | date | ❌ | New start date for the recurring schedule |
+| `p_recurring_end_date` | date | ❌ | New end date (null = open-ended) |
+
+> Passing `p_recurring_days` is the trigger. Any recurring field not passed keeps its current value via COALESCE.
 
 ---
 
 ## Request Examples
 
-### Update title and date only
+### Update title only
 ```json
 {
-  "p_event_id":   "uuid...",
-  "p_user_id":    "uuid...",
-  "p_title":      "Metroid Monday — Special Edition",
-  "p_event_date": "2026-04-13"
+  "p_event_id": "uuid...",
+  "p_user_id":  "uuid...",
+  "p_title":    "Metroid Monday — Special Edition"
+}
+```
+
+### Update recurring schedule — change to every 2 weeks
+```json
+{
+  "p_event_id":           "uuid...",
+  "p_user_id":            "uuid...",
+  "p_recurring_days":     ["Mon", "Wed"],
+  "p_recurring_type":     "weekly",
+  "p_recurring_interval": 2,
+  "p_recurring_end_date": "2026-12-31"
 }
 ```
 
@@ -86,34 +101,10 @@ For platforms, three behaviours are supported based on what `p_platforms` is pas
 { "status": true, "message": "Event updated successfully" }
 ```
 
-### Access Denied / Not Found
-```json
-{ "status": false, "message": "Event not found or access denied" }
-```
-
-### Validation Error
-```json
-{ "status": false, "message": "One or more platform IDs are invalid" }
-```
-```json
-{ "status": false, "message": "Stream URL is required for each platform" }
-```
-
 ### Error
 ```json
-{ "status": false, "message": "Something went wrong", "error": "<sqlerrm>" }
+{ "status": false, "message": "<reason>", "error": "<sqlerrm>" }
 ```
-
----
-
-## Response Field Notes
-
-| Field | Notes |
-|-------|-------|
-| `p_platforms = null` | Existing platforms are untouched |
-| `p_platforms = []` | All platform links for this event are deleted |
-| `p_platforms = [{...}]` | DELETE + INSERT — full replacement, not a merge |
-| COALESCE fields | Any field passed as `null` (or omitted) retains its current DB value |
 
 ---
 
@@ -122,9 +113,17 @@ For platforms, three behaviours are supported based on what `p_platforms` is pas
 | Message | Cause |
 |---------|-------|
 | `p_event_id and p_user_id are required` | Either required param is null |
-| `Event not found or access denied` | No matching event, or event belongs to a different user |
-| `One or more platform IDs are invalid` | A `platform_id` in `p_platforms` does not exist in `platforms` table |
-| `Stream URL is required for each platform` | A platform object is missing `stream_url` or it is empty |
+| `Event not found or access denied` | No matching event, or belongs to a different user |
+| `One or more platform IDs are invalid` | A `platform_id` in `p_platforms` does not exist |
+| `Stream URL is required for each platform` | A platform object is missing `stream_url` |
+| `Recurring days cannot be empty` | `p_recurring_days` passed as empty array |
+| `Invalid recurring day — must be Mon, Tue, Wed, Thu, Fri, Sat, or Sun` | Invalid day string |
+| `recurring_type must be weekly, first, or last` | Invalid type value |
+| `recurring_interval is required for weekly type` | Interval null when type is weekly |
+| `recurring_interval must be between 1 and 12` | Interval out of range |
+| `recurring_interval must be null for first/last type` | Interval passed for first/last |
+| `Recurring start date is required` | No start date in DB or passed |
+| `Recurring end date must be after start date` | End ≤ start |
 | `Something went wrong` | Unhandled DB exception |
 
 ---
@@ -133,17 +132,23 @@ For platforms, three behaviours are supported based on what `p_platforms` is pas
 
 ```
 1. Null check: p_event_id, p_user_id
-2. Ownership check:
-   JOIN event_mst + creator_profiles
-   WHERE event_id = p_event_id AND user_id = p_user_id AND status = 'active'
-3. Validate p_platforms (if not null and not empty):
-   - All platform_id values must exist in platforms table
-   - All objects must have a non-empty stream_url
-4. UPDATE event_mst with COALESCE for all optional fields
-5. If p_platforms IS NOT NULL:
-   - DELETE FROM event_platforms WHERE event_id = p_event_id
-   - INSERT new rows if p_platforms is non-empty
-6. Return success
+2. Ownership check: event_mst JOIN creator_profiles
+3. Validate p_platforms (if provided and non-empty)
+4. If p_recurring_days IS NOT NULL:
+   - Fetch existing event_recurring row (for COALESCE)
+   - Merge passed values over existing
+   - Validate merged recurring rule
+5. UPDATE event_mst with COALESCE for all optional fields
+6. If p_platforms IS NOT NULL:
+   - DELETE + INSERT event_platforms (full replace)
+7. If p_recurring_days IS NOT NULL:
+   - UPDATE event_recurring with merged values
+   - DELETE all child rows (WHERE parent_event_id = p_event_id)
+   - Fetch parent row (profile_id, title, description, event_time, event_timezone, etc.)
+   - Regenerate child rows using same algorithm as create_event
+     weekly → FOREACH day: find first occ, step +7×interval until safe_end
+     first/last → FOREACH day: WHILE month <= safe_end: insert first/last weekday of month
+8. Return success
 ```
 
 ---
@@ -153,3 +158,4 @@ For platforms, three behaviours are supported based on what `p_platforms` is pas
 - [`get_event_by_id`](get_event_by_id.md) — fetch current event state before editing
 - [`create_event`](create_event.md) — original creation
 - [`delete_event`](delete_event.md) — remove this event
+- [`event_recurring` table](../../database/tables/13_event_recurring.md)
