@@ -61,14 +61,6 @@ DECLARE
     v_platform_id        bigint;
     v_stream_url         text;
 
-    -- Timezone conversion variables
-    v_event_utc          timestamptz;
-    v_utc_date           date;
-    v_utc_time           time;
-    v_occ_utc            timestamptz;
-    v_occ_utc_date       date;
-    v_occ_utc_time       time;
-
     -- Recurring generation variables
     v_safe_end           date;
     v_day_name           text;
@@ -179,11 +171,6 @@ BEGIN
 
     END IF;
 
-    -- ── Convert creator local → UTC ──────────────────────────────────────────
-    v_event_utc := (p_event_date::text || ' ' || p_event_time::text)::timestamp AT TIME ZONE p_timezone;
-    v_utc_date  := v_event_utc::date;
-    v_utc_time  := v_event_utc::time;
-
     -- ── Insert parent row into event_mst ──────────────────────────────────────
     -- For recurring events this is the "template" row (parent_event_id = NULL).
     -- It stores the definition (title, time, platforms) but is excluded from
@@ -198,7 +185,7 @@ BEGIN
     VALUES (
         gen_random_uuid(), p_profile_id, NULL,
         p_title, p_description,
-        v_utc_date, v_utc_time, p_timezone,
+        p_event_date, p_event_time, p_timezone,
         COALESCE(p_livestream, false), COALESCE(p_video, false), COALESCE(p_is_recurring, false),
         now(), now()
     )
@@ -257,11 +244,6 @@ BEGIN
 
                 v_occ_date := v_first_occ;
                 WHILE v_occ_date <= v_safe_end LOOP
-                    -- Convert each occurrence to UTC (handles DST shifts per occurrence)
-                    v_occ_utc      := (v_occ_date::text || ' ' || p_event_time::text)::timestamp AT TIME ZONE p_timezone;
-                    v_occ_utc_date := v_occ_utc::date;
-                    v_occ_utc_time := v_occ_utc::time;
-
                     INSERT INTO event_mst (
                         event_id, profile_id, parent_event_id,
                         title, description,
@@ -272,7 +254,7 @@ BEGIN
                     VALUES (
                         gen_random_uuid(), p_profile_id, v_event_id,
                         p_title, p_description,
-                        v_occ_utc_date, v_occ_utc_time, p_timezone,
+                        v_occ_date, p_event_time, p_timezone,
                         COALESCE(p_livestream, false), COALESCE(p_video, false), true,
                         now(), now()
                     );
@@ -313,11 +295,6 @@ BEGIN
 
                     -- Only insert if the occurrence falls within [start_date, safe_end]
                     IF v_occ_date >= p_recurring_start_date AND v_occ_date <= v_safe_end THEN
-                        -- Convert each occurrence to UTC (handles DST shifts per occurrence)
-                        v_occ_utc      := (v_occ_date::text || ' ' || p_event_time::text)::timestamp AT TIME ZONE p_timezone;
-                        v_occ_utc_date := v_occ_utc::date;
-                        v_occ_utc_time := v_occ_utc::time;
-
                         INSERT INTO event_mst (
                             event_id, profile_id, parent_event_id,
                             title, description,
@@ -328,7 +305,7 @@ BEGIN
                         VALUES (
                             gen_random_uuid(), p_profile_id, v_event_id,
                             p_title, p_description,
-                            v_occ_utc_date, v_occ_utc_time, p_timezone,
+                            v_occ_date, p_event_time, p_timezone,
                             COALESCE(p_livestream, false), COALESCE(p_video, false), true,
                             now(), now()
                         );

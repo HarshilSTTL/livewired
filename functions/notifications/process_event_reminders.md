@@ -32,9 +32,9 @@ BEGIN
     WHERE er.is_notified = false
       AND e.is_deleted   = false
       AND cp.status      = 'active'
-      AND (e.event_date + e.event_time) BETWEEN
-            NOW() + ((er.reminder_minutes - 0.5) * interval '1 minute')
-        AND NOW() + ((er.reminder_minutes + 0.5) * interval '1 minute');
+      AND (e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone
+            BETWEEN NOW() + ((er.reminder_minutes - 0.5) * interval '1 minute')
+                AND NOW() + ((er.reminder_minutes + 0.5) * interval '1 minute');
 
     -- ── Mark reminders as notified ────────────────────────────────────────────
     UPDATE event_reminders er
@@ -43,9 +43,9 @@ BEGIN
     WHERE er.event_id    = e.event_id
       AND er.is_notified = false
       AND e.is_deleted   = false
-      AND (e.event_date + e.event_time) BETWEEN
-            NOW() + ((er.reminder_minutes - 0.5) * interval '1 minute')
-        AND NOW() + ((er.reminder_minutes + 0.5) * interval '1 minute');
+      AND (e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone
+            BETWEEN NOW() + ((er.reminder_minutes - 0.5) * interval '1 minute')
+                AND NOW() + ((er.reminder_minutes + 0.5) * interval '1 minute');
 
 END;
 $$;

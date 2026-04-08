@@ -52,7 +52,7 @@ BEGIN
     INTO v_result
     FROM (
         SELECT
-            (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::date::text AS event_date,
+            (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date::text AS event_date,
             COUNT(*)::int AS event_count
         FROM event_mst e
         JOIN creator_profiles cp ON cp.id = e.profile_id
@@ -60,9 +60,9 @@ BEGIN
         WHERE f.user_id    = p_user_id
           AND f.is_active  = true
           AND e.is_deleted = false
-          AND EXTRACT(YEAR  FROM (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::date) = p_year
-          AND EXTRACT(MONTH FROM (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::date) = p_month
-        GROUP BY (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::date
+          AND EXTRACT(YEAR  FROM (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date) = p_year
+          AND EXTRACT(MONTH FROM (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date) = p_month
+        GROUP BY (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date
     ) row_data;
 
     -- ── Success ───────────────────────────────────────────────────────────────

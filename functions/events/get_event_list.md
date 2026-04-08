@@ -5,6 +5,11 @@
 -- Group: Events
 -- Endpoint: POST /rpc/get_event_list
 -- Doc: docs/api/events/get_event_list.md
+--
+-- Timezone design:
+--   event_date + event_time are stored in the creator's local timezone (event_timezone column).
+--   All output dates/times are converted to the viewer's timezone via p_timezone.
+--   Conversion: (stored_local AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone
 
 CREATE OR REPLACE FUNCTION get_event_list(
     p_user_id   uuid DEFAULT null,
@@ -34,6 +39,7 @@ BEGIN
         SELECT json_agg(
             json_build_object(
                 'event_id',      e.event_id,
+                'profile_id',    cp.id,
                 'profile_name',  cp.profile_name,
                 'profile_pic',   cp.avatar,
                 'username',      cp.username,
@@ -42,8 +48,8 @@ BEGIN
                     WHERE f.profile_id = cp.id AND f.is_active = true
                 ),
                 'event_title',   e.title,
-                'event_date',    (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::date,
-                'time',          (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::time,
+                'event_date',    (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date,
+                'time',          (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
                 'livestream',    e.livestream,
                 'is_recurring',  e.is_recurring,
                 'platforms', (
@@ -66,7 +72,7 @@ BEGIN
         INTO v_today
         FROM event_mst e
         JOIN creator_profiles cp ON cp.id = e.profile_id
-        WHERE (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::date = p_date
+        WHERE (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date = p_date
           AND cp.status    = 'active'
           AND e.is_deleted = false
           AND (
@@ -80,10 +86,11 @@ BEGIN
     -- ── TODAY ─────────────────────────────────────────────────────────────────
     ELSIF p_date = v_local_now THEN
 
-        -- LIVE section: events that have started (UTC) and within 3 hours of start
+        -- LIVE section: livestream events that have started and are within 3 hours
         SELECT json_agg(
             json_build_object(
                 'event_id',      e.event_id,
+                'profile_id',    cp.id,
                 'profile_name',  cp.profile_name,
                 'profile_pic',   cp.avatar,
                 'username',      cp.username,
@@ -92,8 +99,8 @@ BEGIN
                     WHERE f.profile_id = cp.id AND f.is_active = true
                 ),
                 'event_title',   e.title,
-                'event_date',    (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::date,
-                'time',          (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::time,
+                'event_date',    (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date,
+                'time',          (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
                 'livestream',    e.livestream,
                 'is_recurring',  e.is_recurring,
                 'platforms', (
@@ -116,14 +123,14 @@ BEGIN
         INTO v_live
         FROM event_mst e
         JOIN creator_profiles cp ON cp.id = e.profile_id
-        WHERE (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::date = p_date
+        WHERE (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date = p_date
           AND e.livestream  = true
           AND cp.status     = 'active'
           AND e.is_deleted  = false
-          -- Has started (UTC comparison)
-          AND (e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC' <= NOW()
+          -- Has started
+          AND (e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone <= NOW()
           -- Not terminated — within 3 hours of start
-          AND (e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC' >= NOW() - interval '3 hours'
+          AND (e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone >= NOW() - interval '3 hours'
           AND (
               p_user_id IS NULL
               OR cp.id IN (
@@ -136,6 +143,7 @@ BEGIN
         SELECT json_agg(
             json_build_object(
                 'event_id',      e.event_id,
+                'profile_id',    cp.id,
                 'profile_name',  cp.profile_name,
                 'profile_pic',   cp.avatar,
                 'username',      cp.username,
@@ -144,8 +152,8 @@ BEGIN
                     WHERE f.profile_id = cp.id AND f.is_active = true
                 ),
                 'event_title',   e.title,
-                'event_date',    (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::date,
-                'time',          (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::time,
+                'event_date',    (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date,
+                'time',          (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
                 'livestream',    e.livestream,
                 'is_recurring',  e.is_recurring,
                 'platforms', (
@@ -168,11 +176,11 @@ BEGIN
         INTO v_today
         FROM event_mst e
         JOIN creator_profiles cp ON cp.id = e.profile_id
-        WHERE (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::date = p_date
+        WHERE (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date = p_date
           AND cp.status    = 'active'
           AND e.is_deleted = false
-          -- Not yet started (UTC comparison)
-          AND (e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC' > NOW()
+          -- Not yet started
+          AND (e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone > NOW()
           AND (
               p_user_id IS NULL
               OR cp.id IN (
@@ -189,6 +197,7 @@ BEGIN
         SELECT json_agg(
             json_build_object(
                 'event_id',      e.event_id,
+                'profile_id',    cp.id,
                 'profile_name',  cp.profile_name,
                 'profile_pic',   cp.avatar,
                 'username',      cp.username,
@@ -197,8 +206,8 @@ BEGIN
                     WHERE f.profile_id = cp.id AND f.is_active = true
                 ),
                 'event_title',   e.title,
-                'event_date',    (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::date,
-                'time',          (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::time,
+                'event_date',    (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date,
+                'time',          (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
                 'livestream',    e.livestream,
                 'is_recurring',  e.is_recurring,
                 'platforms', (
@@ -221,7 +230,7 @@ BEGIN
         INTO v_today
         FROM event_mst e
         JOIN creator_profiles cp ON cp.id = e.profile_id
-        WHERE (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::date = p_date
+        WHERE (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date = p_date
           AND cp.status    = 'active'
           AND e.is_deleted = false
           AND (

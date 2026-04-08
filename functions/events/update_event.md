@@ -26,12 +26,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-    v_platform     jsonb;
-    v_current_date date;
-    v_current_time time;
-    v_event_utc    timestamptz;
-    v_utc_date     date;
-    v_utc_time     time;
+    v_platform jsonb;
 BEGIN
 
     IF p_event_id IS NULL OR p_user_id IS NULL THEN
@@ -69,30 +64,13 @@ BEGIN
         END IF;
     END IF;
 
-    -- ── Timezone conversion for date/time update ─────────────────────────────
-    -- If either date or time is being updated and timezone is provided, convert to UTC
-    IF (p_event_date IS NOT NULL OR p_event_time IS NOT NULL) AND p_timezone IS NOT NULL THEN
-        SELECT event_date, event_time INTO v_current_date, v_current_time
-        FROM event_mst WHERE event_id = p_event_id;
-
-        v_event_utc := (
-            COALESCE(p_event_date, v_current_date)::text || ' ' ||
-            COALESCE(p_event_time, v_current_time)::text
-        )::timestamp AT TIME ZONE p_timezone;
-
-        v_utc_date := v_event_utc::date;
-        v_utc_time := v_event_utc::time;
-    ELSE
-        v_utc_date := p_event_date;
-        v_utc_time := p_event_time;
-    END IF;
-
     -- Update event_mst — COALESCE keeps existing values for null params
+    -- event_date and event_time are stored in creator's local timezone (event_timezone)
     UPDATE event_mst
     SET title          = COALESCE(p_title,       title),
         description    = COALESCE(p_description, description),
-        event_date     = COALESCE(v_utc_date,    event_date),
-        event_time     = COALESCE(v_utc_time,    event_time),
+        event_date     = COALESCE(p_event_date,  event_date),
+        event_time     = COALESCE(p_event_time,  event_time),
         event_timezone = COALESCE(p_timezone,    event_timezone),
         livestream     = COALESCE(p_livestream,  livestream),
         video          = COALESCE(p_video,       video),
