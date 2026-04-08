@@ -11,8 +11,9 @@
 | parent_event_id  | uuid        | NULL              | **Yes**  | FK → event_mst.event_id        | If set, this row is a generated occurrence of a recurring series       |
 | title            | text        | NULL              | Yes      | —                              | Event title                                                            |
 | description      | text        | NULL              | **Yes**  | —                              | Event description (nullable)                                           |
-| event_date       | date        | NULL              | Yes      | —                              | Date of the event (or occurrence date for child rows)                  |
-| event_time       | time        | NULL              | Yes      | —                              | Time of the event                                                      |
+| event_date       | date        | NULL              | Yes      | —                              | Date of the event in UTC (or occurrence date for child rows)           |
+| event_time       | time        | NULL              | Yes      | —                              | Time of the event (stored as UTC)                                      |
+| event_timezone   | text        | `'UTC'`           | No       | —                              | Creator's IANA timezone at time of creation (e.g. `'America/New_York'`) |
 | livestream       | bool        | false             | No       | —                              | Is this a live stream?                                                 |
 | video            | bool        | false             | No       | —                              | Is this a video premiere?                                              |
 | is_recurring     | bool        | false             | No       | —                              | Is this a repeating event?                                             |
@@ -63,7 +64,9 @@ When `create_event` is called with `p_is_recurring = true`, it inserts:
 - `livestream = true` → used for live section logic in `get_event_list`
 - `video = true` → video premiere (not a live stream)
 - One event can stream on multiple platforms via `event_platforms` table
-- **Live section rule:** `livestream = true` AND `event_time <= current_time` AND `event_time >= (current_time - 3 hours)`
+- `event_date` and `event_time` are stored in **UTC**. Creator's local timezone is stored in `event_timezone`.
+- Read SPs accept `p_timezone` (viewer's IANA timezone) and convert UTC → viewer's local date/time before returning.
+- **Live section rule:** `livestream = true` AND `event UTC time <= NOW()` AND `event UTC time >= NOW() - 3 hours`
 - **Terminated:** Started more than 3 hours ago → hidden from both live and today sections
 
 ## Referenced By (Stored Procedures & Tables)

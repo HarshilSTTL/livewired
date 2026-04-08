@@ -25,7 +25,8 @@
 
 CREATE OR REPLACE FUNCTION get_profile_events(
     p_profile_id  uuid,
-    p_week_start  date
+    p_week_start  date,
+    p_timezone    text DEFAULT 'UTC'
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -68,8 +69,8 @@ BEGIN
             'parent_event_id', e.parent_event_id,
             'title',           e.title,
             'description',     e.description,
-            'event_date',      e.event_date,
-            'event_time',      e.event_time,
+            'event_date',      (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::date,
+            'event_time',      (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::time,
             'livestream',      e.livestream,
             'video',           e.video,
             'is_recurring',    e.is_recurring,
@@ -97,9 +98,10 @@ BEGIN
     )
     INTO v_events
     FROM event_mst e
-    WHERE e.profile_id  = p_profile_id
-      AND e.event_date  BETWEEN p_week_start AND v_week_end
-      AND e.is_deleted  = false
+    WHERE e.profile_id = p_profile_id
+      AND (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::date
+          BETWEEN p_week_start AND v_week_end
+      AND e.is_deleted = false
       AND (e.is_recurring = false OR e.parent_event_id IS NOT NULL);
 
     RETURN json_build_object(

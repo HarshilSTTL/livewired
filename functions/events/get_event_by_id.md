@@ -6,7 +6,10 @@
 -- Endpoint: POST /rpc/get_event_by_id
 -- Doc: docs/api/events/get_event_by_id.md
 
-CREATE OR REPLACE FUNCTION get_event_by_id(p_event_id uuid)
+CREATE OR REPLACE FUNCTION get_event_by_id(
+    p_event_id uuid,
+    p_timezone text DEFAULT 'UTC'
+)
 RETURNS JSON
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -26,8 +29,9 @@ BEGIN
         'parent_event_id', e.parent_event_id,
         'title',           e.title,
         'description',     e.description,
-        'event_date',      e.event_date,
-        'event_time',      e.event_time,
+        'event_date',      (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::date,
+        'event_time',      (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::time,
+        'event_timezone',  e.event_timezone,
         'livestream',      e.livestream,
         'video',           e.video,
         'is_recurring',    e.is_recurring,

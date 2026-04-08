@@ -7,9 +7,10 @@
 -- Doc: docs/api/events/get_event_dates.md
 
 CREATE OR REPLACE FUNCTION get_event_dates(
-    p_user_id uuid,
-    p_year    int,
-    p_month   int
+    p_user_id  uuid,
+    p_year     int,
+    p_month    int,
+    p_timezone text DEFAULT 'UTC'
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -51,17 +52,17 @@ BEGIN
     INTO v_result
     FROM (
         SELECT
-            e.event_date::text  AS event_date,
-            COUNT(*)::int       AS event_count
+            (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::date::text AS event_date,
+            COUNT(*)::int AS event_count
         FROM event_mst e
         JOIN creator_profiles cp ON cp.id = e.profile_id
         JOIN follows f           ON f.profile_id = cp.id
-        WHERE f.user_id   = p_user_id
-          AND f.is_active = true
+        WHERE f.user_id    = p_user_id
+          AND f.is_active  = true
           AND e.is_deleted = false
-          AND EXTRACT(YEAR  FROM e.event_date) = p_year
-          AND EXTRACT(MONTH FROM e.event_date) = p_month
-        GROUP BY e.event_date
+          AND EXTRACT(YEAR  FROM (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::date) = p_year
+          AND EXTRACT(MONTH FROM (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::date) = p_month
+        GROUP BY (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE 'UTC') AT TIME ZONE p_timezone)::date
     ) row_data;
 
     -- ── Success ───────────────────────────────────────────────────────────────

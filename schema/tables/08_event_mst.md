@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS public.event_mst (
     description       text        NULL,   -- nullable
     event_date        date,
     event_time        time,
+    event_timezone    text        NOT NULL DEFAULT 'UTC', -- creator's IANA timezone at time of creation
     livestream        bool        DEFAULT false,
     video             bool        DEFAULT false,
     is_recurring      bool        DEFAULT false,
@@ -25,6 +26,9 @@ CREATE TABLE IF NOT EXISTS public.event_mst (
 -- Migration: run once in Supabase SQL editor
 --   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT false;
 --   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS deleted_at timestamptz NULL;
+--   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS event_timezone text NOT NULL DEFAULT 'UTC';
+--   Note: event_date + event_time store UTC values. event_timezone stores the creator's original IANA timezone.
+--   Existing rows default to 'UTC' which is safe — they had no timezone context.
 
 -- FK name: event_mst_profile_id_fkey
 -- FK name: event_mst_parent_event_id_fkey
