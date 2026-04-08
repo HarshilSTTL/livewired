@@ -38,7 +38,8 @@ parent/template row (which holds the definition but has no meaningful display da
 | Parameter | Type | Required | Description |
 |---|---|---|---|
 | `p_profile_id` | uuid | ✅ | The profile whose events to fetch |
-| `p_week_start` | date | ✅ | First day of the week to display (`YYYY-MM-DD`) |
+| `p_week_start` | date | ✅ | First day of the week in **viewer's local timezone** (`YYYY-MM-DD`) |
+| `p_timezone` | text | ❌ | Viewer's IANA timezone — e.g. `'Asia/Kolkata'`. All `event_date`/`event_time` values returned in this timezone. Default: `'UTC'` |
 
 > `p_week_start` should be the **Sunday** of the displayed week (e.g. `2026-04-05`
 > for the "Week of Apr 5–11" view). The SP calculates `week_end = week_start + 6 days` internally.
@@ -50,7 +51,8 @@ parent/template row (which holds the definition but has no meaningful display da
 ```json
 {
   "p_profile_id": "profile-uuid",
-  "p_week_start": "2026-04-05"
+  "p_week_start": "2026-04-05",
+  "p_timezone":   "Asia/Kolkata"
 }
 ```
 

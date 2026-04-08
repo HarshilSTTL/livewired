@@ -20,6 +20,7 @@ For recurring child events, platforms and recurring rules are inherited from the
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `p_event_id` | uuid | ✅ | The event to fetch |
+| `p_timezone` | text | ❌ | Viewer's IANA timezone — e.g. `'Asia/Kolkata'`. `event_date` and `event_time` returned in this timezone. Default: `'UTC'` |
 
 ---
 
@@ -27,7 +28,8 @@ For recurring child events, platforms and recurring rules are inherited from the
 
 ```json
 {
-  "p_event_id": "uuid..."
+  "p_event_id": "uuid...",
+  "p_timezone": "Asia/Kolkata"
 }
 ```
 

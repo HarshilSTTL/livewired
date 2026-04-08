@@ -27,8 +27,9 @@ Used to highlight dots on a calendar view in Flutter.
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `p_user_id` | uuid | ✅ | Current user's ID |
-| `p_year` | int | ✅ | Year — e.g. `2026` |
-| `p_month` | int | ✅ | Month — `1` to `12` |
+| `p_year` | int | ✅ | Year in viewer's local timezone — e.g. `2026` |
+| `p_month` | int | ✅ | Month in viewer's local timezone — `1` to `12` |
+| `p_timezone` | text | ❌ | Viewer's IANA timezone — e.g. `'Asia/Kolkata'`. Dates are grouped in this timezone. Default: `'UTC'` |
 
 ---
 
@@ -36,9 +37,10 @@ Used to highlight dots on a calendar view in Flutter.
 
 ```json
 {
-  "p_user_id": "178fa2d8-97a4-49e0-aa2c-763f35f36634",
-  "p_year":    2026,
-  "p_month":   4
+  "p_user_id":  "178fa2d8-97a4-49e0-aa2c-763f35f36634",
+  "p_year":     2026,
+  "p_month":    4,
+  "p_timezone": "Asia/Kolkata"
 }
 ```
 

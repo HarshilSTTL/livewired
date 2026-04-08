@@ -11,21 +11,24 @@
 | Param | Type | Required | Default | Notes |
 |-------|------|----------|---------|-------|
 | p_user_id | uuid | No | null | When provided — only events from followed profiles are returned |
-| p_date | date | No | CURRENT_DATE | Date to fetch events for |
+| p_date | date | No | CURRENT_DATE | Date to fetch events for — in viewer's local timezone |
+| p_timezone | text | No | `'UTC'` | Viewer's IANA timezone — e.g. `'Asia/Kolkata'`, `'America/New_York'`. All dates/times returned in this timezone |
 | p_device_ip | text | No | null | Device IP — accepted but not stored |
 
 ### Request Example — Dashboard (followed events only)
 ```json
 {
-  "p_user_id": "uuid...",
-  "p_date": "2026-04-02"
+  "p_user_id":  "uuid...",
+  "p_date":     "2026-04-02",
+  "p_timezone": "Asia/Kolkata"
 }
 ```
 
 ### Request Example — All events (no filter)
 ```json
 {
-  "p_date": "2026-04-02"
+  "p_date":     "2026-04-02",
+  "p_timezone": "Asia/Kolkata"
 }
 ```
 
@@ -133,6 +136,8 @@
 
 ## Notes
 
+- `event_date` and `time` in the response are returned in the **viewer's local timezone** (`p_timezone`)
+- Live/upcoming checks compare UTC timestamps directly — no timezone needed for accuracy
 - Only events from `creator_profiles` with `status = 'active'` are returned
 - Events are ordered by `event_time ASC` within each section
 - `streaming` array uses `coalesce(..., '[]'::json)` — never null

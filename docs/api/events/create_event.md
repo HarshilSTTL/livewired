@@ -68,8 +68,9 @@ Rows inserted into `event_mst`:
 | `p_profile_id` | uuid | ✅ | — | Profile creating the event |
 | `p_user_id` | uuid | ✅ | — | Caller's user ID (ownership check) |
 | `p_title` | text | ✅ | — | Event title |
-| `p_event_date` | date | ✅ | — | Date of the event (`YYYY-MM-DD`) |
-| `p_event_time` | time | ✅ | — | Time of the event (`HH:MM:SS`) |
+| `p_event_date` | date | ✅ | — | Date of the event in creator's local timezone (`YYYY-MM-DD`) |
+| `p_event_time` | time | ✅ | — | Time of the event in creator's local timezone (`HH:MM:SS`) |
+| `p_timezone` | text | ❌ | `'UTC'` | Creator's IANA timezone — e.g. `'America/New_York'`, `'Asia/Kolkata'` |
 | `p_description` | text | ❌ | null | Event description |
 | `p_livestream` | boolean | ❌ | false | Is this a live stream? |
 | `p_video` | boolean | ❌ | false | Is this a video premiere? |
@@ -121,6 +122,7 @@ Rows inserted into `event_mst`:
   "p_title":      "Special Stream",
   "p_event_date": "2026-04-15",
   "p_event_time": "18:00:00",
+  "p_timezone":   "America/New_York",
   "p_livestream": true
 }
 ```
@@ -227,7 +229,8 @@ Rows inserted into `event_mst`:
    ├── If type='first'/'last': interval must be null
    ├── recurring_start_date: required
    └── recurring_end_date: if provided, must be > start_date
-6. INSERT parent row into event_mst (parent_event_id = NULL) → returns v_event_id
+6. Convert (p_event_date + p_event_time) from p_timezone → UTC → v_utc_date, v_utc_time
+7. INSERT parent row into event_mst with UTC date/time + event_timezone → returns v_event_id
 7. If p_platforms non-null/non-empty:
    └── INSERT into event_platforms (on parent only; children inherit)
 8. If p_is_recurring = true:
