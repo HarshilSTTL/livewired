@@ -20,18 +20,18 @@ For platforms, three behaviours are supported based on what `p_platforms` is pas
 
 ## Parameters
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `p_event_id` | uuid | ✅ | The event to update |
-| `p_user_id` | uuid | ✅ | Must own the profile that created this event |
-| `p_title` | text | ❌ | New title |
-| `p_description` | text | ❌ | New description |
-| `p_event_date` | date | ❌ | New date in creator's local timezone (YYYY-MM-DD) |
-| `p_event_time` | time | ❌ | New time in creator's local timezone (HH:MM:SS) |
-| `p_timezone` | text | ❌ | Creator's IANA timezone — required when updating date or time (e.g. `'America/New_York'`) |
-| `p_livestream` | boolean | ❌ | Toggle livestream flag |
-| `p_video` | boolean | ❌ | Toggle video flag |
-| `p_platforms` | jsonb | ❌ | Platform list — `null` = no change · `[]` = clear · `[{...}]` = replace |
+| Parameter       | Type    | Required | Description                                                                               |
+| --------------- | ------- | -------- | ----------------------------------------------------------------------------------------- |
+| `p_event_id`    | uuid    | ✅        | The event to update                                                                       |
+| `p_user_id`     | uuid    | ✅        | Must own the profile that created this event                                              |
+| `p_title`       | text    | ❌        | New title                                                                                 |
+| `p_description` | text    | ❌        | New description                                                                           |
+| `p_event_date`  | date    | ❌        | New date in creator's local timezone (YYYY-MM-DD)                                         |
+| `p_event_time`  | time    | ❌        | New time in creator's local timezone (HH:MM:SS)                                           |
+| `p_timezone`    | text    | ❌        | Creator's IANA timezone — required when updating date or time (e.g. `'America/New_York'`) |
+| `p_livestream`  | boolean | ❌        | Toggle livestream flag                                                                    |
+| `p_video`       | boolean | ❌        | Toggle video flag                                                                         |
+| `p_platforms`   | jsonb   | ❌        | Platform list — `null` = no change · `[]` = clear · `[{...}]` = replace                   |
 
 ### `p_platforms` object shape
 
