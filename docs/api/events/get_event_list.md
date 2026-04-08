@@ -78,21 +78,22 @@
   "data": {
     "live": [
       {
-        "event_id": "uuid",
+        "event_id":     "uuid",
+        "profile_id":   "uuid",
         "profile_name": "Harshil Gaming",
-        "profile_pic": "url or null",
-        "username": "harshil_gaming",
-        "followers": 150,
-        "event_title": "Valorant Ranked Grind",
-        "event_date": "2026-03-30",
-        "time": "18:00:00",
-        "livestream": true,
+        "profile_pic":  "url or null",
+        "username":     "harshil_gaming",
+        "followers":    150,
+        "event_title":  "Valorant Ranked Grind",
+        "event_date":   "2026-03-30",
+        "time":         "18:00:00",
+        "livestream":   true,
         "is_recurring": false,
-        "streaming": [
+        "platforms": [
           {
-            "platform_id": 1,
+            "platform_id":   1,
             "platform_name": "YouTube",
-            "logo_url": "url or null",
+            "logo_url":      "url or null",
             "streaming_url": "https://youtube.com/live/..."
           }
         ]
@@ -121,23 +122,24 @@
 | Field | Source | Notes |
 |-------|--------|-------|
 | event_id | event_mst.event_id | — |
+| profile_id | creator_profiles.id | — |
 | profile_name | creator_profiles.profile_name | — |
 | profile_pic | creator_profiles.avatar | nullable |
 | username | creator_profiles.username | — |
 | followers | COUNT from follows WHERE is_active=true | live calculated |
 | event_title | event_mst.title | — |
-| event_date | event_mst.event_date | — |
-| time | event_mst.event_time | — |
+| event_date | converted from event_timezone → p_timezone | viewer's local date |
+| time | converted from event_timezone → p_timezone | viewer's local time |
 | livestream | event_mst.livestream | — |
 | is_recurring | event_mst.is_recurring | — |
-| streaming | joined from event_platforms + platforms | array, never null |
+| platforms | joined from event_platforms + platforms | array, never null |
 
 ---
 
 ## Notes
 
 - `event_date` and `time` in the response are returned in the **viewer's local timezone** (`p_timezone`)
-- Live/upcoming checks compare UTC timestamps directly — no timezone needed for accuracy
+- Live/upcoming checks use `AT TIME ZONE e.event_timezone` to get the correct UTC moment for comparison with `NOW()`
 - Only events from `creator_profiles` with `status = 'active'` are returned
 - Events are ordered by `event_time ASC` within each section
 - `streaming` array uses `coalesce(..., '[]'::json)` — never null
