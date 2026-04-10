@@ -3,7 +3,7 @@
 > Master cross-reference for all stored procedures, tables, and schemas.
 > Every API is linked to its SQL file, API doc, and the tables it reads/writes.
 
-**Total SPs:** 25 &nbsp;|&nbsp; **Tables:** 14 &nbsp;|&nbsp; **Groups:** 7
+**Total SPs:** 26 &nbsp;|&nbsp; **Tables:** 14 &nbsp;|&nbsp; **Groups:** 7
 
 ---
 
@@ -13,7 +13,7 @@
 | ------------ | --- | ----------------------------- |
 | 🔐 Auth      | 3   | [→ Auth](#-auth)              |
 | 👤 Profiles  | 7   | [→ Profiles](#-profiles)      |
-| 🎯 Platforms | 3   | [→ Platforms](#-platforms)    |
+| 🎯 Platforms | 4   | [→ Platforms](#-platforms)    |
 | 🏷️ Tags     | 2   | [→ Tags](#-tags)              |
 | 📅 Events    | 3   | [→ Events](#-events)          |
 | 👥 Follow    | 5   | [→ Follow](#-follow)          |
@@ -71,6 +71,7 @@
 |---|---|---|---|---|---|
 | `get_all_platforms` | GET /rpc/get_all_platforms | none | `platforms` 👁️ | [SQL](../functions/platforms/get_all_platforms.md) | [Doc](platforms/get_all_platforms.md) |
 | `get_profile_custom_links` | POST /rpc/get_profile_custom_links | p_profile_id | `profile_custom_links` 👁️ `creator_profiles` 👁️ | [SQL](../functions/platforms/get_profile_custom_links.md) | [Doc](platforms/get_profile_custom_links.md) |
+| `manage_custom_links` | POST /rpc/manage_custom_links | p_profile_id, p_user_id, p_links (jsonb) | `profile_custom_links` ✏️ `creator_profiles` 👁️ | [SQL](../functions/platforms/manage_custom_links.md) | [Doc](platforms/manage_custom_links.md) |
 | `submit_platform` | POST /rpc/submit_platform | p_user_id, p_platformid (int[]) | `user_preferred_platforms` ✏️ | [SQL](../functions/platforms/submit_platform.md) | [Doc](platforms/submit_platform.md) |
 
 **Tables involved:** [`platforms`](database/tables/03_platforms.md) · [`user_preferred_platforms`](database/tables/11_user_preferred_platforms.md)
@@ -177,7 +178,7 @@ Every table with the SPs that read (👁️) or write (✏️) it.
 | `user_preferred_platforms`  | [Doc](database/tables/11_user_preferred_platforms.md)  | [Schema](../schema/tables/11_user_preferred_platforms.md)  | `submit_platform` ✏️                                                                                                                                                                                                                                                                                                               |
 | `user_interests`            | [Doc](database/tables/12_user_interests.md)            | [Schema](../schema/tables/12_user_interests.md)            | `submit_tags` ✏️                                                                                                                                                                                                                                                                                                                   |
 | `event_recurring`           | [Doc](database/tables/13_event_recurring.md)           | [Schema](../schema/tables/13_event_recurring.md)           | `create_event` ✏️                                                                                                                                                                                                                                                                                                                  |
-| `profile_custom_links`      | [Doc](database/tables/14_profile_custom_links.md)      | [Schema](../schema/tables/14_profile_custom_links.md)      | `get_profile_custom_links` 👁️ · *(planned: `manage_custom_links` ✏️)*                                                                                                                                                                                                                                                              |
+| `profile_custom_links`      | [Doc](database/tables/14_profile_custom_links.md)      | [Schema](../schema/tables/14_profile_custom_links.md)      | `get_profile_custom_links` 👁️ · `manage_custom_links` ✏️                                                                                                                                                                                                                                                                           |
 
 ---
 
@@ -200,6 +201,7 @@ functions/                          docs/api/
 ├── platforms/                      ├── platforms/
 │   ├── get_all_platforms.md ─────► │   ├── get_all_platforms.md
 │   ├── get_profile_custom_links.md►│   ├── get_profile_custom_links.md
+│   ├── manage_custom_links.md ───► │   ├── manage_custom_links.md
 │   └── submit_platform.md ───────► │   └── submit_platform.md
 ├── tags/                           ├── tags/
 │   ├── get_all_tags.md ──────────► │   ├── get_all_tags.md
@@ -246,4 +248,4 @@ docs/API_INDEX.md        ← this file
 
 ---
 
-*Last updated: 2026-04-10 — 25 SPs · 14 tables*
+*Last updated: 2026-04-10 — 26 SPs · 14 tables*
