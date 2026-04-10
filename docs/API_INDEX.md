@@ -243,4 +243,4 @@ docs/API_INDEX.md        ← this file
 
 ---
 
-*Last updated: 2026-03-31 — 24 SPs · 13 tables*
+*Last updated: 2026-04-10 — 24 SPs · 13 tables*
