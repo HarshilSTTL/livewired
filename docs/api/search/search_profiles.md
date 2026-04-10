@@ -54,7 +54,7 @@
       "username": "radhe_gaming",
       "avatar": null,
       "bio": "I stream daily",
-      "followers": 320,
+      "followers": 320,   // null if show_followers = false
       "platforms": [
         { "platform_id": 1, "platform_name": "YouTube", "logo_url": "url or null" }
       ],
@@ -104,7 +104,7 @@
 3. `v_keyword := trim(p_keyword)`
 4. SELECT with scoring: `GREATEST(word_similarity(keyword, profile_name), word_similarity(keyword, username), word_similarity(keyword, bio))`
 5. WHERE: ILIKE OR word_similarity > 0.3 on all three fields
-6. Subquery for live `followers` (is_active=true) + `platforms` array per profile
+6. Subquery for `followers`: CASE WHEN show_followers = true → COUNT(is_active=true) ELSE null END + `platforms` array per profile
 7. ORDER BY score DESC — LIMIT p_limit
 8. If NULL → return empty array
 9. Return results
@@ -127,6 +127,7 @@
 - `match_score` is `0.0 – 1.0` — higher = better match
 - `avatar` and `bio` are nullable — handle in UI
 - `platforms` always an array (never null) via `coalesce(..., '[]'::json)`
+- `followers` is `null` when the creator has `show_followers = false` — handle in UI
 - `pg_trgm` extension must be enabled: see `schema/extensions/pg_trgm.md`
 - Trigram indexes on `creator_profiles.profile_name`, `.username`, `.bio` improve performance: see `schema/indexes/trigram_indexes.md`
 

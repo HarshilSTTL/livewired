@@ -45,10 +45,13 @@ BEGIN
             'username',      cp.username,
             'avatar',        cp.avatar,
             'bio',           cp.bio,
-            'followers',     (
-                SELECT count(*) FROM follows f
-                WHERE f.profile_id = cp.id AND f.is_active = true
-            ),
+            'followers', CASE
+                             WHEN cp.show_followers = true THEN (
+                                 SELECT count(*) FROM follows f
+                                 WHERE f.profile_id = cp.id AND f.is_active = true
+                             )
+                             ELSE null
+                         END,
             'platforms', (
                 SELECT coalesce(
                     json_agg(

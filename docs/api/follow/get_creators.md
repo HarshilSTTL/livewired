@@ -4,9 +4,8 @@
 **Group:** Follow
 **Description:** Returns all active creator profiles with follower count and platform names. Used for the follow recommendations screen during onboarding. Uses `SECURITY DEFINER`.
 
-> ⚠️ **Two differences from other follow SPs:**
-> 1. `followers` count has **no `is_active` filter** — counts all rows in `follows` including unfollowed users
-> 2. `platforms` returns **platform name strings only** (not objects with platform_id/logo_url)
+> ⚠️ **One known difference from other follow SPs:**
+> `platforms` returns **platform name strings only** (not objects with platform_id/logo_url)
 
 ---
 
@@ -72,7 +71,7 @@ Authorization: Bearer <token>
 | Display name | `name` | `creator_profiles.profile_name` |
 | Handle | `username` | — |
 | Avatar | `profilepic` | nullable — `creator_profiles.avatar` |
-| Follower count | `followers` | ⚠️ No is_active filter — all follow rows counted |
+| Follower count | `followers` | `null` if `show_followers = false` · count (active follows only) if `true` |
 | Platforms | `platforms` | ⚠️ Array of strings (plat_name only), not objects |
 
 ---
@@ -81,7 +80,7 @@ Authorization: Bearer <token>
 
 | Feature | `get_creators` | `get_following_list` / `search_profiles` |
 |---------|---------------|------------------------------------------|
-| `followers` filter | No `is_active` filter | `is_active = true` only |
+| `followers` filter | `is_active = true` · respects `show_followers` flag | `is_active = true` only |
 | `platforms` format | `["YouTube", "Twitch"]` strings | `[{platform_id, platform_name, logo_url}]` objects |
 | Response wrapper | `data.creators[]` | `data[]` direct |
 
@@ -90,7 +89,7 @@ Authorization: Bearer <token>
 ## Logic Flow
 
 1. SELECT from `creator_profiles` WHERE `status = 'active'`
-2. Per profile: subquery COUNT from `follows` (no is_active filter)
+2. Per profile: followers = CASE WHEN show_followers = true → COUNT(is_active=true) ELSE null END
 3. Per profile: subquery `json_agg(p.plat_name)` — platform names only
 4. Wrap in `data.creators` — `coalesce(..., '[]')` ensures never null
 5. EXCEPTION block catches all errors

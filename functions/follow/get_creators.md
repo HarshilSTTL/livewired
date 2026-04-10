@@ -6,7 +6,7 @@
 -- Endpoint: GET /rpc/get_creators
 -- Doc: docs/api/follow/get_creators.md
 -- Note: Returns platform names only (not platform_id or logo_url)
--- Note: followers count has NO is_active filter (counts all rows including unfollowed)
+-- Fix: followers count now respects show_followers flag and filters by is_active = true
 
 create or replace function public.get_creators()
 returns json
@@ -28,12 +28,15 @@ begin
                             'name',       cp.profile_name,
                             'username',   cp.username,
                             'profilepic', cp.avatar,
-                            'followers',  (
-                                select count(*)
-                                from follows f
-                                where f.profile_id = cp.id
-                                -- ⚠️ No is_active filter — counts all follow rows
-                            ),
+                            'followers',  CASE
+                                              WHEN cp.show_followers = true THEN (
+                                                  select count(*)
+                                                  from follows f
+                                                  where f.profile_id = cp.id
+                                                  and f.is_active = true
+                                              )
+                                              ELSE null
+                                          END,
                             'platforms',  (
                                 select coalesce(json_agg(p.plat_name), '[]'::json)
                                 from creator_platform_accounts cpa

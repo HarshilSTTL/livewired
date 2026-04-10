@@ -51,7 +51,7 @@ dropdown** and profile switcher in the app. Returns all statuses (`active`, `sus
         "is_default":     true,
         "status":         "active",
         "show_followers": true,
-        "followers":      142,
+        "followers":      142,    // null if show_followers = false
         "platforms": [
           {
             "platform_id":   1,
@@ -92,7 +92,7 @@ dropdown** and profile switcher in the app. Returns all statuses (`active`, `sus
 |---|---|
 | `profiles` | Always array, `[]` if user has no profiles |
 | `is_default` | Included — default profile sorted first |
-| `followers` | Always shown — creator's own view, no show_followers restriction |
+| `followers` | `null` if `show_followers = false` · count if `true` |
 | `platforms` | Always array, `[]` if none |
 | `tags` | Always array, `[]` if none |
 | `avatar` | Nullable |
@@ -116,7 +116,7 @@ dropdown** and profile switcher in the app. Returns all statuses (`active`, `sus
 1. Null check: p_user_id
 2. Check user exists in users table
 3. SELECT all profiles WHERE user_id = p_user_id
-   ├── For each: COUNT follows WHERE is_active = true
+   ├── For each: followers = CASE WHEN show_followers = true → COUNT(is_active=true) ELSE null END
    ├── For each: subquery platforms from creator_platform_accounts + platforms
    └── For each: subquery tags from profile_tags + tags
 4. ORDER BY is_default DESC, created_at ASC
@@ -132,7 +132,7 @@ dropdown** and profile switcher in the app. Returns all statuses (`active`, `sus
 | Input | `p_user_id` (uuid) | `p_username` (text) |
 | Returns | Array of all profiles | Single profile object |
 | Use case | Creator's own profile switcher | Public profile view |
-| `show_followers` respected? | No — always returns count | Yes — null if false |
+| `show_followers` respected? | Yes — null if false | Yes — null if false |
 | `is_default` in response | Yes | No |
 
 ---
