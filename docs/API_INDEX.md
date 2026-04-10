@@ -3,7 +3,7 @@
 > Master cross-reference for all stored procedures, tables, and schemas.
 > Every API is linked to its SQL file, API doc, and the tables it reads/writes.
 
-**Total SPs:** 24 &nbsp;|&nbsp; **Tables:** 13 &nbsp;|&nbsp; **Groups:** 7
+**Total SPs:** 25 &nbsp;|&nbsp; **Tables:** 13 &nbsp;|&nbsp; **Groups:** 7
 
 ---
 
@@ -12,7 +12,7 @@
 | Group        | SPs | Jump                          |
 | ------------ | --- | ----------------------------- |
 | 🔐 Auth      | 3   | [→ Auth](#-auth)              |
-| 👤 Profiles  | 7   | [→ Profiles](#-profiles)      |
+| 👤 Profiles  | 8   | [→ Profiles](#-profiles)      |
 | 🎯 Platforms | 2   | [→ Platforms](#-platforms)    |
 | 🏷️ Tags     | 2   | [→ Tags](#-tags)              |
 | 📅 Events    | 3   | [→ Events](#-events)          |
@@ -47,6 +47,7 @@
 | `is_creator` | POST /rpc/is_creator | p_user_id, p_is_creator | `users` ✏️ | [SQL](../functions/profiles/creator_enable.md) | [Doc](profiles/creator_enable.md) |
 | `create_profile` | POST /rpc/create_profile | p_user_id, p_profile_name, p_username, p_platforms (jsonb), p_tag_ids (bigint[]), ... | `creator_profiles` ✏️ `creator_platform_accounts` ✏️ `profile_tags` ✏️ | [SQL](../functions/profiles/create_profile.md) | [Doc](profiles/create_profile.md) |
 | `update_profile` | POST /rpc/update_profile | p_profile_id, p_user_id, + any fields to update | `creator_profiles` ✏️ `creator_platform_accounts` ✏️ `profile_tags` ✏️ | [SQL](../functions/profiles/update_profile.md) | [Doc](profiles/update_profile.md) |
+| `update_profile_platforms` | POST /rpc/update_profile_platforms | p_profile_id, p_user_id, p_platforms (jsonb) | `creator_platform_accounts` ✏️ | [SQL](../functions/profiles/update_profile_platforms.md) | [Doc](profiles/update_profile_platforms.md) |
 | `get_user_profiles` | POST /rpc/get_user_profiles | p_user_id | `creator_profiles` 👁️ | [SQL](../functions/profiles/get_user_profiles.md) | [Doc](profiles/get_user_profiles.md) |
 | `get_profile_by_id` | POST /rpc/get_profile_by_id | p_profile_id | `creator_profiles` 👁️ `creator_platform_accounts` 👁️ `profile_tags` 👁️ `follows` 👁️ | [SQL](../functions/profiles/get_profile_by_id.md) | [Doc](profiles/get_profile_by_id.md) |
 | `get_profile_by_username` | POST /rpc/get_profile_by_username | p_username | `creator_profiles` 👁️ `creator_platform_accounts` 👁️ `profile_tags` 👁️ `follows` 👁️ | [SQL](../functions/profiles/get_profile_by_username.md) | [Doc](profiles/get_profile_by_username.md) |
@@ -168,7 +169,7 @@ Every table with the SPs that read (👁️) or write (✏️) it.
 | `platforms`                 | [Doc](database/tables/03_platforms.md)                 | [Schema](../schema/tables/03_platforms.md)                 | `get_all_platforms` 👁️ · `create_profile` 👁️ · `update_profile` 👁️ · `submit_platform` 👁️ · `get_event_list` 👁️ · `get_profile_events` 👁️ · `search_events` 👁️ · `get_creators` 👁️ · `get_following_list` 👁️                                                                                                              |
 | `tags`                      | [Doc](database/tables/04_tags.md)                      | [Schema](../schema/tables/04_tags.md)                      | `get_all_tags` 👁️ · `create_profile` 👁️ · `update_profile` 👁️ · `submit_tags` 👁️                                                                                                                                                                                                                                               |
 | `creator_profiles`          | [Doc](database/tables/05_creator_profiles.md)          | [Schema](../schema/tables/05_creator_profiles.md)          | `create_profile` ✏️ · `update_profile` ✏️ · `get_user_profiles` 👁️ · `get_profile_by_id` 👁️ · `get_profile_by_username` 👁️ · `get_profile_by_userid` 👁️ · `get_creators` 👁️ · `follow_creator` 👁️ · `get_following_list` 👁️ · `get_event_list` 👁️ · `get_profile_events` 👁️ · `search_profiles` 👁️ · `search_events` 👁️ |
-| `creator_platform_accounts` | [Doc](database/tables/06_creator_platform_accounts.md) | [Schema](../schema/tables/06_creator_platform_accounts.md) | `create_profile` ✏️ · `update_profile` ✏️ · `get_profile_by_id` 👁️ · `get_profile_by_username` 👁️ · `get_profile_by_userid` 👁️ · `get_creators` 👁️ · `get_following_list` 👁️ · `search_profiles` 👁️                                                                                                                          |
+| `creator_platform_accounts` | [Doc](database/tables/06_creator_platform_accounts.md) | [Schema](../schema/tables/06_creator_platform_accounts.md) | `create_profile` ✏️ · `update_profile` ✏️ · `update_profile_platforms` ✏️ · `get_profile_by_id` 👁️ · `get_profile_by_username` 👁️ · `get_profile_by_userid` 👁️ · `get_creators` 👁️ · `get_following_list` 👁️ · `search_profiles` 👁️                                                                                          |
 | `profile_tags`              | [Doc](database/tables/07_profile_tags.md)              | [Schema](../schema/tables/07_profile_tags.md)              | `create_profile` ✏️ · `update_profile` ✏️ · `get_profile_by_id` 👁️ · `get_profile_by_username` 👁️ · `get_profile_by_userid` 👁️                                                                                                                                                                                                  |
 | `event_mst`                 | [Doc](database/tables/08_event_mst.md)                 | [Schema](../schema/tables/08_event_mst.md)                 | `create_event` ✏️ · `get_event_list` 👁️ · `get_profile_events` 👁️ · `search_events` 👁️                                                                                                                                                                                                                                          |
 | `event_platforms`           | [Doc](database/tables/09_event_platforms.md)           | [Schema](../schema/tables/09_event_platforms.md)           | `create_event` ✏️ · `get_event_list` 👁️ · `get_profile_events` 👁️ · `search_events` 👁️                                                                                                                                                                                                                                          |
@@ -191,6 +192,7 @@ functions/                          docs/api/
 │   ├── creator_enable.md ────────► │   ├── creator_enable.md
 │   ├── create_profile.md ────────► │   ├── create_profile.md
 │   ├── update_profile.md ────────► │   ├── update_profile.md
+│   ├── update_profile_platforms.md► │   ├── update_profile_platforms.md
 │   ├── get_user_profiles.md ─────► │   ├── get_user_profiles.md
 │   ├── get_profile_by_id.md ─────► │   ├── get_profile_by_id.md
 │   ├── get_profile_by_username.md► │   ├── get_profile_by_username.md
@@ -243,4 +245,4 @@ docs/API_INDEX.md        ← this file
 
 ---
 
-*Last updated: 2026-03-31 — 24 SPs · 13 tables*
+*Last updated: 2026-04-10 — 25 SPs · 13 tables*
