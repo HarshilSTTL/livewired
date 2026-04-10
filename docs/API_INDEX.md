@@ -3,7 +3,7 @@
 > Master cross-reference for all stored procedures, tables, and schemas.
 > Every API is linked to its SQL file, API doc, and the tables it reads/writes.
 
-**Total SPs:** 24 &nbsp;|&nbsp; **Tables:** 13 &nbsp;|&nbsp; **Groups:** 7
+**Total SPs:** 24 &nbsp;|&nbsp; **Tables:** 14 &nbsp;|&nbsp; **Groups:** 7
 
 ---
 
@@ -176,6 +176,7 @@ Every table with the SPs that read (👁️) or write (✏️) it.
 | `user_preferred_platforms`  | [Doc](database/tables/11_user_preferred_platforms.md)  | [Schema](../schema/tables/11_user_preferred_platforms.md)  | `submit_platform` ✏️                                                                                                                                                                                                                                                                                                               |
 | `user_interests`            | [Doc](database/tables/12_user_interests.md)            | [Schema](../schema/tables/12_user_interests.md)            | `submit_tags` ✏️                                                                                                                                                                                                                                                                                                                   |
 | `event_recurring`           | [Doc](database/tables/13_event_recurring.md)           | [Schema](../schema/tables/13_event_recurring.md)           | `create_event` ✏️                                                                                                                                                                                                                                                                                                                  |
+| `profile_custom_links`      | [Doc](database/tables/14_profile_custom_links.md)      | [Schema](../schema/tables/14_profile_custom_links.md)      | *(planned: `manage_custom_links` ✏️ · `get_all_platforms` 👁️)*                                                                                                                                                                                                                                                                     |
 
 ---
 
@@ -220,7 +221,7 @@ schema/
 │                    05_creator_profiles · 06_creator_platform_accounts
 │                    07_profile_tags · 08_event_mst · 09_event_platforms
 │                    10_follows · 11_user_preferred_platforms
-│                    12_user_interests · 13_event_recurring
+│                    12_user_interests · 13_event_recurring · 14_profile_custom_links
 ├── extensions/      pg_trgm        (required for search SPs)
 ├── indexes/         trigram_indexes
 └── seed/            roles · platforms · tags
@@ -243,4 +244,4 @@ docs/API_INDEX.md        ← this file
 
 ---
 
-*Last updated: 2026-04-10 — 24 SPs · 13 tables*
+*Last updated: 2026-04-10 — 24 SPs · 14 tables*
