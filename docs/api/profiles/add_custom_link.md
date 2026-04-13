@@ -19,14 +19,14 @@ Inserts multiple custom links for a creator profile in a single request. Each it
 |---|---|---|---|
 | `p_profile_id` | uuid | ✅ | Profile to add the custom links to |
 | `p_user_id` | uuid | ✅ | Caller's user ID (ownership check) |
-| `p_links` | jsonb array | ✅ | Array of `{ profile_name, profile_url }` objects |
+| `p_links` | jsonb array | ✅ | Array of `{ platform_name, platform_url }` objects |
 
 ### `p_links` item shape
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `profile_name` | text | ✅ | Display name for the link (free text) |
-| `profile_url` | text | ✅ | Full URL |
+| `platform_name` | text | ✅ | Display name for the link (free text) |
+| `platform_url` | text | ✅ | Full URL |
 
 ---
 
@@ -37,8 +37,8 @@ Inserts multiple custom links for a creator profile in a single request. Each it
   "p_profile_id": "profile-uuid",
   "p_user_id":    "user-uuid",
   "p_links": [
-    { "profile_name": "My Portfolio", "profile_url": "https://myportfolio.com" },
-    { "profile_name": "My Blog",      "profile_url": "https://myblog.com" }
+    { "platform_name": "My Portfolio", "platform_url": "https://myportfolio.com" },
+    { "platform_name": "My Blog",      "platform_url": "https://myblog.com" }
   ]
 }
 ```
@@ -77,7 +77,7 @@ Inserts multiple custom links for a creator profile in a single request. Each it
 
 ## Notes
 
-- Items with a missing `profile_name` or `profile_url` are **silently skipped** — the rest still save
+- Items with a missing `platform_name` or `platform_url` are **silently skipped** — the rest still save
 - `data.count` reflects how many items were actually inserted (excluding skipped ones)
 - Each item always creates a **new row** — use `update_custom_link` to edit existing ones
 - Use `get_profile_custom_links` after this call to get the `id` of each newly created row

@@ -9,7 +9,7 @@
 --
 -- Behaviour:
 --   • Replace-aware: compares sent list vs DB to decide insert / update / soft-delete.
---   • id present in item  → UPDATE that row (profile_name, profile_url, updated_at).
+--   • id present in item  → UPDATE that row (platform_name, platform_url, updated_at).
 --   • id null in item     → INSERT new row.
 --   • Row in DB but not in sent list → soft-delete (is_deleted = true, deleted_at = now()).
 --   • p_links = []        → soft-deletes all existing custom links for the profile.
@@ -59,14 +59,14 @@ BEGIN
 
         IF EXISTS (
             SELECT 1 FROM jsonb_array_elements(p_links) AS lnk
-            WHERE lnk->>'profile_name' IS NULL OR trim(lnk->>'profile_name') = ''
+            WHERE lnk->>'platform_name' IS NULL OR trim(lnk->>'platform_name') = ''
         ) THEN
             RETURN json_build_object('status', false, 'message', 'Platform name is required for each link');
         END IF;
 
         IF EXISTS (
             SELECT 1 FROM jsonb_array_elements(p_links) AS lnk
-            WHERE lnk->>'profile_url' IS NULL OR trim(lnk->>'profile_url') = ''
+            WHERE lnk->>'platform_url' IS NULL OR trim(lnk->>'platform_url') = ''
         ) THEN
             RETURN json_build_object('status', false, 'message', 'URL is required for each link');
         END IF;
@@ -97,15 +97,15 @@ BEGIN
         FOR v_link IN SELECT * FROM jsonb_array_elements(p_links)
         LOOP
             v_id   := (v_link->>'id')::uuid;
-            v_name := trim(v_link->>'profile_name');
-            v_url  := trim(v_link->>'profile_url');
+            v_name := trim(v_link->>'platform_name');
+            v_url  := trim(v_link->>'platform_url');
 
             IF v_id IS NOT NULL THEN
                 -- UPDATE existing row
                 UPDATE profile_custom_links
                 SET
-                    profile_name = v_name,
-                    profile_url  = v_url,
+                    platform_name = v_name,
+                    platform_url  = v_url,
                     updated_at   = now()
                 WHERE id         = v_id
                   AND profile_id = p_profile_id
@@ -113,7 +113,7 @@ BEGIN
             ELSE
                 -- INSERT new row
                 INSERT INTO profile_custom_links (
-                    id, profile_id, profile_name, profile_url,
+                    id, profile_id, platform_name, platform_url,
                     is_deleted, created_at, updated_at
                 )
                 VALUES (

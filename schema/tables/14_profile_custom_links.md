@@ -10,8 +10,8 @@
 CREATE TABLE IF NOT EXISTS public.profile_custom_links (
     id           uuid      PRIMARY KEY DEFAULT gen_random_uuid(),
     profile_id   uuid      NOT NULL REFERENCES public.creator_profiles(id) ON DELETE CASCADE,
-    profile_name text      NOT NULL,   -- user-defined platform name e.g. "Amazon", "Cashapp"
-    profile_url  text      NOT NULL,   -- full URL for the link
+    platform_name text      NOT NULL,   -- user-defined platform name e.g. "Amazon", "Cashapp"
+    platform_url  text      NOT NULL,   -- full URL for the link
     is_deleted   boolean   NOT NULL DEFAULT false,  -- soft delete flag
     deleted_at   timestamp NULL,                    -- set when is_deleted = true
     created_at   timestamp NULL DEFAULT now(),
@@ -19,4 +19,8 @@ CREATE TABLE IF NOT EXISTS public.profile_custom_links (
 );
 
 -- FK: fk_profile → profile_id references public.creator_profiles.id
+
+-- Migration: rename columns profile_name → platform_name, profile_url → platform_url
+-- ALTER TABLE public.profile_custom_links RENAME COLUMN profile_name TO platform_name;
+-- ALTER TABLE public.profile_custom_links RENAME COLUMN profile_url  TO platform_url;
 ```

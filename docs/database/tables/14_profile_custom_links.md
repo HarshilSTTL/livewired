@@ -12,8 +12,8 @@
 |---|---|---|---|---|
 | `id` | uuid | NOT NULL | `gen_random_uuid()` | Primary key |
 | `profile_id` | uuid | NOT NULL | — | FK → `creator_profiles.id` — owner of this custom link |
-| `profile_name` | text | NOT NULL | — | User-defined platform name e.g. `"Amazon"`, `"Cashapp"`, `"Patreon"` |
-| `profile_url` | text | NOT NULL | — | Full URL for the link |
+| `platform_name` | text | NOT NULL | — | User-defined platform name e.g. `"Amazon"`, `"Cashapp"`, `"Patreon"` |
+| `platform_url` | text | NOT NULL | — | Full URL for the link |
 | `is_deleted` | boolean | NOT NULL | `false` | Soft delete flag — `true` = deleted |
 | `deleted_at` | timestamp | NULL | — | Set to `now()` when `is_deleted` is set to `true` |
 | `created_at` | timestamp | NULL | `now()` | Row creation timestamp |
@@ -35,7 +35,7 @@
 - **Profile-scoped:** Each row belongs to one creator profile (`profile_id`). Different profiles of the same user have independent custom link lists.
 - **Soft delete only:** Rows are never hard-deleted. When a user removes a custom link, `is_deleted = true` and `deleted_at = now()`.
 - **Visible in `get_all_platforms`:** When `get_all_platforms` is called with `p_profile_id`, active (`is_deleted = false`) rows are returned merged with global platforms. Custom links are identified by `is_custom = true` in the response.
-- **No logo:** Custom links have no logo. Frontend should render `profile_name` as text instead of a platform icon.
+- **No logo:** Custom links have no logo. Frontend should render `platform_name` as text instead of a platform icon.
 - **Cascade delete:** If the creator profile is deleted, all its custom links are automatically removed.
 - **`updated_at`** must be set to `now()` in any SP that updates a row.
 

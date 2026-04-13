@@ -35,16 +35,16 @@ Handles add, edit, and soft-delete in a single call using a **replace-aware** pa
 
 ```json
 [
-  { "id": "existing-uuid", "profile_name": "Amazon",  "profile_url": "https://amazon.com/..." },
-  { "id": null,            "profile_name": "Cashapp", "profile_url": "https://cash.app/..." }
+  { "id": "existing-uuid", "platform_name": "Amazon",  "platform_url": "https://amazon.com/..." },
+  { "id": null,            "platform_name": "Cashapp", "platform_url": "https://cash.app/..." }
 ]
 ```
 
 | Field | Required | Description |
 |---|---|---|
 | `id` | ❌ | UUID of existing row — pass `null` for new links |
-| `profile_name` | ✅ | Platform name — must not be empty |
-| `profile_url` | ✅ | Full URL — must not be empty |
+| `platform_name` | ✅ | Platform name — must not be empty |
+| `platform_url` | ✅ | Full URL — must not be empty |
 
 ---
 
@@ -56,7 +56,7 @@ Handles add, edit, and soft-delete in a single call using a **replace-aware** pa
   "p_profile_id": "profile-uuid",
   "p_user_id":    "user-uuid",
   "p_links": [
-    { "id": null, "profile_name": "Amazon", "profile_url": "https://amazon.com/storefront/creator" }
+    { "id": null, "platform_name": "Amazon", "platform_url": "https://amazon.com/storefront/creator" }
   ]
 }
 ```
@@ -67,7 +67,7 @@ Handles add, edit, and soft-delete in a single call using a **replace-aware** pa
   "p_profile_id": "profile-uuid",
   "p_user_id":    "user-uuid",
   "p_links": [
-    { "id": "existing-uuid", "profile_name": "Amazon Store", "profile_url": "https://amazon.com/new-url" }
+    { "id": "existing-uuid", "platform_name": "Amazon Store", "platform_url": "https://amazon.com/new-url" }
   ]
 }
 ```
@@ -78,8 +78,8 @@ Handles add, edit, and soft-delete in a single call using a **replace-aware** pa
   "p_profile_id": "profile-uuid",
   "p_user_id":    "user-uuid",
   "p_links": [
-    { "id": "uuid-1",  "profile_name": "Amazon",  "profile_url": "https://..." },
-    { "id": null,      "profile_name": "Patreon",  "profile_url": "https://..." }
+    { "id": "uuid-1",  "platform_name": "Amazon",  "platform_url": "https://..." },
+    { "id": null,      "platform_name": "Patreon",  "platform_url": "https://..." }
   ]
 }
 ```
@@ -127,8 +127,8 @@ Handles add, edit, and soft-delete in a single call using a **replace-aware** pa
 | `User ID is required` | `p_user_id` is null |
 | `Links list is required` | `p_links` is null |
 | `Profile not found or access denied` | Profile doesn't exist or belongs to a different user |
-| `Platform name is required for each link` | Any item has empty `profile_name` |
-| `URL is required for each link` | Any item has empty `profile_url` |
+| `Platform name is required for each link` | Any item has empty `platform_name` |
+| `URL is required for each link` | Any item has empty `platform_url` |
 | `Something went wrong` | Unhandled exception — `error` field contains `SQLERRM` |
 
 ---
@@ -138,12 +138,12 @@ Handles add, edit, and soft-delete in a single call using a **replace-aware** pa
 ```
 1. Null check: p_profile_id, p_user_id, p_links
 2. Ownership check: creator_profiles WHERE id = p_profile_id AND user_id = p_user_id
-3. Validate each item: profile_name and profile_url must be non-empty
+3. Validate each item: platform_name and platform_url must be non-empty
 4. Build v_sent_ids = array of all IDs present in p_links (excludes nulls)
 5. Soft-delete: UPDATE profile_custom_links SET is_deleted=true, deleted_at=now()
    WHERE profile_id = p_profile_id AND is_deleted=false AND id NOT IN v_sent_ids
 6. For each item in p_links:
-   ├── id present → UPDATE profile_name, profile_url, updated_at
+   ├── id present → UPDATE platform_name, platform_url, updated_at
    └── id null    → INSERT new row
 7. Return success with profile_id
 ```

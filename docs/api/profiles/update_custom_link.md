@@ -9,7 +9,7 @@
 
 ## Overview
 
-Updates the `profile_name` and `profile_url` for a specific custom link row. Used when the user edits a custom link in the Custom Links section and saves.
+Updates `platform_name` and `platform_url` for one or more custom link rows in a single request. Each item must include the row `id`. Used when the user edits custom links in the Custom Links section and saves.
 
 ---
 
@@ -17,10 +17,17 @@ Updates the `profile_name` and `profile_url` for a specific custom link row. Use
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `p_id` | uuid | ✅ | `profile_custom_links.id` of the row to update |
+| `p_profile_id` | uuid | ✅ | Profile the links belong to (ownership check) |
 | `p_user_id` | uuid | ✅ | Caller's user ID (ownership check) |
-| `p_profile_name` | text | ✅ | New display name |
-| `p_profile_url` | text | ✅ | New URL |
+| `p_links` | jsonb array | ✅ | Array of `{ id, platform_name, platform_url }` objects |
+
+### `p_links` item shape
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `id` | uuid | ✅ | `profile_custom_links.id` of the row to update |
+| `platform_name` | text | ✅ | New display name |
+| `platform_url` | text | ✅ | New URL |
 
 ---
 
@@ -28,10 +35,12 @@ Updates the `profile_name` and `profile_url` for a specific custom link row. Use
 
 ```json
 {
-  "p_id":           "row-uuid",
-  "p_user_id":      "user-uuid",
-  "p_profile_name": "Updated Portfolio",
-  "p_profile_url":  "https://newportfolio.com"
+  "p_profile_id": "profile-uuid",
+  "p_user_id":    "user-uuid",
+  "p_links": [
+    { "id": "row-uuid-1", "platform_name": "My Portfolio", "platform_url": "https://myportfolio.com" },
+    { "id": "row-uuid-2", "platform_name": "My Blog",      "platform_url": "https://myblog.com" }
+  ]
 }
 ```
 
@@ -41,7 +50,11 @@ Updates the `profile_name` and `profile_url` for a specific custom link row. Use
 
 ### Success
 ```json
-{ "status": true, "message": "Custom link updated successfully" }
+{
+  "status":  true,
+  "message": "2 custom link(s) updated successfully",
+  "data": { "count": 2 }
+}
 ```
 
 ### Error
@@ -55,26 +68,25 @@ Updates the `profile_name` and `profile_url` for a specific custom link row. Use
 
 | Message | Cause |
 |---|---|
-| `Custom link ID is required` | `p_id` is null |
+| `Profile ID is required` | `p_profile_id` is null |
 | `User ID is required` | `p_user_id` is null |
-| `Link name is required` | `p_profile_name` is null or empty |
-| `Link URL is required` | `p_profile_url` is null or empty |
-| `Custom link not found or access denied` | Row doesn't exist, is soft-deleted, or belongs to a different user |
+| `Links list is required` | `p_links` is null or empty array |
+| `Profile not found or access denied` | Profile doesn't exist or belongs to a different user |
 | `Something went wrong` | Unhandled exception |
 
 ---
 
 ## Notes
 
-- Updates both `profile_name` and `profile_url` together — both must always be provided
-- Also sets `updated_at = now()` on the row
-- Ownership verified by joining through `creator_profiles.user_id`
-- Soft-deleted rows cannot be updated
+- Items missing `id`, `platform_name`, or `platform_url` are **silently skipped**
+- Only rows that belong to `p_profile_id` and are not soft-deleted can be updated
+- `data.count` reflects how many rows were actually updated
+- Also sets `updated_at = now()` on each updated row
 
 ---
 
 ## Related
 
-- [`get_profile_custom_links`](../../platforms/get_profile_custom_links.md) — fetch all custom links (use `id` from here)
-- [`add_custom_link`](add_custom_link.md) — add a new custom link
+- [`get_profile_custom_links`](../../platforms/get_profile_custom_links.md) — fetch all custom links (use `custom_id` from here as the `id` in each item)
+- [`add_custom_link`](add_custom_link.md) — add new custom links
 - [`delete_custom_link`](delete_custom_link.md) — soft-delete a custom link

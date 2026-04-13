@@ -47,16 +47,16 @@ Used in two places:
   "data": [
     {
       "custom_id":    "uuid",
-      "profile_name": "Amazon",
-      "profile_url":  "https://amazon.com/storefront/creator",
+      "platform_name": "Amazon",
+      "platform_url":  "https://amazon.com/storefront/creator",
       "is_custom":    true,
       "created_at":   "2026-04-10T00:00:00",
       "updated_at":   "2026-04-10T00:00:00"
     },
     {
       "custom_id":    "uuid",
-      "profile_name": "Cashapp",
-      "profile_url":  "https://cash.app/$creator",
+      "platform_name": "Cashapp",
+      "platform_url":  "https://cash.app/$creator",
       "is_custom":    true,
       "created_at":   "2026-04-10T00:00:00",
       "updated_at":   "2026-04-10T00:00:00"
@@ -90,8 +90,8 @@ Used in two places:
 |---|---|
 | `data` | Always an array — `[]` if no custom links exist |
 | `custom_id` | UUID of the row in `profile_custom_links` — use this for update/delete calls |
-| `profile_name` | User-defined platform name e.g. `"Amazon"`, `"Cashapp"` |
-| `profile_url` | Full URL entered by the creator |
+| `platform_name` | User-defined platform name e.g. `"Amazon"`, `"Cashapp"` |
+| `platform_url` | Full URL entered by the creator |
 | `is_custom` | Always `true` — helps frontend distinguish from global platforms when merging |
 
 ---

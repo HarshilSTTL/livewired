@@ -39,8 +39,8 @@ BEGIN
     SELECT json_agg(
         json_build_object(
             'custom_id',    pcl.id,
-            'profile_name', pcl.profile_name,
-            'profile_url',  pcl.profile_url,
+            'platform_name', pcl.platform_name,
+            'platform_url',  pcl.platform_url,
             'is_custom',    true,
             'created_at',   pcl.created_at,
             'updated_at',   pcl.updated_at
