@@ -18,10 +18,10 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-    v_item         jsonb;
-    v_profile_name text;
-    v_profile_url  text;
-    v_count        int := 0;
+    v_item          jsonb;
+    v_platform_name text;
+    v_platform_url  text;
+    v_count         int := 0;
 BEGIN
 
     -- ── Null guards ──────────────────────────────────────────────────────────
@@ -48,18 +48,18 @@ BEGIN
     -- ── Loop and insert each link ─────────────────────────────────────────────
     FOR v_item IN SELECT * FROM jsonb_array_elements(p_links)
     LOOP
-        v_profile_name := trim(v_item->>'profile_name');
-        v_profile_url  := trim(v_item->>'profile_url');
+        v_platform_name := trim(v_item->>'platform_name');
+        v_platform_url  := trim(v_item->>'platform_url');
 
         -- Skip if name or URL missing
-        CONTINUE WHEN v_profile_name IS NULL OR v_profile_name = '';
-        CONTINUE WHEN v_profile_url  IS NULL OR v_profile_url  = '';
+        CONTINUE WHEN v_platform_name IS NULL OR v_platform_name = '';
+        CONTINUE WHEN v_platform_url  IS NULL OR v_platform_url  = '';
 
         INSERT INTO profile_custom_links (
-            id, profile_id, profile_name, profile_url, is_deleted
+            id, profile_id, platform_name, platform_url, is_deleted
         )
         VALUES (
-            gen_random_uuid(), p_profile_id, v_profile_name, v_profile_url, false
+            gen_random_uuid(), p_profile_id, v_platform_name, v_platform_url, false
         );
 
         v_count := v_count + 1;
