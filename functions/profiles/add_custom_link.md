@@ -8,10 +8,9 @@
 -- Doc:      docs/api/profiles/add_custom_link.md
 
 CREATE OR REPLACE FUNCTION add_custom_link(
-    p_profile_id   uuid,
-    p_user_id      uuid,
-    p_profile_name text,
-    p_profile_url  text
+    p_profile_id uuid,
+    p_user_id    uuid,
+    p_links      jsonb
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -19,7 +18,10 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-    v_new_id uuid;
+    v_item         jsonb;
+    v_profile_name text;
+    v_profile_url  text;
+    v_count        int := 0;
 BEGIN
 
     -- ── Null guards ──────────────────────────────────────────────────────────
@@ -31,12 +33,8 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'User ID is required');
     END IF;
 
-    IF p_profile_name IS NULL OR trim(p_profile_name) = '' THEN
-        RETURN json_build_object('status', false, 'message', 'Link name is required');
-    END IF;
-
-    IF p_profile_url IS NULL OR trim(p_profile_url) = '' THEN
-        RETURN json_build_object('status', false, 'message', 'Link URL is required');
+    IF p_links IS NULL OR jsonb_array_length(p_links) = 0 THEN
+        RETURN json_build_object('status', false, 'message', 'Links list is required');
     END IF;
 
     -- ── Ownership check ──────────────────────────────────────────────────────
@@ -47,21 +45,30 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'Profile not found or access denied');
     END IF;
 
-    -- ── Insert ───────────────────────────────────────────────────────────────
-    INSERT INTO profile_custom_links (
-        id, profile_id, profile_name, profile_url, is_deleted
-    )
-    VALUES (
-        gen_random_uuid(), p_profile_id, trim(p_profile_name), trim(p_profile_url), false
-    )
-    RETURNING id INTO v_new_id;
+    -- ── Loop and insert each link ─────────────────────────────────────────────
+    FOR v_item IN SELECT * FROM jsonb_array_elements(p_links)
+    LOOP
+        v_profile_name := trim(v_item->>'profile_name');
+        v_profile_url  := trim(v_item->>'profile_url');
+
+        -- Skip if name or URL missing
+        CONTINUE WHEN v_profile_name IS NULL OR v_profile_name = '';
+        CONTINUE WHEN v_profile_url  IS NULL OR v_profile_url  = '';
+
+        INSERT INTO profile_custom_links (
+            id, profile_id, profile_name, profile_url, is_deleted
+        )
+        VALUES (
+            gen_random_uuid(), p_profile_id, v_profile_name, v_profile_url, false
+        );
+
+        v_count := v_count + 1;
+    END LOOP;
 
     RETURN json_build_object(
         'status',  true,
-        'message', 'Custom link added successfully',
-        'data', json_build_object(
-            'id', v_new_id
-        )
+        'message', v_count || ' custom link(s) added successfully',
+        'data',    json_build_object('count', v_count)
     );
 
 EXCEPTION
