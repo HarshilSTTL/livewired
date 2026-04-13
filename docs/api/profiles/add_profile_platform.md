@@ -3,13 +3,13 @@
 **Endpoint:** `POST /rpc/add_profile_platform`
 **Group:** Profiles
 **SQL:** [`functions/profiles/add_profile_platform.md`](../../../functions/profiles/add_profile_platform.md)
-**Tables written:** `creator_platform_accounts` (INSERT)
+**Tables written:** `creator_platform_accounts` (INSERT / UPDATE)
 
 ---
 
 ## Overview
 
-Inserts one new platform link for a creator profile. Used when the user adds a platform in the Toggle or Additional Links section and hits the "+" button.
+Adds or updates multiple platform links for a creator profile in a single request. Each item in the array is upserted — if the platform already has an active row it updates the `channel_url`, otherwise it inserts a new row.
 
 ---
 
@@ -17,10 +17,16 @@ Inserts one new platform link for a creator profile. Used when the user adds a p
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `p_profile_id` | uuid | ✅ | Profile to add the platform link to |
+| `p_profile_id` | uuid | ✅ | Profile to add the platform links to |
 | `p_user_id` | uuid | ✅ | Caller's user ID (ownership check) |
-| `p_platform_id` | bigint | ✅ | Platform ID from `platforms` table |
-| `p_channel_url` | text | ✅ | Full channel/stream URL |
+| `p_platforms` | jsonb array | ✅ | Array of `{ platform_id, channel_url }` objects |
+
+### `p_platforms` item shape
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `platform_id` | int | ✅ | ID from the `platforms` table |
+| `channel_url` | text | ✅ | Full channel / stream URL |
 
 ---
 
@@ -28,10 +34,13 @@ Inserts one new platform link for a creator profile. Used when the user adds a p
 
 ```json
 {
-  "p_profile_id":  "profile-uuid",
-  "p_user_id":     "user-uuid",
-  "p_platform_id": 1,
-  "p_channel_url": "https://youtube.com/@creator"
+  "p_profile_id": "profile-uuid",
+  "p_user_id":    "user-uuid",
+  "p_platforms": [
+    { "platform_id": 1, "channel_url": "https://youtube.com/@handle" },
+    { "platform_id": 2, "channel_url": "https://twitch.tv/handle" },
+    { "platform_id": 3, "channel_url": "https://kick.com/handle" }
+  ]
 }
 ```
 
@@ -43,10 +52,8 @@ Inserts one new platform link for a creator profile. Used when the user adds a p
 ```json
 {
   "status":  true,
-  "message": "Platform link added successfully",
-  "data": {
-    "id": "new-row-uuid"
-  }
+  "message": "3 platform link(s) saved successfully",
+  "data": { "count": 3 }
 }
 ```
 
@@ -63,16 +70,23 @@ Inserts one new platform link for a creator profile. Used when the user adds a p
 |---|---|
 | `Profile ID is required` | `p_profile_id` is null |
 | `User ID is required` | `p_user_id` is null |
-| `Platform ID is required` | `p_platform_id` is null |
-| `Channel URL is required` | `p_channel_url` is null or empty |
+| `Platforms list is required` | `p_platforms` is null or empty array |
 | `Profile not found or access denied` | Profile doesn't exist or belongs to a different user |
-| `Platform ID is invalid` | `p_platform_id` not found in `platforms` table |
 | `Something went wrong` | Unhandled exception |
+
+---
+
+## Notes
+
+- Items with a missing/invalid `platform_id` or empty `channel_url` are **silently skipped** — the rest still save
+- Items with an invalid `platform_id` (not in `platforms` table) are also skipped
+- **Upsert behaviour:** if an active row already exists for that platform, `channel_url` is updated rather than duplicated
+- `data.count` reflects how many items were actually saved (excluding skipped ones)
 
 ---
 
 ## Related
 
-- [`get_profile_platforms`](get_profile_platforms.md) — fetch all platform links for a profile
-- [`update_profile_platform`](update_profile_platform.md) — update a platform link
+- [`get_profile_platforms`](get_profile_platforms.md) — fetch all active platform links
+- [`update_profile_platform`](update_profile_platform.md) — update a single platform link by row id
 - [`delete_profile_platform`](delete_profile_platform.md) — soft-delete a platform link
