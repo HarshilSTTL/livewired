@@ -12,6 +12,8 @@
 | channel_url | text | NULL | **Yes** | — | Full channel/stream URL (nullable) |
 | username | text | NULL | **Yes** | — | Username on that platform (nullable) |
 | is_default | boolean | false | No | — | Is this the primary platform for the profile |
+| is_deleted | boolean | false | No | — | Soft delete flag — `true` = deleted |
+| deleted_at | timestamp | NULL | Yes | — | Set to `now()` when `is_deleted` is set to `true` |
 
 ## Foreign Keys
 
@@ -26,6 +28,8 @@
 - `username` is nullable — defaults to the profile's username when inserted via `create_profile` SP
 - `is_default` marks the primary platform for a creator profile
 - One profile can be linked to multiple platforms (one row per platform)
+- **Soft delete only** — rows are never hard-deleted. Set `is_deleted = true` and `deleted_at = now()` on removal
+- All read SPs filter `AND cpa.is_deleted = false` to exclude deleted rows
 
 ## Referenced By (Stored Procedures)
 

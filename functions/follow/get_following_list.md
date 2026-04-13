@@ -62,6 +62,7 @@ BEGIN
                 FROM creator_platform_accounts cpa
                 JOIN platforms p ON p.plat_id = cpa.platform_id
                 WHERE cpa.profile_id = cp.id
+                  AND cpa.is_deleted = false
             ),
             'followed_at',   f.created_at
         )

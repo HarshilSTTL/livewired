@@ -82,6 +82,7 @@ BEGIN
                             FROM creator_platform_accounts cpa
                             JOIN platforms p ON p.plat_id = cpa.platform_id
                             WHERE cpa.profile_id = cp.id
+                              AND cpa.is_deleted = false
                         )                AS platforms,
                         (
                             SELECT COALESCE(
@@ -102,6 +103,7 @@ BEGIN
                                 SELECT COUNT(*)
                                 FROM   creator_platform_accounts cpa
                                 WHERE  cpa.profile_id = cp.id
+                                  AND  cpa.is_deleted = false
                                   AND  cpa.platform_id::bigint IN (
                                            SELECT platform_id
                                            FROM   user_preferred_platforms

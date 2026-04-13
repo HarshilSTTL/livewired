@@ -4,14 +4,14 @@
 -- Function: update_profile
 -- Group:    profiles
 -- Endpoint: POST /rpc/update_profile
--- Tables:   creator_profiles (UPDATE), creator_platform_accounts (DELETE+INSERT), profile_tags (DELETE+INSERT)
+-- Tables:   creator_profiles (UPDATE), creator_platform_accounts (UPSERT), profile_tags (DELETE+INSERT)
 -- Doc:      docs/api/profiles/update_profile.md
 --
 -- Behaviour:
 --   • COALESCE pattern — only updates fields that are explicitly passed (non-null).
---   • p_platforms = non-null  → replace-all: DELETE existing rows + INSERT new ones.
+--   • p_platforms = non-null  → upsert: UPDATE existing row if platform_id matches, INSERT if not found.
 --   • p_platforms = null      → platforms are NOT touched.
---   • p_platforms = []        → clears all platforms (DELETE, no INSERT).
+--   • p_platforms = []        → no platform changes (nothing inserted or deleted).
 --   • Same semantics apply to p_tag_ids.
 --   • Ownership enforced: profile must belong to p_user_id.
 
@@ -135,18 +135,31 @@ BEGIN
     SELECT username INTO v_final_username
     FROM creator_profiles WHERE id = p_profile_id;
 
-    -- ── Replace platforms (if p_platforms is not null) ────────────────────────
-    IF p_platforms IS NOT NULL THEN
+    -- ── Upsert platforms (if p_platforms is not null) ─────────────────────────
+    IF p_platforms IS NOT NULL AND jsonb_array_length(p_platforms) > 0 THEN
 
-        DELETE FROM creator_platform_accounts WHERE profile_id = p_profile_id;
+        FOR v_platform IN SELECT * FROM jsonb_array_elements(p_platforms)
+        LOOP
+            v_platform_id  := (v_platform->>'platform_id')::bigint;
+            v_channel_url  := v_platform->>'channel_url';
+            v_plat_default := coalesce((v_platform->>'is_default')::boolean, false);
 
-        IF jsonb_array_length(p_platforms) > 0 THEN
-            FOR v_platform IN SELECT * FROM jsonb_array_elements(p_platforms)
-            LOOP
-                v_platform_id  := (v_platform->>'platform_id')::bigint;
-                v_channel_url  := v_platform->>'channel_url';
-                v_plat_default := coalesce((v_platform->>'is_default')::boolean, false);
-
+            -- UPDATE existing active row if found, else INSERT new row
+            IF EXISTS (
+                SELECT 1 FROM creator_platform_accounts
+                WHERE profile_id  = p_profile_id
+                  AND platform_id = v_platform_id
+                  AND is_deleted  = false
+            ) THEN
+                UPDATE creator_platform_accounts
+                SET
+                    channel_url = v_channel_url,
+                    is_default  = v_plat_default,
+                    username    = v_final_username
+                WHERE profile_id  = p_profile_id
+                  AND platform_id = v_platform_id
+                  AND is_deleted  = false;
+            ELSE
                 INSERT INTO creator_platform_accounts (
                     id, profile_id, platform_id, channel_url, username, is_default
                 )
@@ -154,8 +167,8 @@ BEGIN
                     gen_random_uuid(), p_profile_id, v_platform_id,
                     v_channel_url, v_final_username, v_plat_default
                 );
-            END LOOP;
-        END IF;
+            END IF;
+        END LOOP;
 
     END IF;
 

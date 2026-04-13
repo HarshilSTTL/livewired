@@ -42,6 +42,7 @@ begin
                                 from creator_platform_accounts cpa
                                 join platforms p on p.plat_id = cpa.platform_id
                                 where cpa.profile_id = cp.id
+                                  and cpa.is_deleted = false
                                 -- Note: returns plat_name strings only, not objects
                             )
                         )

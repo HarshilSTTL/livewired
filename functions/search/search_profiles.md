@@ -66,6 +66,7 @@ BEGIN
                 FROM creator_platform_accounts cpa
                 JOIN platforms p ON p.plat_id = cpa.platform_id
                 WHERE cpa.profile_id = cp.id
+                  AND cpa.is_deleted = false
             ),
             'match_score', GREATEST(
                 word_similarity(v_keyword, cp.profile_name),

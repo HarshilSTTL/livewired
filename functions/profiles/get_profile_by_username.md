@@ -68,6 +68,7 @@ BEGIN
             FROM creator_platform_accounts cpa
             LEFT JOIN platforms p ON p.plat_id = cpa.platform_id
             WHERE cpa.profile_id = cp.id
+              AND cpa.is_deleted = false
         ),
         'tags', (
             SELECT coalesce(
