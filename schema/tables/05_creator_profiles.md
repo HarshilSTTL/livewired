@@ -8,7 +8,7 @@
 CREATE TABLE IF NOT EXISTS public.creator_profiles (
     id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id        uuid        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-    profile_name   text        NOT NULL,
+    profile_name   text        NOT NULL UNIQUE,   -- globally unique
     username       text        NOT NULL UNIQUE,   -- globally unique
     avatar         text        NULL,              -- nullable
     bio            text        NULL,              -- nullable
@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS public.creator_profiles (
     deleted_at     timestamptz NULL            -- timestamp of soft delete (when status = 'deleted')
 );
 
--- Migration: run once in Supabase SQL editor
+-- Migrations: run once in Supabase SQL editor
 --   ALTER TABLE public.creator_profiles ADD COLUMN IF NOT EXISTS deleted_at timestamptz NULL;
+--   ALTER TABLE public.creator_profiles ADD CONSTRAINT unique_profile_name UNIQUE (profile_name);
 ```

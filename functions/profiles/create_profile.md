@@ -55,6 +55,10 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'Username already taken');
     END IF;
 
+    IF EXISTS (SELECT 1 FROM creator_profiles WHERE profile_name = p_profile_name) THEN
+        RETURN json_build_object('status', false, 'message', 'Profile name already taken');
+    END IF;
+
     IF p_platforms IS NOT NULL AND jsonb_array_length(p_platforms) > 0 THEN
         IF EXISTS (
             SELECT 1 FROM jsonb_array_elements(p_platforms) AS pl

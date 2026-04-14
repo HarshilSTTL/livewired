@@ -70,6 +70,18 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'Username already taken');
     END IF;
 
+    -- ── Profile name validation (if provided) ────────────────────────────────
+    IF p_profile_name IS NOT NULL AND trim(p_profile_name) = '' THEN
+        RETURN json_build_object('status', false, 'message', 'Profile name cannot be empty');
+    END IF;
+
+    IF p_profile_name IS NOT NULL AND EXISTS (
+        SELECT 1 FROM creator_profiles
+        WHERE profile_name = p_profile_name AND id != p_profile_id
+    ) THEN
+        RETURN json_build_object('status', false, 'message', 'Profile name already taken');
+    END IF;
+
     -- ── Status validation (if provided) ──────────────────────────────────────
     IF p_status IS NOT NULL AND p_status NOT IN ('active', 'suspended', 'deleted') THEN
         RETURN json_build_object('status', false, 'message', 'Invalid status');
