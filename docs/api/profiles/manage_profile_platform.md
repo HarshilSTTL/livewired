@@ -32,8 +32,8 @@ Manages all platform links for a creator profile in a single request. Replace-aw
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `id` | uuid | ❌ | Row ID from `creator_platform_accounts` — pass `null` for new links |
-| `platform_id` | int | ✅ for new rows | ID from `platforms` table — required when `id` is null |
+| `id` | uuid | ❌ | Row ID from `creator_platform_accounts` — omit or `null` for new links |
+| `platform_id` | int | ✅ for new rows | Required when `id` is null (INSERT). Optional when `id` is present — send to change the platform, omit to keep it unchanged |
 | `channel_url` | text | ✅ | Full channel / stream URL |
 
 ---
@@ -51,13 +51,24 @@ Manages all platform links for a creator profile in a single request. Replace-aw
 }
 ```
 
-### Edit an existing link
+### Edit URL only (keep same platform)
 ```json
 {
   "p_profile_id": "profile-uuid",
   "p_user_id":    "user-uuid",
   "p_platforms": [
-    { "id": "existing-uuid", "platform_id": null, "channel_url": "https://youtube.com/@newhandle" }
+    { "id": "existing-uuid", "channel_url": "https://youtube.com/@newhandle" }
+  ]
+}
+```
+
+### Edit URL and change platform
+```json
+{
+  "p_profile_id": "profile-uuid",
+  "p_user_id":    "user-uuid",
+  "p_platforms": [
+    { "id": "existing-uuid", "platform_id": 3, "channel_url": "https://kick.com/@handle" }
   ]
 }
 ```
@@ -68,8 +79,8 @@ Manages all platform links for a creator profile in a single request. Replace-aw
   "p_profile_id": "profile-uuid",
   "p_user_id":    "user-uuid",
   "p_platforms": [
-    { "id": "uuid-1",  "platform_id": null, "channel_url": "https://youtube.com/@handle" },
-    { "id": null,      "platform_id": 3,    "channel_url": "https://kick.com/handle" }
+    { "id": "uuid-1", "channel_url": "https://youtube.com/@handle" },
+    { "id": null,     "platform_id": 3, "channel_url": "https://kick.com/handle" }
   ]
 }
 ```

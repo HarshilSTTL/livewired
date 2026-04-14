@@ -9,7 +9,7 @@
 --
 -- Behaviour:
 --   • Replace-aware: compares sent list vs DB to decide insert / update / soft-delete.
---   • id present in item  → UPDATE channel_url on that row.
+--   • id present in item  → UPDATE channel_url and optionally platform_id on that row.
 --   • id null in item     → INSERT new row.
 --   • Row in DB but not in sent list → soft-delete (is_deleted = true, deleted_at = now()).
 --   • p_platforms = []   → soft-deletes all existing platform links for the profile.
@@ -101,8 +101,10 @@ BEGIN
 
             IF v_id IS NOT NULL THEN
                 -- UPDATE existing row
+                -- platform_id is updated only if provided, channel_url always updated
                 UPDATE creator_platform_accounts
-                SET channel_url = v_channel_url
+                SET channel_url = v_channel_url,
+                    platform_id = COALESCE(v_platform_id, platform_id)
                 WHERE id         = v_id
                   AND profile_id = p_profile_id
                   AND is_deleted = false;
