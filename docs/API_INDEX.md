@@ -3,7 +3,7 @@
 > Master cross-reference for all stored procedures, tables, and schemas.
 > Every API is linked to its SQL file, API doc, and the tables it reads/writes.
 
-**Total SPs:** 33 &nbsp;|&nbsp; **Tables:** 14 &nbsp;|&nbsp; **Groups:** 7
+**Total SPs:** 34 &nbsp;|&nbsp; **Tables:** 14 &nbsp;|&nbsp; **Groups:** 7
 
 ---
 
@@ -12,7 +12,7 @@
 | Group        | SPs | Jump                          |
 | ------------ | --- | ----------------------------- |
 | 🔐 Auth      | 3   | [→ Auth](#-auth)              |
-| 👤 Profiles  | 14  | [→ Profiles](#-profiles)      |
+| 👤 Profiles  | 15  | [→ Profiles](#-profiles)      |
 | 🎯 Platforms | 4   | [→ Platforms](#-platforms)    |
 | 🏷️ Tags     | 2   | [→ Tags](#-tags)              |
 | 📅 Events    | 3   | [→ Events](#-events)          |
@@ -58,6 +58,7 @@
 | `add_custom_link` | POST /rpc/add_custom_link | p_profile_id, p_user_id, p_profile_name, p_profile_url | `profile_custom_links` ✏️ `creator_profiles` 👁️ | [SQL](../functions/profiles/add_custom_link.md) | [Doc](profiles/add_custom_link.md) |
 | `update_custom_link` | POST /rpc/update_custom_link | p_id, p_user_id, p_profile_name, p_profile_url | `profile_custom_links` ✏️ `creator_profiles` 👁️ | [SQL](../functions/profiles/update_custom_link.md) | [Doc](profiles/update_custom_link.md) |
 | `delete_custom_link` | POST /rpc/delete_custom_link | p_id, p_user_id | `profile_custom_links` ✏️ `creator_profiles` 👁️ | [SQL](../functions/profiles/delete_custom_link.md) | [Doc](profiles/delete_custom_link.md) |
+| `manage_profile_platform` | POST /rpc/manage_profile_platform | p_profile_id, p_user_id, p_platforms (jsonb) | `creator_platform_accounts` ✏️ `creator_profiles` 👁️ `platforms` 👁️ | [SQL](../functions/profiles/manage_profile_platform.md) | [Doc](profiles/manage_profile_platform.md) |
 
 **Tables involved:** [`users`](database/tables/02_users.md) · [`creator_profiles`](database/tables/05_creator_profiles.md) · [`creator_platform_accounts`](database/tables/06_creator_platform_accounts.md) · [`profile_tags`](database/tables/07_profile_tags.md) · [`follows`](database/tables/10_follows.md)
 
@@ -177,7 +178,7 @@ Every table with the SPs that read (👁️) or write (✏️) it.
 | `platforms`                 | [Doc](database/tables/03_platforms.md)                 | [Schema](../schema/tables/03_platforms.md)                 | `get_all_platforms` 👁️ · `create_profile` 👁️ · `update_profile` 👁️ · `submit_platform` 👁️ · `get_event_list` 👁️ · `get_profile_events` 👁️ · `search_events` 👁️ · `get_creators` 👁️ · `get_following_list` 👁️                                                                                                              |
 | `tags`                      | [Doc](database/tables/04_tags.md)                      | [Schema](../schema/tables/04_tags.md)                      | `get_all_tags` 👁️ · `create_profile` 👁️ · `update_profile` 👁️ · `submit_tags` 👁️                                                                                                                                                                                                                                               |
 | `creator_profiles`          | [Doc](database/tables/05_creator_profiles.md)          | [Schema](../schema/tables/05_creator_profiles.md)          | `create_profile` ✏️ · `update_profile` ✏️ · `get_user_profiles` 👁️ · `get_profile_by_id` 👁️ · `get_profile_by_username` 👁️ · `get_profile_by_userid` 👁️ · `get_creators` 👁️ · `follow_creator` 👁️ · `get_following_list` 👁️ · `get_event_list` 👁️ · `get_profile_events` 👁️ · `search_profiles` 👁️ · `search_events` 👁️ |
-| `creator_platform_accounts` | [Doc](database/tables/06_creator_platform_accounts.md) | [Schema](../schema/tables/06_creator_platform_accounts.md) | `create_profile` ✏️ · `update_profile` ✏️ · `get_profile_by_id` 👁️ · `get_profile_by_username` 👁️ · `get_profile_by_userid` 👁️ · `get_creators` 👁️ · `get_following_list` 👁️ · `search_profiles` 👁️ · `get_profile_platforms` 👁️ · `add_profile_platform` ✏️ · `update_profile_platform` ✏️ · `delete_profile_platform` ✏️ |
+| `creator_platform_accounts` | [Doc](database/tables/06_creator_platform_accounts.md) | [Schema](../schema/tables/06_creator_platform_accounts.md) | `create_profile` ✏️ · `update_profile` ✏️ · `get_profile_by_id` 👁️ · `get_profile_by_username` 👁️ · `get_profile_by_userid` 👁️ · `get_creators` 👁️ · `get_following_list` 👁️ · `search_profiles` 👁️ · `get_profile_platforms` 👁️ · `add_profile_platform` ✏️ · `update_profile_platform` ✏️ · `delete_profile_platform` ✏️ · `manage_profile_platform` ✏️ |
 | `profile_tags`              | [Doc](database/tables/07_profile_tags.md)              | [Schema](../schema/tables/07_profile_tags.md)              | `create_profile` ✏️ · `update_profile` ✏️ · `get_profile_by_id` 👁️ · `get_profile_by_username` 👁️ · `get_profile_by_userid` 👁️                                                                                                                                                                                                  |
 | `event_mst`                 | [Doc](database/tables/08_event_mst.md)                 | [Schema](../schema/tables/08_event_mst.md)                 | `create_event` ✏️ · `get_event_list` 👁️ · `get_profile_events` 👁️ · `search_events` 👁️                                                                                                                                                                                                                                          |
 | `event_platforms`           | [Doc](database/tables/09_event_platforms.md)           | [Schema](../schema/tables/09_event_platforms.md)           | `create_event` ✏️ · `get_event_list` 👁️ · `get_profile_events` 👁️ · `search_events` 👁️                                                                                                                                                                                                                                          |
@@ -262,4 +263,4 @@ docs/API_INDEX.md        ← this file
 
 ---
 
-*Last updated: 2026-04-13 — 33 SPs · 14 tables*
+*Last updated: 2026-04-14 — 34 SPs · 14 tables*
