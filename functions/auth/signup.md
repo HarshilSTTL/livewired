@@ -18,7 +18,8 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-    v_user_id uuid;
+    v_user_id   uuid;
+    v_is_deleted boolean;
 BEGIN
 
     -- ── Email validation ──────────────────────────────────────────────────────
@@ -40,17 +41,33 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'Username must be at least 3 characters');
     END IF;
 
-    -- ── Duplicate email check ─────────────────────────────────────────────────
-    IF EXISTS (
-        SELECT 1 FROM users u WHERE lower(u.email) = lower(trim(p_email))
-    ) THEN
+    -- ── Email check: active or soft-deleted? ──────────────────────────────────
+    SELECT id, is_deleted INTO v_user_id, v_is_deleted
+    FROM users
+    WHERE lower(email) = lower(trim(p_email))
+    LIMIT 1;
+
+    IF FOUND AND v_is_deleted = false THEN
+        -- Active account exists — block registration
         RETURN json_build_object('status', false, 'message', 'Email already exists');
     END IF;
 
-    -- ── Insert user ───────────────────────────────────────────────────────────
-    INSERT INTO users (email, password, username, created_device_ip, updated_device_ip)
-    VALUES (trim(p_email), p_password, trim(p_username), p_ip, p_ip)
-    RETURNING id INTO v_user_id;
+    IF FOUND AND v_is_deleted = true THEN
+        -- Previously deleted account — reactivate with new credentials
+        UPDATE users
+        SET    password          = p_password,
+               username         = trim(p_username),
+               is_deleted       = false,
+               deleted_at       = null,
+               updated_at       = now(),
+               updated_device_ip = p_ip
+        WHERE  id               = v_user_id;
+    ELSE
+        -- Brand new user — insert fresh row
+        INSERT INTO users (email, password, username, created_device_ip, updated_device_ip)
+        VALUES (trim(p_email), p_password, trim(p_username), p_ip, p_ip)
+        RETURNING id INTO v_user_id;
+    END IF;
 
     RETURN json_build_object(
         'status',  true,

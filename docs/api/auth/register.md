@@ -67,7 +67,8 @@
 | Email or password is null/empty | `"Email/Password is required"` |
 | Username is null or empty | `"Username is required"` |
 | Username shorter than 3 chars | `"Username must be at least 3 characters"` |
-| Email already in `users` table | `"Email already exists"` |
+| Active account with same email exists | `"Email already exists"` |
+| Email exists but account was deleted | Reactivates the old row with new credentials |
 | Any DB/runtime exception | `"Something went wrong"` + sqlerrm |
 
 ---
@@ -76,10 +77,11 @@
 
 1. Validate email, password not null/empty
 2. Validate username not null/empty, length ≥ 3
-3. Case-insensitive username uniqueness check
-4. Email duplicate check
-5. INSERT into `users` (email, password, username, device_ip)
-6. Return `user_id` on success
+3. Look up email in `users` (returns `id` + `is_deleted`)
+4. If found and `is_deleted = false` → return `"Email already exists"`
+5. If found and `is_deleted = true` → reactivate: UPDATE row with new password/username, reset `is_deleted = false`, `deleted_at = null`
+6. If not found → INSERT new row
+7. Return `user_id` on success
 
 ---
 
