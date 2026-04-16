@@ -64,12 +64,13 @@ The hard delete on `auth.users` is required to:
 | Field | Notes |
 |-------|-------|
 | Soft delete | Sets `users.is_deleted = true` + `deleted_at = now()` (audit trail retained) |
+| Email anonymized | `users.email` is set to `deleted_<user_id>@deleted.invalid` — frees the UNIQUE slot |
 | Profiles cascade | All `creator_profiles` rows with `user_id = p_user_id` get `status = 'deleted'` |
 | Events cascade | All `event_mst` rows under those profiles get `is_deleted = true` |
 | Hard delete | `auth.users` row is permanently removed — frees the email/OAuth identity |
 | Already deleted | Returns "User not found" if account is already deleted |
-| Re-registration | After deletion the user can re-register with the same email as a brand new account |
-| Google OAuth | After deletion Google OAuth re-login will create a completely new account |
+| Re-registration | Because the email is freed, re-registration creates a new UUID — completely fresh account, no old data |
+| Google OAuth | After deletion Google OAuth re-login creates a brand new account with no old data |
 
 ---
 
@@ -95,12 +96,14 @@ The hard delete on `auth.users` is required to:
 4. Soft delete all profiles:
    UPDATE creator_profiles SET status = 'deleted', deleted_at = now()
    WHERE user_id = p_user_id AND status != 'deleted'
-5. Soft delete the user row (retain for audit trail):
-   UPDATE users SET is_deleted = true, deleted_at = now()
+5. Soft delete the user row + anonymize email:
+   UPDATE users SET is_deleted = true, deleted_at = now(),
+                    email = 'deleted_' || user_id || '@deleted.invalid'
    WHERE id = p_user_id
+   (anonymizing frees the UNIQUE email slot so re-registration creates a fresh UUID)
 6. Hard delete from auth.users:
    DELETE FROM auth.users WHERE id = p_user_id
-   (frees email/OAuth identity — Google re-login and email re-registration now work cleanly)
+   (frees the Supabase Auth identity — blocks silent Google OAuth re-login)
 7. Return success
 ```
 

@@ -31,8 +31,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-    v_user_id    uuid;
-    v_is_deleted boolean;
+    v_user_id uuid;
 BEGIN
 
     -- ── Null / empty guard ────────────────────────────────────────────────────
@@ -40,14 +39,17 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'Email is required');
     END IF;
 
-    -- ── Check if user already exists (active or soft-deleted) ────────────────
-    SELECT id, is_deleted INTO v_user_id, v_is_deleted
+    -- ── Check if active user already exists ───────────────────────────────────
+    -- Deleted accounts have their email anonymized in delete_account, so a
+    -- lookup by real email will never match a deleted row.
+    SELECT id INTO v_user_id
     FROM users
     WHERE lower(email) = lower(trim(p_email))
+      AND is_deleted   = false
     LIMIT 1;
 
-    IF v_user_id IS NOT NULL AND v_is_deleted = false THEN
-        -- ── Active user → Google login ────────────────────────────────────────
+    IF v_user_id IS NOT NULL THEN
+        -- ── Existing active user → Google login ───────────────────────────────
         RETURN json_build_object(
             'status',  true,
             'message', 'Login successful',
@@ -57,27 +59,10 @@ BEGIN
         );
     END IF;
 
-    IF v_user_id IS NOT NULL AND v_is_deleted = true THEN
-        -- ── Previously deleted account → reactivate ───────────────────────────
-        -- Reset soft-delete flags so the account is live again.
-        -- The same user_id is reused — no duplicate row created.
-        UPDATE users
-        SET    is_deleted     = false,
-               deleted_at    = null,
-               auth_provider = 'google',
-               updated_at    = now()
-        WHERE  id             = v_user_id;
-
-        RETURN json_build_object(
-            'status',  true,
-            'message', 'Login successful',
-            'data', json_build_object(
-                'user_id', v_user_id
-            )
-        );
-    END IF;
-
-    -- ── New user → Google signup ──────────────────────────────────────────────
+    -- ── No active account found → Google signup (fresh account) ──────────────
+    -- If the user previously deleted their account, their email was anonymized
+    -- in public.users, so this INSERT always creates a brand new UUID with
+    -- no association to any old profiles or events.
     INSERT INTO users (email, password, username, auth_provider, created_at, updated_at)
     VALUES (
         trim(p_email),

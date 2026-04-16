@@ -68,7 +68,7 @@
 | Username is null or empty | `"Username is required"` |
 | Username shorter than 3 chars | `"Username must be at least 3 characters"` |
 | Active account with same email exists | `"Email already exists"` |
-| Email exists but account was deleted | Reactivates the old row with new credentials |
+| Email exists but account was deleted | Email was anonymized at deletion — fresh INSERT creates new UUID, zero old data |
 | Any DB/runtime exception | `"Something went wrong"` + sqlerrm |
 
 ---
@@ -77,11 +77,12 @@
 
 1. Validate email, password not null/empty
 2. Validate username not null/empty, length ≥ 3
-3. Look up email in `users` (returns `id` + `is_deleted`)
-4. If found and `is_deleted = false` → return `"Email already exists"`
-5. If found and `is_deleted = true` → reactivate: UPDATE row with new password/username, reset `is_deleted = false`, `deleted_at = null`
-6. If not found → INSERT new row
-7. Return `user_id` on success
+3. Check email in `users` WHERE `is_deleted = false`
+4. If found → return `"Email already exists"`
+5. If not found → INSERT new row (new UUID)
+   Note: deleted accounts have their email anonymized in `delete_account`,
+   so re-registration always lands here and creates a completely fresh account
+6. Return `user_id` on success
 
 ---
 

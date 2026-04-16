@@ -18,8 +18,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-    v_user_id    uuid;
-    v_is_deleted boolean;
+    v_user_id uuid;
 BEGIN
 
     -- ── Null guards ───────────────────────────────────────────────────────────
@@ -40,33 +39,23 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'Username must be at least 3 characters');
     END IF;
 
-    -- ── Email check: active or soft-deleted? ──────────────────────────────────
-    SELECT id, is_deleted INTO v_user_id, v_is_deleted
-    FROM users
-    WHERE lower(email) = lower(trim(p_email))
-    LIMIT 1;
-
-    IF FOUND AND v_is_deleted = false THEN
-        -- Active account exists — block registration
+    -- ── Duplicate email check (active accounts only) ──────────────────────────
+    -- Deleted accounts have their email anonymized in delete_account, so a
+    -- lookup by real email will never match a deleted row.
+    IF EXISTS (
+        SELECT 1 FROM users
+        WHERE lower(email) = lower(trim(p_email))
+          AND is_deleted   = false
+    ) THEN
         RETURN json_build_object('status', false, 'message', 'Email already exists');
     END IF;
 
-    IF FOUND AND v_is_deleted = true THEN
-        -- Previously deleted account — reactivate with new credentials
-        UPDATE users
-        SET    password          = p_password,
-               username         = trim(p_username),
-               is_deleted       = false,
-               deleted_at       = null,
-               updated_at       = now(),
-               updated_device_ip = p_created_device_ip
-        WHERE  id               = v_user_id;
-    ELSE
-        -- Brand new user — insert fresh row
-        INSERT INTO users (email, password, username, created_device_ip, updated_device_ip)
-        VALUES (trim(p_email), p_password, trim(p_username), p_created_device_ip, p_created_device_ip)
-        RETURNING id INTO v_user_id;
-    END IF;
+    -- ── Insert fresh user ─────────────────────────────────────────────────────
+    -- Re-registering after deletion always lands here (email was anonymized on
+    -- deletion), so a new UUID is created and no old data is attached.
+    INSERT INTO users (email, password, username, created_device_ip, updated_device_ip)
+    VALUES (trim(p_email), p_password, trim(p_username), p_created_device_ip, p_created_device_ip)
+    RETURNING id INTO v_user_id;
 
     RETURN json_build_object(
         'status',  true,

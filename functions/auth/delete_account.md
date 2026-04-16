@@ -50,17 +50,20 @@ BEGIN
     WHERE  user_id    = p_user_id
       AND  status    != 'deleted';
 
-    -- Soft delete the user row (retain for audit trail)
+    -- Soft delete the user row + anonymize the email
+    -- Anonymizing the email frees it from the UNIQUE constraint so the user
+    -- can re-register with the same address as a completely fresh account
+    -- (new UUID, no old profiles/events attached).
     UPDATE users
     SET    is_deleted  = true,
            deleted_at  = now(),
-           updated_at  = now()
+           updated_at  = now(),
+           email       = 'deleted_' || p_user_id::text || '@deleted.invalid'
     WHERE  id          = p_user_id;
 
     -- Hard delete from auth.users
-    -- This frees the email/OAuth identity so:
-    --   1. Google OAuth cannot silently re-authenticate a deleted account
-    --   2. The user can re-register with the same email as a brand new account
+    -- Frees the email/OAuth identity so Supabase Auth does not block re-registration
+    -- and Google OAuth cannot silently re-authenticate a deleted account.
     DELETE FROM auth.users WHERE id = p_user_id;
 
     RETURN json_build_object('status', true, 'message', 'Account deleted successfully');
