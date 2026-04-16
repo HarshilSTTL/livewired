@@ -31,7 +31,8 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-    v_user_id uuid;
+    v_user_id    uuid;
+    v_is_deleted boolean;
 BEGIN
 
     -- ── Null / empty guard ────────────────────────────────────────────────────
@@ -39,14 +40,34 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'Email is required');
     END IF;
 
-    -- ── Check if user already exists ──────────────────────────────────────────
-    SELECT id INTO v_user_id
+    -- ── Check if user already exists (active or soft-deleted) ────────────────
+    SELECT id, is_deleted INTO v_user_id, v_is_deleted
     FROM users
-    WHERE email = p_email
+    WHERE lower(email) = lower(trim(p_email))
     LIMIT 1;
 
-    IF v_user_id IS NOT NULL THEN
-        -- ── Existing user → Google login ──────────────────────────────────────
+    IF v_user_id IS NOT NULL AND v_is_deleted = false THEN
+        -- ── Active user → Google login ────────────────────────────────────────
+        RETURN json_build_object(
+            'status',  true,
+            'message', 'Login successful',
+            'data', json_build_object(
+                'user_id', v_user_id
+            )
+        );
+    END IF;
+
+    IF v_user_id IS NOT NULL AND v_is_deleted = true THEN
+        -- ── Previously deleted account → reactivate ───────────────────────────
+        -- Reset soft-delete flags so the account is live again.
+        -- The same user_id is reused — no duplicate row created.
+        UPDATE users
+        SET    is_deleted     = false,
+               deleted_at    = null,
+               auth_provider = 'google',
+               updated_at    = now()
+        WHERE  id             = v_user_id;
+
         RETURN json_build_object(
             'status',  true,
             'message', 'Login successful',
@@ -59,9 +80,9 @@ BEGIN
     -- ── New user → Google signup ──────────────────────────────────────────────
     INSERT INTO users (email, password, username, auth_provider, created_at, updated_at)
     VALUES (
-        p_email,
+        trim(p_email),
         NULL,
-        CASE WHEN trim(p_username) = '' THEN NULL ELSE trim(p_username) END,
+        CASE WHEN p_username IS NULL OR trim(p_username) = '' THEN NULL ELSE trim(p_username) END,
         'google',
         now(),
         now()

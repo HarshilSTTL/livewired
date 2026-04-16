@@ -17,7 +17,8 @@ succeeds and you have the user's email from the Supabase session.
 | Scenario | What happens |
 |---|---|
 | Email **not in users** table | New row inserted — `password = NULL`, `auth_provider = 'google'` |
-| Email **already in users** table | Existing `user_id` returned — no insert, no error |
+| Email found, `is_deleted = false` | Existing `user_id` returned — no insert, no error |
+| Email found, `is_deleted = true` | Row reactivated (`is_deleted = false`, `deleted_at = null`) — same `user_id` returned |
 | Email exists with `auth_provider = 'email'` | Same account returned — no duplicate created |
 
 ---
@@ -89,9 +90,11 @@ succeeds and you have the user's email from the Supabase session.
 
 ```
 1. Null check: p_email
-2. SELECT id FROM users WHERE email = p_email
-3. If found   → return user_id (login)
-4. If not found → INSERT new user (password=NULL, auth_provider='google')
+2. SELECT id, is_deleted FROM users WHERE lower(email) = lower(p_email)
+3. If found and is_deleted = false → return user_id (active login)
+4. If found and is_deleted = true  → reactivate: UPDATE is_deleted=false, deleted_at=null
+                                   → return same user_id (reactivated login)
+5. If not found → INSERT new user (password=NULL, auth_provider='google')
                → return new user_id (signup)
 ```
 
