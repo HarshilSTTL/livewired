@@ -5,8 +5,9 @@
 -- Group: Auth
 -- Endpoint: POST /rpc/delete_account
 -- Doc: docs/api/auth/delete_account.md
--- Soft delete. Sets is_deleted = true on users row.
--- Also soft deletes all profiles (status = 'deleted') and all events (is_deleted = true).
+-- Soft delete on public.users, creator_profiles, event_mst.
+-- Hard delete on auth.users — frees the email/OAuth identity so the user
+-- can re-register cleanly and prevents silent re-login via Google OAuth.
 -- Required by Google Play and Apple App Store policies.
 
 CREATE OR REPLACE FUNCTION delete_account(
@@ -49,12 +50,18 @@ BEGIN
     WHERE  user_id    = p_user_id
       AND  status    != 'deleted';
 
-    -- Soft delete the user account
+    -- Soft delete the user row (retain for audit trail)
     UPDATE users
     SET    is_deleted  = true,
            deleted_at  = now(),
            updated_at  = now()
     WHERE  id          = p_user_id;
+
+    -- Hard delete from auth.users
+    -- This frees the email/OAuth identity so:
+    --   1. Google OAuth cannot silently re-authenticate a deleted account
+    --   2. The user can re-register with the same email as a brand new account
+    DELETE FROM auth.users WHERE id = p_user_id;
 
     RETURN json_build_object('status', true, 'message', 'Account deleted successfully');
 

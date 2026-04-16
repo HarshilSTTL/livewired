@@ -4,14 +4,21 @@
 **Group:** Auth
 **SQL:** [`functions/auth/delete_account.md`](../../../functions/auth/delete_account.md)
 **Tables written:** `users` · `creator_profiles` · `event_mst`
+**Tables hard deleted:** `auth.users`
 
 ---
 
 ## Overview
 
-Soft deletes a user account. Sets `is_deleted = true` and `deleted_at = now()` on the `users` row. Also soft deletes all profiles (`status = 'deleted'`) and all events (`is_deleted = true`) belonging to that user.
+Deletes a user account using a hybrid strategy:
 
-The rows are **not removed** from the database. Required by Google Play and Apple App Store policies — both platforms mandate that apps offer an account deletion option.
+- **Soft delete** on `public.users`, `creator_profiles`, and `event_mst` — rows are retained for audit purposes (`is_deleted = true`, `deleted_at = now()`)
+- **Hard delete** on `auth.users` — the Supabase Auth identity is fully erased
+
+The hard delete on `auth.users` is required to:
+1. Prevent Google OAuth from silently re-authenticating a deleted account
+2. Allow the user to re-register with the same email/Google account as a brand new user
+3. Comply with Google Play and Apple App Store account deletion policies
 
 ---
 
@@ -56,11 +63,13 @@ The rows are **not removed** from the database. Required by Google Play and Appl
 
 | Field | Notes |
 |-------|-------|
-| Soft delete | Sets `users.is_deleted = true` + `deleted_at = now()` |
+| Soft delete | Sets `users.is_deleted = true` + `deleted_at = now()` (audit trail retained) |
 | Profiles cascade | All `creator_profiles` rows with `user_id = p_user_id` get `status = 'deleted'` |
 | Events cascade | All `event_mst` rows under those profiles get `is_deleted = true` |
+| Hard delete | `auth.users` row is permanently removed — frees the email/OAuth identity |
 | Already deleted | Returns "User not found" if account is already deleted |
-| Re-login | After deletion the user can no longer log in (login SP checks `is_deleted = false`) |
+| Re-registration | After deletion the user can re-register with the same email as a brand new account |
+| Google OAuth | After deletion Google OAuth re-login will create a completely new account |
 
 ---
 
@@ -86,10 +95,13 @@ The rows are **not removed** from the database. Required by Google Play and Appl
 4. Soft delete all profiles:
    UPDATE creator_profiles SET status = 'deleted', deleted_at = now()
    WHERE user_id = p_user_id AND status != 'deleted'
-5. Soft delete the user:
+5. Soft delete the user row (retain for audit trail):
    UPDATE users SET is_deleted = true, deleted_at = now()
    WHERE id = p_user_id
-6. Return success
+6. Hard delete from auth.users:
+   DELETE FROM auth.users WHERE id = p_user_id
+   (frees email/OAuth identity — Google re-login and email re-registration now work cleanly)
+7. Return success
 ```
 
 ---
