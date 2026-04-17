@@ -147,6 +147,7 @@ Results ordered: B (4) → A (2) → C (0, tie-broken by followers DESC)
 | Already followed | Excluded — profiles where `follows.is_active = true` for this user are not returned |
 | Own profiles | Excluded — `creator_profiles.user_id != p_user_id` |
 | No preferences set | User skipped platform/tag steps → all scores = 0 → ordered by followers DESC |
+| `followers` | Respects `show_followers` flag — returns count if `true`, `null` if `false` |
 | Score = 0 profiles | Still returned — fills the list when preferences are sparse |
 | `platforms` | Always an array — `[]` if none |
 | `tags` | Always an array — `[]` if none |

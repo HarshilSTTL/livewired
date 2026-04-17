@@ -152,7 +152,7 @@ has_next     = offset + limit < total
 | Keyword provided | Matches on `profile_name` and `username` via ILIKE **and** `word_similarity > 0.3` (fuzzy) |
 | Keyword ordering | Results ordered by best fuzzy match score DESC, then `created_at DESC` |
 | Typo tolerance | `word_similarity` threshold 0.3 — catches partial matches and common typos |
-| `followers` | Always returned as a live count — no `show_followers` restriction |
+| `followers` | Respects `show_followers` flag — returns count if `true`, `null` if `false` |
 | `platforms` | Always an array — `[]` if no platforms linked |
 | `p_limit` max | Clamped to 100 — requests above 100 automatically use 100 |
 
