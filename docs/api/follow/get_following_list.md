@@ -35,7 +35,6 @@
     {
       "profile_id": "uuid",
       "profile_name": "Harshil Gaming",
-      "username": "harshil_gaming",
       "avatar": null,
       "bio": "I stream games daily",
       "status": "active",

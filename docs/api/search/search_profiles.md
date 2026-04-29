@@ -3,7 +3,7 @@
 **Endpoint:** `POST /rpc/search_profiles`
 **Group:** Search
 **Requires:** `pg_trgm` extension
-**Description:** Elastic/fuzzy search on creator profiles. Matches against `profile_name`, `username`, and `bio` using both ILIKE partial matching and `word_similarity` fuzzy matching. Results ranked by match score. Uses `SECURITY DEFINER`.
+**Description:** Elastic/fuzzy search on creator profiles. Matches against `profile_name` and `bio` using both ILIKE partial matching and `word_similarity` fuzzy matching. Results ranked by match score. Uses `SECURITY DEFINER`.
 
 ---
 
@@ -31,11 +31,11 @@
 
 | Technique | Applied To | Detail |
 |-----------|-----------|--------|
-| ILIKE | profile_name, username, bio | `'%keyword%'` partial match |
-| word_similarity | profile_name, username, bio | Fuzzy match threshold `> 0.3` |
+| ILIKE | profile_name, bio | `'%keyword%'` partial match |
+| word_similarity | profile_name, bio | Fuzzy match threshold `> 0.3` |
 
 - `bio` is wrapped in `coalesce(cp.bio, '')` to handle nulls safely
-- Results ranked by `GREATEST(word_similarity(keyword, profile_name), word_similarity(keyword, username), word_similarity(keyword, bio)) DESC`
+- Results ranked by `GREATEST(word_similarity(keyword, profile_name), word_similarity(keyword, bio)) DESC`
 - Only active creator profiles (`cp.status = 'active'`) are searched
 
 ---
@@ -51,7 +51,6 @@
     {
       "profile_id": "uuid",
       "profile_name": "Radhe Gaming",
-      "username": "radhe_gaming",
       "avatar": null,
       "bio": "I stream daily",
       "followers": 320,   // null if show_followers = false
@@ -102,8 +101,8 @@
 1. Validate keyword not null/empty
 2. Validate keyword length ≥ 2
 3. `v_keyword := trim(p_keyword)`
-4. SELECT with scoring: `GREATEST(word_similarity(keyword, profile_name), word_similarity(keyword, username), word_similarity(keyword, bio))`
-5. WHERE: ILIKE OR word_similarity > 0.3 on all three fields
+4. SELECT with scoring: `GREATEST(word_similarity(keyword, profile_name), word_similarity(keyword, bio))`
+5. WHERE: ILIKE OR word_similarity > 0.3 on profile_name and bio
 6. Subquery for `followers`: CASE WHEN show_followers = true → COUNT(is_active=true) ELSE null END + `platforms` array per profile
 7. ORDER BY score DESC — LIMIT p_limit
 8. If NULL → return empty array
@@ -115,7 +114,7 @@
 
 | Feature | `search_profiles` | `search_events` |
 |---------|------------------|----------------|
-| Searches on | profile_name, username, bio | title, description |
+| Searches on | profile_name, bio | title, description |
 | Platforms format | `{platform_id, platform_name, logo_url}` objects | Same |
 | Secondary sort | score DESC only | score DESC, event_date ASC |
 | `bio` null handling | `coalesce(bio, '')` | n/a |
@@ -129,7 +128,7 @@
 - `platforms` always an array (never null) via `coalesce(..., '[]'::json)`
 - `followers` is `null` when the creator has `show_followers = false` — handle in UI
 - `pg_trgm` extension must be enabled: see `schema/extensions/pg_trgm.md`
-- Trigram indexes on `creator_profiles.profile_name`, `.username`, `.bio` improve performance: see `schema/indexes/trigram_indexes.md`
+- Trigram indexes on `creator_profiles.profile_name`, `.bio` improve performance: see `schema/indexes/trigram_indexes.md`
 
 ---
 

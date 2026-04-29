@@ -82,7 +82,6 @@
         "profile_id":   "uuid",
         "profile_name": "Harshil Gaming",
         "profile_pic":  "url or null",
-        "username":     "harshil_gaming",
         "followers":    150,
         "event_title":  "Valorant Ranked Grind",
         "event_date":   "2026-03-30",
@@ -125,7 +124,6 @@
 | profile_id | creator_profiles.id | — |
 | profile_name | creator_profiles.profile_name | — |
 | profile_pic | creator_profiles.avatar | nullable |
-| username | creator_profiles.username | — |
 | followers | COUNT from follows WHERE is_active=true | live calculated |
 | event_title | event_mst.title | — |
 | event_date | converted from event_timezone → p_timezone | viewer's local date |

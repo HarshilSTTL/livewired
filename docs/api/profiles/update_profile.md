@@ -22,15 +22,16 @@ rows are deleted and replaced. When passed as `null`, those tables are untouched
 | ------------------ | -------- | -------- | ------- | ------------------------------------------- |
 | `p_profile_id`     | uuid     | ✅        | —       | Profile to update                           |
 | `p_user_id`        | uuid     | ✅        | —       | Must be the profile owner (ownership check) |
-| `p_profile_name`   | text     | ❌        | null    | New display name (omit to keep current)     |
-| `p_username`       | text     | ❌        | null    | New username — must be globally unique      |
-| `p_avatar`         | text     | ❌        | null    | New avatar Base64                           |
-| `p_bio`            | text     | ❌        | null    | New bio                                     |
-| `p_is_default`     | boolean  | ❌        | null    | Set as default profile (unsets all others)  |
-| `p_status`         | text     | ❌        | null    | `'active'` · `'suspended'` · `'deleted'`    |
-| `p_show_followers` | boolean  | ❌        | null    | Toggle follower count visibility            |
-| `p_platforms`      | jsonb    | ❌        | null    | Replace all platforms (see format below)    |
-| `p_tag_ids`        | bigint[] | ❌        | null    | Replace all tags (max 10)                   |
+| `p_profile_name`      | text     | ❌        | null    | New display name (omit to keep current)     |
+| `p_avatar`            | text     | ❌        | null    | New avatar Base64                           |
+| `p_bio`               | text     | ❌        | null    | New bio                                     |
+| `p_is_default`        | boolean  | ❌        | null    | Set as default profile (unsets all others)  |
+| `p_status`            | text     | ❌        | null    | `'active'` · `'suspended'` · `'deleted'`    |
+| `p_show_followers`    | boolean  | ❌        | null    | Toggle follower count visibility            |
+| `p_twitch_by_default` | boolean  | ❌        | null    | Show Twitch stream by default on profile    |
+| `p_kick_by_default`   | boolean  | ❌        | null    | Show Kick stream by default on profile      |
+| `p_platforms`         | jsonb    | ❌        | null    | Replace all platforms (see format below)    |
+| `p_tag_ids`           | bigint[] | ❌        | null    | Replace all tags (max 10)                   |
 
 ### p_platforms format
 
@@ -41,8 +42,7 @@ rows are deleted and replaced. When passed as `null`, those tables are untouched
 ]
 ```
 
-> `username` in `creator_platform_accounts` is automatically taken from the resolved
-> profile username (after any username update applied in the same call).
+> `channel_url` and `is_default` are updated per platform row on upsert.
 
 ---
 
@@ -71,14 +71,15 @@ rows are deleted and replaced. When passed as `null`, those tables are untouched
 ### Full update (all three tables)
 ```json
 {
-  "p_profile_id":     "abc123",
-  "p_user_id":        "user456",
-  "p_profile_name":   "New Display Name",
-  "p_username":       "new_handle",
-  "p_avatar":         "<base64-encoded-image>",
-  "p_bio":            "Creator bio here",
-  "p_is_default":     true,
-  "p_show_followers": true,
+  "p_profile_id":          "abc123",
+  "p_user_id":             "user456",
+  "p_profile_name":        "New Display Name",
+  "p_avatar":              "<base64-encoded-image>",
+  "p_bio":                 "Creator bio here",
+  "p_is_default":          true,
+  "p_show_followers":      true,
+  "p_twitch_by_default":   true,
+  "p_kick_by_default":     false,
   "p_platforms": [
     { "platform_id": 1, "channel_url": "https://youtube.com/@new_handle", "is_default": true }
   ],
@@ -127,8 +128,6 @@ rows are deleted and replaced. When passed as `null`, those tables are untouched
 | `Profile ID is required` | `p_profile_id` is null |
 | `User ID is required` | `p_user_id` is null |
 | `Profile not found or access denied` | Profile doesn't exist OR doesn't belong to `p_user_id` |
-| `Username cannot be empty` | `p_username` passed as empty string |
-| `Username already taken` | `p_username` exists on a different profile |
 | `Invalid status` | `p_status` not in `active / suspended / deleted` |
 | `One or more platform IDs are invalid` | Platform ID not in `platforms` table |
 | `Channel URL is required for each platform` | A platform object missing `channel_url` |
@@ -143,24 +142,21 @@ rows are deleted and replaced. When passed as `null`, those tables are untouched
 ```
 1. Null check: p_profile_id, p_user_id
 2. Ownership check: creator_profiles WHERE id = p_profile_id AND user_id = p_user_id
-3. Username uniqueness check (if p_username provided, exclude current profile)
-4. Status validation (if p_status provided)
-5. Platform validation (if p_platforms non-null and non-empty)
+3. Status validation (if p_status provided)
+4. Platform validation (if p_platforms non-null and non-empty)
    ├── All platform_ids must exist in platforms table
    └── All platform objects must have a non-empty channel_url
-6. Tag validation (if p_tag_ids non-null and non-empty)
+5. Tag validation (if p_tag_ids non-null and non-empty)
    ├── Max 10 tags
    └── All tag_ids must exist in tags table
-7. If p_is_default = true → UPDATE other profiles: is_default = false
-8. UPDATE creator_profiles using COALESCE for each field + updated_at = now()
-9. Fetch resolved username (post-update) into v_final_username
-10. If p_platforms IS NOT NULL:
-    ├── DELETE FROM creator_platform_accounts WHERE profile_id = p_profile_id
-    └── If array non-empty → INSERT each platform with v_final_username
-11. If p_tag_ids IS NOT NULL:
-    ├── DELETE FROM profile_tags WHERE profile_id = p_profile_id
-    └── If array non-empty → INSERT unnest(p_tag_ids)
-12. RETURN success with profile_id
+6. If p_is_default = true → UPDATE other profiles: is_default = false
+7. UPDATE creator_profiles using COALESCE for each field + updated_at = now()
+8. If p_platforms IS NOT NULL:
+   ├── UPDATE existing platform rows or INSERT new ones (upsert)
+9. If p_tag_ids IS NOT NULL:
+   ├── DELETE FROM profile_tags WHERE profile_id = p_profile_id
+   └── If array non-empty → INSERT unnest(p_tag_ids)
+10. RETURN success with profile_id
 ```
 
 ---
@@ -172,9 +168,7 @@ rows are deleted and replaced. When passed as `null`, those tables are untouched
 | Profile ID | Generated (`gen_random_uuid()`) | Provided by caller |
 | Ownership check | role_id = 2 check | `profile.user_id = p_user_id` check |
 | is_default auto-set | Yes — first profile auto-becomes default | No auto-logic; only acts if explicitly passed |
-| Username check | Must not exist at all | Must not exist on *any other* profile |
 | Platforms/tags | null = skip insert | null = don't touch; `[]` = clear all |
-| `creator_platform_accounts` username | `p_username` directly | `v_final_username` (resolved post-update) |
 
 ---
 

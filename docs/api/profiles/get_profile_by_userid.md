@@ -43,15 +43,16 @@ dropdown** and profile switcher in the app. Returns all statuses (`active`, `sus
   "data": {
     "profiles": [
       {
-        "profile_id":     "uuid",
-        "profile_name":   "Gaming Channel",
-        "username":       "handle123",
-        "avatar":         "<base64-encoded-image>",
-        "bio":            "My gaming channel",
-        "is_default":     true,
-        "status":         "active",
-        "show_followers": true,
-        "followers":      142,    // null if show_followers = false
+        "profile_id":          "uuid",
+        "profile_name":        "Gaming Channel",
+        "avatar":              "<base64-encoded-image>",
+        "bio":                 "My gaming channel",
+        "is_default":          true,
+        "status":              "active",
+        "show_followers":      true,
+        "twitch_by_default":   false,
+        "kick_by_default":     false,
+        "followers":           142,    // null if show_followers = false
         "platforms": [
           {
             "platform_id":   1,
@@ -125,21 +126,8 @@ dropdown** and profile switcher in the app. Returns all statuses (`active`, `sus
 
 ---
 
-## Key Differences vs `get_profile_by_username`
-
-| Aspect | `get_profile_by_userid` | `get_profile_by_username` |
-|---|---|---|
-| Input | `p_user_id` (uuid) | `p_username` (text) |
-| Returns | Array of all profiles | Single profile object |
-| Use case | Creator's own profile switcher | Public profile view |
-| `show_followers` respected? | Yes — null if false | Yes — null if false |
-| `is_default` in response | Yes | No |
-
----
-
 ## Related
 
-- [`get_profile_by_username`](get_profile_by_username.md) — single public profile by username
 - [`create_profile`](create_profile.md) — creates a profile
 - [`update_profile`](update_profile.md) — updates a profile
 - [`creator_profiles` table](../../database/tables/05_creator_profiles.md)

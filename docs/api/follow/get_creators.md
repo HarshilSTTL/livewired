@@ -37,7 +37,6 @@ Authorization: Bearer <token>
       {
         "id": "uuid",
         "name": "Harshil Gaming",
-        "username": "harshil_gaming",
         "profilepic": "url or null",
         "followers": 150,
         "platforms": ["YouTube", "Twitch"]
@@ -69,7 +68,6 @@ Authorization: Bearer <token>
 |-------|-----|-------|
 | Profile ID | `id` | uuid |
 | Display name | `name` | `creator_profiles.profile_name` |
-| Handle | `username` | — |
 | Avatar | `profilepic` | nullable — `creator_profiles.avatar` |
 | Follower count | `followers` | `null` if `show_followers = false` · count (active follows only) if `true` |
 | Platforms | `platforms` | ⚠️ Array of strings (plat_name only), not objects |
