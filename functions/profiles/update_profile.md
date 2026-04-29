@@ -24,9 +24,11 @@ CREATE OR REPLACE FUNCTION update_profile(
     p_bio            text     DEFAULT null,
     p_is_default     boolean  DEFAULT null,
     p_status         text     DEFAULT null,
-    p_show_followers boolean  DEFAULT null,
-    p_platforms      jsonb    DEFAULT null,
-    p_tag_ids        bigint[] DEFAULT null
+    p_show_followers      boolean  DEFAULT null,
+    p_twitch_by_default   boolean  DEFAULT null,
+    p_kick_by_default     boolean  DEFAULT null,
+    p_platforms           jsonb    DEFAULT null,
+    p_tag_ids             bigint[] DEFAULT null
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -137,10 +139,12 @@ BEGIN
         username       = COALESCE(p_username,        username),
         avatar         = COALESCE(p_avatar,           avatar),
         bio            = COALESCE(p_bio,             bio),
-        is_default     = COALESCE(p_is_default,      is_default),
-        status         = COALESCE(p_status,          status),
-        show_followers = COALESCE(p_show_followers,  show_followers),
-        updated_at     = now()
+        is_default          = COALESCE(p_is_default,         is_default),
+        status              = COALESCE(p_status,             status),
+        show_followers      = COALESCE(p_show_followers,     show_followers),
+        twitch_by_default   = COALESCE(p_twitch_by_default,  twitch_by_default),
+        kick_by_default     = COALESCE(p_kick_by_default,    kick_by_default),
+        updated_at          = now()
     WHERE id = p_profile_id;
 
     -- Fetch resolved username (may have just been updated) for platform accounts

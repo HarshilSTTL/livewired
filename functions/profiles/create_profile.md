@@ -14,9 +14,11 @@ CREATE OR REPLACE FUNCTION create_profile(
     p_bio            text     DEFAULT null,
     p_is_default     boolean  DEFAULT false,
     p_status         text     DEFAULT 'active',
-    p_show_followers boolean  DEFAULT true,
-    p_platforms      jsonb    DEFAULT null,
-    p_tag_ids        bigint[] DEFAULT null
+    p_show_followers      boolean  DEFAULT true,
+    p_twitch_by_default   boolean  DEFAULT false,
+    p_kick_by_default     boolean  DEFAULT false,
+    p_platforms           jsonb    DEFAULT null,
+    p_tag_ids             bigint[] DEFAULT null
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -101,12 +103,14 @@ BEGIN
     INSERT INTO creator_profiles (
         id, user_id, profile_name, username,
         avatar, bio, is_default, status,
-        show_followers, created_at, updated_at
+        show_followers, twitch_by_default, kick_by_default,
+        created_at, updated_at
     )
     VALUES (
         gen_random_uuid(), p_user_id, p_profile_name, p_username,
         p_avatar, p_bio, p_is_default, p_status,
-        p_show_followers, now(), now()
+        p_show_followers, p_twitch_by_default, p_kick_by_default,
+        now(), now()
     )
     RETURNING id INTO v_profile_id;
 
@@ -140,8 +144,10 @@ BEGIN
         'status',  true,
         'message', 'Profile created successfully',
         'data', json_build_object(
-            'profile_id',     v_profile_id,
-            'show_followers', p_show_followers
+            'profile_id',         v_profile_id,
+            'show_followers',     p_show_followers,
+            'twitch_by_default',  p_twitch_by_default,
+            'kick_by_default',    p_kick_by_default
         )
     );
 

@@ -47,8 +47,10 @@ BEGIN
         'bio',             cp.bio,
         'is_default',      cp.is_default,
         'status',          cp.status,
-        'show_followers',  cp.show_followers,
-        'followers',       CASE
+        'show_followers',     cp.show_followers,
+        'twitch_by_default',  cp.twitch_by_default,
+        'kick_by_default',    cp.kick_by_default,
+        'followers',          CASE
                                WHEN cp.show_followers = true THEN (
                                    SELECT count(*) FROM follows f
                                    WHERE f.profile_id = cp.id AND f.is_active = true
