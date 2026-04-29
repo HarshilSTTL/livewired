@@ -42,7 +42,6 @@ BEGIN
                 'profile_id',    cp.id,
                 'profile_name',  cp.profile_name,
                 'profile_pic',   cp.avatar,
-                'username',      cp.username,
                 'followers',     (
                     SELECT count(*) FROM follows f
                     WHERE f.profile_id = cp.id AND f.is_active = true
@@ -93,7 +92,6 @@ BEGIN
                 'profile_id',    cp.id,
                 'profile_name',  cp.profile_name,
                 'profile_pic',   cp.avatar,
-                'username',      cp.username,
                 'followers',     (
                     SELECT count(*) FROM follows f
                     WHERE f.profile_id = cp.id AND f.is_active = true
@@ -146,7 +144,6 @@ BEGIN
                 'profile_id',    cp.id,
                 'profile_name',  cp.profile_name,
                 'profile_pic',   cp.avatar,
-                'username',      cp.username,
                 'followers',     (
                     SELECT count(*) FROM follows f
                     WHERE f.profile_id = cp.id AND f.is_active = true
@@ -200,7 +197,6 @@ BEGIN
                 'profile_id',    cp.id,
                 'profile_name',  cp.profile_name,
                 'profile_pic',   cp.avatar,
-                'username',      cp.username,
                 'followers',     (
                     SELECT count(*) FROM follows f
                     WHERE f.profile_id = cp.id AND f.is_active = true
