@@ -42,7 +42,6 @@ BEGIN
         'profile_id',      cp.id,
         'user_id',         cp.user_id,
         'profile_name',    cp.profile_name,
-        'username',        cp.username,
         'avatar',          cp.avatar,
         'bio',             cp.bio,
         'is_default',      cp.is_default,

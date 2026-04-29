@@ -36,7 +36,6 @@ BEGIN
         json_build_object(
             'profile_id',      cp.id,
             'profile_name',    cp.profile_name,
-            'username',        cp.username,
             'avatar',          cp.avatar,
             'bio',             cp.bio,
             'is_default',      cp.is_default,

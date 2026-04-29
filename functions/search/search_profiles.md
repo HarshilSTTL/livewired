@@ -42,7 +42,6 @@ BEGIN
         SELECT json_build_object(
             'profile_id',    cp.id,
             'profile_name',  cp.profile_name,
-            'username',      cp.username,
             'avatar',        cp.avatar,
             'bio',           cp.bio,
             'followers', CASE
@@ -70,23 +69,19 @@ BEGIN
             ),
             'match_score', GREATEST(
                 word_similarity(v_keyword, cp.profile_name),
-                word_similarity(v_keyword, cp.username),
                 word_similarity(v_keyword, coalesce(cp.bio, ''))
             )
         ) AS result,
         GREATEST(
             word_similarity(v_keyword, cp.profile_name),
-            word_similarity(v_keyword, cp.username),
             word_similarity(v_keyword, coalesce(cp.bio, ''))
         ) AS score
         FROM creator_profiles cp
         WHERE cp.status = 'active'
         AND (
             cp.profile_name ILIKE '%' || v_keyword || '%'
-            OR cp.username   ILIKE '%' || v_keyword || '%'
             OR cp.bio        ILIKE '%' || v_keyword || '%'
             OR word_similarity(v_keyword, cp.profile_name) > 0.3
-            OR word_similarity(v_keyword, cp.username)     > 0.3
             OR word_similarity(v_keyword, coalesce(cp.bio, '')) > 0.3
         )
         ORDER BY score DESC

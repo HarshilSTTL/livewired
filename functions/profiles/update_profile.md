@@ -16,14 +16,13 @@
 --   • Ownership enforced: profile must belong to p_user_id.
 
 CREATE OR REPLACE FUNCTION update_profile(
-    p_profile_id     uuid,
-    p_user_id        uuid,
-    p_profile_name   text     DEFAULT null,
-    p_username       text     DEFAULT null,
-    p_avatar         text     DEFAULT null,
-    p_bio            text     DEFAULT null,
-    p_is_default     boolean  DEFAULT null,
-    p_status         text     DEFAULT null,
+    p_profile_id          uuid,
+    p_user_id             uuid,
+    p_profile_name        text     DEFAULT null,
+    p_avatar              text     DEFAULT null,
+    p_bio                 text     DEFAULT null,
+    p_is_default          boolean  DEFAULT null,
+    p_status              text     DEFAULT null,
     p_show_followers      boolean  DEFAULT null,
     p_twitch_by_default   boolean  DEFAULT null,
     p_kick_by_default     boolean  DEFAULT null,
@@ -40,7 +39,6 @@ DECLARE
     v_platform_id    bigint;
     v_channel_url    text;
     v_plat_default   boolean;
-    v_final_username text;
 BEGIN
 
     -- ── Null guards ──────────────────────────────────────────────────────────
@@ -58,18 +56,6 @@ BEGIN
         WHERE id = p_profile_id AND user_id = p_user_id
     ) THEN
         RETURN json_build_object('status', false, 'message', 'Profile not found or access denied');
-    END IF;
-
-    -- ── Username validation (if provided) ────────────────────────────────────
-    IF p_username IS NOT NULL AND trim(p_username) = '' THEN
-        RETURN json_build_object('status', false, 'message', 'Username cannot be empty');
-    END IF;
-
-    IF p_username IS NOT NULL AND EXISTS (
-        SELECT 1 FROM creator_profiles
-        WHERE username = p_username AND id != p_profile_id
-    ) THEN
-        RETURN json_build_object('status', false, 'message', 'Username already taken');
     END IF;
 
     -- ── Profile name validation (if provided) ────────────────────────────────
@@ -135,10 +121,9 @@ BEGIN
 
     -- ── Update creator_profiles ───────────────────────────────────────────────
     UPDATE creator_profiles SET
-        profile_name   = COALESCE(p_profile_name,   profile_name),
-        username       = COALESCE(p_username,        username),
-        avatar         = COALESCE(p_avatar,           avatar),
-        bio            = COALESCE(p_bio,             bio),
+        profile_name        = COALESCE(p_profile_name,       profile_name),
+        avatar              = COALESCE(p_avatar,             avatar),
+        bio                 = COALESCE(p_bio,                bio),
         is_default          = COALESCE(p_is_default,         is_default),
         status              = COALESCE(p_status,             status),
         show_followers      = COALESCE(p_show_followers,     show_followers),
@@ -146,10 +131,6 @@ BEGIN
         kick_by_default     = COALESCE(p_kick_by_default,    kick_by_default),
         updated_at          = now()
     WHERE id = p_profile_id;
-
-    -- Fetch resolved username (may have just been updated) for platform accounts
-    SELECT username INTO v_final_username
-    FROM creator_profiles WHERE id = p_profile_id;
 
     -- ── Upsert platforms (if p_platforms is not null) ─────────────────────────
     IF p_platforms IS NOT NULL AND jsonb_array_length(p_platforms) > 0 THEN
@@ -170,18 +151,17 @@ BEGIN
                 UPDATE creator_platform_accounts
                 SET
                     channel_url = v_channel_url,
-                    is_default  = v_plat_default,
-                    username    = v_final_username
+                    is_default  = v_plat_default
                 WHERE profile_id  = p_profile_id
                   AND platform_id = v_platform_id
                   AND is_deleted  = false;
             ELSE
                 INSERT INTO creator_platform_accounts (
-                    id, profile_id, platform_id, channel_url, username, is_default
+                    id, profile_id, platform_id, channel_url, is_default
                 )
                 VALUES (
                     gen_random_uuid(), p_profile_id, v_platform_id,
-                    v_channel_url, v_final_username, v_plat_default
+                    v_channel_url, v_plat_default
                 );
             END IF;
         END LOOP;

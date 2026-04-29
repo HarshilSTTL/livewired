@@ -40,9 +40,7 @@ BEGIN
       AND  (
                v_keyword IS NULL
                OR cp.profile_name ILIKE '%' || v_keyword || '%'
-               OR cp.username     ILIKE '%' || v_keyword || '%'
                OR word_similarity(v_keyword, cp.profile_name) > 0.3
-               OR word_similarity(v_keyword, cp.username)     > 0.3
            );
 
     -- ── Result page ───────────────────────────────────────────────────────────
@@ -86,16 +84,11 @@ BEGIN
                       AND (
                               v_keyword IS NULL
                               OR cp.profile_name ILIKE '%' || v_keyword || '%'
-                              OR cp.username     ILIKE '%' || v_keyword || '%'
                               OR word_similarity(v_keyword, cp.profile_name) > 0.3
-                              OR word_similarity(v_keyword, cp.username)     > 0.3
                           )
                     ORDER BY
                         CASE WHEN v_keyword IS NULL THEN 0
-                             ELSE GREATEST(
-                                 word_similarity(v_keyword, cp.profile_name),
-                                 word_similarity(v_keyword, cp.username)
-                             )
+                             ELSE word_similarity(v_keyword, cp.profile_name)
                         END DESC,
                         cp.created_at DESC
                     LIMIT  p_limit

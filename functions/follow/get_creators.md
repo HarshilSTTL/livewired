@@ -26,7 +26,6 @@ begin
                         json_build_object(
                             'id',         cp.id,
                             'name',       cp.profile_name,
-                            'username',   cp.username,
                             'profilepic', cp.avatar,
                             'followers',  CASE
                                               WHEN cp.show_followers = true THEN (

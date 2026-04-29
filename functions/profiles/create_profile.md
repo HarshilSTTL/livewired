@@ -7,13 +7,12 @@
 -- Doc: docs/api/profiles/create_profile.md
 
 CREATE OR REPLACE FUNCTION create_profile(
-    p_user_id        uuid,
-    p_profile_name   text,
-    p_username       text,
-    p_avatar         text     DEFAULT null,
-    p_bio            text     DEFAULT null,
-    p_is_default     boolean  DEFAULT false,
-    p_status         text     DEFAULT 'active',
+    p_user_id             uuid,
+    p_profile_name        text,
+    p_avatar              text     DEFAULT null,
+    p_bio                 text     DEFAULT null,
+    p_is_default          boolean  DEFAULT false,
+    p_status              text     DEFAULT 'active',
     p_show_followers      boolean  DEFAULT true,
     p_twitch_by_default   boolean  DEFAULT false,
     p_kick_by_default     boolean  DEFAULT false,
@@ -45,16 +44,8 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'Profile name is required');
     END IF;
 
-    IF p_username IS NULL OR trim(p_username) = '' THEN
-        RETURN json_build_object('status', false, 'message', 'Username is required');
-    END IF;
-
     IF p_status NOT IN ('active', 'suspended', 'deleted') THEN
         RETURN json_build_object('status', false, 'message', 'Invalid status');
-    END IF;
-
-    IF EXISTS (SELECT 1 FROM creator_profiles WHERE username = p_username) THEN
-        RETURN json_build_object('status', false, 'message', 'Username already taken');
     END IF;
 
     IF EXISTS (SELECT 1 FROM creator_profiles WHERE profile_name = p_profile_name) THEN
@@ -101,13 +92,13 @@ BEGIN
     END IF;
 
     INSERT INTO creator_profiles (
-        id, user_id, profile_name, username,
+        id, user_id, profile_name,
         avatar, bio, is_default, status,
         show_followers, twitch_by_default, kick_by_default,
         created_at, updated_at
     )
     VALUES (
-        gen_random_uuid(), p_user_id, p_profile_name, p_username,
+        gen_random_uuid(), p_user_id, p_profile_name,
         p_avatar, p_bio, p_is_default, p_status,
         p_show_followers, p_twitch_by_default, p_kick_by_default,
         now(), now()
@@ -126,11 +117,11 @@ BEGIN
             v_is_default  := coalesce((v_platform->>'is_default')::boolean, false);
 
             INSERT INTO creator_platform_accounts (
-                id, profile_id, platform_id, channel_url, username, is_default
+                id, profile_id, platform_id, channel_url, is_default
             )
             VALUES (
                 gen_random_uuid(), v_profile_id, v_platform_id,
-                v_channel_url, p_username, v_is_default
+                v_channel_url, v_is_default
             );
         END LOOP;
     END IF;

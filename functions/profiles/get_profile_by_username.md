@@ -1,15 +1,14 @@
 # `get_profile_by_username`
 
+> ⚠️ **DEPRECATED** — The `username` column has been removed from `creator_profiles`.
+> This function is no longer functional. Use `get_profile_by_id` instead.
+
 ```sql
 -- Function: get_profile_by_username
 -- Group:    profiles
 -- Endpoint: POST /rpc/get_profile_by_username
--- Tables:   creator_profiles (SELECT), creator_platform_accounts (SELECT), profile_tags (SELECT), follows (COUNT)
--- Doc:      docs/api/profiles/get_profile_by_username.md
---
--- Purpose:  Returns a single profile by its unique username.
---           Used for public profile view. Respects show_followers flag.
---           Returns any status so UI can handle suspended/deleted cases.
+-- Status:   DEPRECATED — username column removed from creator_profiles
+-- Use:      get_profile_by_id instead
 
 CREATE OR REPLACE FUNCTION get_profile_by_username(
     p_username text

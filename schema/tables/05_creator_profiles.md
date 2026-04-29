@@ -9,7 +9,6 @@ CREATE TABLE IF NOT EXISTS public.creator_profiles (
     id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id        uuid        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     profile_name   text        NOT NULL UNIQUE,   -- globally unique
-    username       text        NOT NULL UNIQUE,   -- globally unique
     avatar         text        NULL,              -- nullable
     bio            text        NULL,              -- nullable
     is_default          boolean     DEFAULT false,
@@ -27,4 +26,5 @@ CREATE TABLE IF NOT EXISTS public.creator_profiles (
 --   ALTER TABLE public.creator_profiles ADD CONSTRAINT unique_profile_name UNIQUE (profile_name);
 --   ALTER TABLE public.creator_profiles ADD COLUMN IF NOT EXISTS twitch_by_default boolean DEFAULT false;
 --   ALTER TABLE public.creator_profiles ADD COLUMN IF NOT EXISTS kick_by_default boolean DEFAULT false;
+--   ALTER TABLE public.creator_profiles DROP COLUMN IF EXISTS username;
 ```
