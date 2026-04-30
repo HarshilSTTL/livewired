@@ -2,16 +2,16 @@
 
 ```sql
 -- Function: get_user_profiles
--- Group:    profiles
+-- Group: profiles
 -- Endpoint: POST /rpc/get_user_profiles
--- Tables:   creator_profiles (SELECT)
--- Doc:      docs/api/profiles/get_user_profiles.md
+-- Tables: creator_profiles (SELECT)
+-- Doc: docs/api/profiles/get_user_profiles.md
 --
--- Purpose:  Lightweight profile list for post-login profile selector.
---           Returns only profile_id, profile_name, avatar, is_default.
---           No platforms, no tags, no follower counts.
---           Default profile is first in array.
-
+-- Purpose: Lightweight profile list for post-login profile selector.
+--          Returns only profile_id, profile_name, avatar, is_default,
+--          p_twitch_by_default, p_kick_by_default.
+--          No platforms, no tags, no follower counts.
+--          Default profile is first in array.
 CREATE OR REPLACE FUNCTION get_user_profiles(
     p_user_id uuid
 )
@@ -23,7 +23,6 @@ AS $$
 DECLARE
     v_result json;
 BEGIN
-
     IF p_user_id IS NULL THEN
         RETURN json_build_object('status', false, 'message', 'User ID is required');
     END IF;
@@ -34,17 +33,19 @@ BEGIN
 
     SELECT json_agg(
         json_build_object(
-            'profile_id',   cp.id,
-            'profile_name', cp.profile_name,
-            'avatar',       cp.avatar,
-            'is_default',   cp.is_default
+            'profile_id',           cp.id,
+            'profile_name',         cp.profile_name,
+            'avatar',               cp.avatar,
+            'is_default',           cp.is_default,
+            'p_twitch_by_default',  cp.twitch_by_default,
+            'p_kick_by_default',    cp.kick_by_default
         )
         ORDER BY cp.is_default DESC, cp.created_at ASC
     )
     INTO v_result
     FROM creator_profiles cp
     WHERE cp.user_id = p_user_id
-    AND   cp.status  = 'active';
+    AND   cp.status = 'active';
 
     RETURN json_build_object(
         'status',  true,
@@ -64,3 +65,4 @@ EXCEPTION
 END;
 $$;
 ```
+

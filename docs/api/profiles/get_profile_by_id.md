@@ -130,7 +130,7 @@ to load everything about that profile.
 
 ```
 Login
-  └── get_user_profiles(p_user_id)     → shows profile picker (name + avatar only)
+  └── get_user_profiles(p_user_id)     → shows profile picker (name + avatar + default toggles)
         └── user selects a profile
               └── get_profile_by_id(p_profile_id)  → loads full profile detail
 ```

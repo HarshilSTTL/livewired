@@ -66,7 +66,7 @@
 
 | SP | Input | Returns | Use Case |
 |---|---|---|---|
-| `get_user_profiles` | user_id | id, name, avatar only | Post-login profile picker |
+| `get_user_profiles` | user_id | id, name, avatar, defaults | Post-login profile picker |
 | `get_profile_by_id` | profile_id | Full detail | After picking profile / profile dashboard |
 | `get_profile_by_username` | username | Full detail | Public profile view page |
 | `get_profile_by_userid` | user_id | Full detail (all profiles) | Profile management screen |
