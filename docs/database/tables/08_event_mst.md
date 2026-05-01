@@ -13,6 +13,7 @@
 | description      | text        | NULL              | **Yes**  | —                              | Event description (nullable)                                           |
 | event_date       | date        | NULL              | Yes      | —                              | Date of the event in UTC (or occurrence date for child rows)           |
 | event_time       | time        | NULL              | Yes      | —                              | Time of the event (stored as UTC)                                      |
+| event_end_time   | time        | NULL              | **Yes**  | —                              | Optional end time (must be after event_time; same-day only)            |
 | event_timezone   | text        | `'UTC'`           | No       | —                              | Creator's IANA timezone at time of creation (e.g. `'America/New_York'`) |
 | livestream       | bool        | false             | No       | —                              | Is this a live stream?                                                 |
 | video            | bool        | false             | No       | —                              | Is this a video premiere?                                              |
@@ -38,7 +39,7 @@ When `create_event` is called with `p_is_recurring = true`, it inserts:
 | **Parent / template** | `NULL` | `true` | The `p_event_date` passed in | ✅ Stored here |
 | **Child occurrences** | `<parent event_id>` | `true` | Each computed occurrence date | ❌ Inherited from parent |
 
-- The **parent row** stores the event definition (title, description, time, platforms).
+- The **parent row** stores the event definition (title, description, time, end_time, platforms).
 - **Child rows** are generated automatically for every matching date between `recurring_start_date` and `recurring_end_date`.
 - Deleting the parent cascades to all children via `ON DELETE CASCADE`.
 - `event_platforms` is stored **only on the parent**. When fetching events, platforms are looked up via `COALESCE(child.parent_event_id, event_id)`.
@@ -59,6 +60,7 @@ When `create_event` is called with `p_is_recurring = true`, it inserts:
 
 - Events belong to a creator **profile**, not directly to a user
 - `description` and `updated_at` are nullable
+- `event_end_time` is optional; if provided it must be **after** `event_time` (same-day only)
 - `parent_event_id` is only set on generated occurrence rows; the parent itself has `parent_event_id = NULL`
 - `is_recurring = true` on both the parent template and all child occurrence rows
 - `livestream = true` → used for live section logic in `get_event_list`
@@ -66,8 +68,7 @@ When `create_event` is called with `p_is_recurring = true`, it inserts:
 - One event can stream on multiple platforms via `event_platforms` table
 - `event_date` and `event_time` are stored in **UTC**. Creator's local timezone is stored in `event_timezone`.
 - Read SPs accept `p_timezone` (viewer's IANA timezone) and convert UTC → viewer's local date/time before returning.
-- **Live section rule:** `livestream = true` AND `event UTC time <= NOW()` AND `event UTC time >= NOW() - 3 hours`
-- **Terminated:** Started more than 3 hours ago → hidden from both live and today sections
+- **Live section rule:** `livestream = true` AND `event_end_time IS NOT NULL` AND `NOW()` is between start and end times
 
 ## Referenced By (Stored Procedures & Tables)
 
@@ -83,3 +84,4 @@ When `create_event` is called with `p_is_recurring = true`, it inserts:
 ## SQL Reference
 
 See [`schema/tables/08_event_mst.md`](../../../schema/tables/08_event_mst.md)
+

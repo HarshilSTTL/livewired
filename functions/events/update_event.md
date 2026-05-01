@@ -17,6 +17,7 @@ CREATE OR REPLACE FUNCTION update_event(
     p_description          text     DEFAULT NULL,
     p_event_date           date     DEFAULT NULL,
     p_event_time           time     DEFAULT NULL,
+    p_event_end_time       time     DEFAULT NULL,
     p_timezone             text     DEFAULT NULL,
     p_livestream           boolean  DEFAULT NULL,
     p_video                boolean  DEFAULT NULL,
@@ -41,9 +42,15 @@ DECLARE
     v_title         text;
     v_description   text;
     v_event_time    time;
+    v_event_end_time time;
     v_event_tz      text;
     v_livestream    boolean;
     v_video         boolean;
+
+    v_existing_event_time     time;
+    v_existing_event_end_time time;
+    v_final_event_time        time;
+    v_final_event_end_time    time;
 
     v_rec_days      text[];
     v_rec_type      text;
@@ -82,6 +89,18 @@ BEGIN
     END IF;
 
     -- ── Platform validation ───────────────────────────────────────────────────
+    SELECT event_time, event_end_time
+    INTO v_existing_event_time, v_existing_event_end_time
+    FROM event_mst
+    WHERE event_id = p_event_id;
+
+    v_final_event_time     := COALESCE(p_event_time,     v_existing_event_time);
+    v_final_event_end_time := COALESCE(p_event_end_time, v_existing_event_end_time);
+
+    IF v_final_event_end_time IS NOT NULL AND v_final_event_end_time <= v_final_event_time THEN
+        RETURN json_build_object('status', false, 'message', 'Event end time must be after event time');
+    END IF;
+
     IF p_platforms IS NOT NULL AND jsonb_array_length(p_platforms) > 0 THEN
         IF EXISTS (
             SELECT 1 FROM jsonb_array_elements(p_platforms) AS pl
@@ -159,6 +178,7 @@ BEGIN
         description    = COALESCE(p_description, description),
         event_date     = COALESCE(p_event_date,  event_date),
         event_time     = COALESCE(p_event_time,  event_time),
+        event_end_time = COALESCE(p_event_end_time, event_end_time),
         event_timezone = COALESCE(p_timezone,    event_timezone),
         livestream     = COALESCE(p_livestream,  livestream),
         video          = COALESCE(p_video,       video),
@@ -200,8 +220,8 @@ BEGIN
         DELETE FROM event_mst WHERE parent_event_id = p_event_id;
 
         -- Fetch parent row values needed for child generation
-        SELECT profile_id, title, description, event_time, event_timezone, livestream, video
-        INTO v_profile_id, v_title, v_description, v_event_time, v_event_tz, v_livestream, v_video
+        SELECT profile_id, title, description, event_time, event_end_time, event_timezone, livestream, video
+        INTO v_profile_id, v_title, v_description, v_event_time, v_event_end_time, v_event_tz, v_livestream, v_video
         FROM event_mst WHERE event_id = p_event_id;
 
         v_safe_end := COALESCE(v_rec_end, v_rec_start + INTERVAL '1 year');
@@ -224,14 +244,14 @@ BEGIN
                     INSERT INTO event_mst (
                         event_id, profile_id, parent_event_id,
                         title, description,
-                        event_date, event_time, event_timezone,
+                        event_date, event_time, event_end_time, event_timezone,
                         livestream, video, is_recurring,
                         created_at, updated_at
                     )
                     VALUES (
                         gen_random_uuid(), v_profile_id, p_event_id,
                         v_title, v_description,
-                        v_occ_date, v_event_time, v_event_tz,
+                        v_occ_date, v_event_time, v_event_end_time, v_event_tz,
                         v_livestream, v_video, true,
                         now(), now()
                     );
@@ -267,14 +287,14 @@ BEGIN
                         INSERT INTO event_mst (
                             event_id, profile_id, parent_event_id,
                             title, description,
-                            event_date, event_time, event_timezone,
+                            event_date, event_time, event_end_time, event_timezone,
                             livestream, video, is_recurring,
                             created_at, updated_at
                         )
                         VALUES (
                             gen_random_uuid(), v_profile_id, p_event_id,
                             v_title, v_description,
-                            v_occ_date, v_event_time, v_event_tz,
+                            v_occ_date, v_event_time, v_event_end_time, v_event_tz,
                             v_livestream, v_video, true,
                             now(), now()
                         );

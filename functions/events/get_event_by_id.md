@@ -31,6 +31,7 @@ BEGIN
         'description',     e.description,
         'event_date',      (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date,
         'event_time',      (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
+        'event_end_time',  (((e.event_date::text || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
         'event_timezone',  e.event_timezone,
         'livestream',      e.livestream,
         'video',           e.video,
@@ -39,7 +40,6 @@ BEGIN
         'creator', json_build_object(
             'profile_id',   cp.id,
             'profile_name', cp.profile_name,
-            'username',     cp.username,
             'avatar',       cp.avatar
         ),
         'platforms', (

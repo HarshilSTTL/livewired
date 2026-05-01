@@ -37,6 +37,7 @@ CREATE OR REPLACE FUNCTION create_event(
     p_title                  text,
     p_event_date             date,
     p_event_time             time,
+    p_event_end_time         time     DEFAULT null,
     p_timezone               text     DEFAULT 'UTC',
     p_description            text     DEFAULT null,
     p_livestream             boolean  DEFAULT false,
@@ -105,6 +106,10 @@ BEGIN
     END IF;
 
     -- ── Platform validation (if provided and non-empty) ───────────────────────
+    IF p_event_end_time IS NOT NULL AND p_event_end_time <= p_event_time THEN
+        RETURN json_build_object('status', false, 'message', 'Event end time must be after event time');
+    END IF;
+
     IF p_platforms IS NOT NULL AND jsonb_array_length(p_platforms) > 0 THEN
 
         IF EXISTS (
@@ -178,14 +183,14 @@ BEGIN
     INSERT INTO event_mst (
         event_id, profile_id, parent_event_id,
         title, description,
-        event_date, event_time, event_timezone,
+        event_date, event_time, event_end_time, event_timezone,
         livestream, video, is_recurring,
         created_at, updated_at
     )
     VALUES (
         gen_random_uuid(), p_profile_id, NULL,
         p_title, p_description,
-        p_event_date, p_event_time, p_timezone,
+        p_event_date, p_event_time, p_event_end_time, p_timezone,
         COALESCE(p_livestream, false), COALESCE(p_video, false), COALESCE(p_is_recurring, false),
         now(), now()
     )
@@ -247,14 +252,14 @@ BEGIN
                     INSERT INTO event_mst (
                         event_id, profile_id, parent_event_id,
                         title, description,
-                        event_date, event_time, event_timezone,
+                        event_date, event_time, event_end_time, event_timezone,
                         livestream, video, is_recurring,
                         created_at, updated_at
                     )
                     VALUES (
                         gen_random_uuid(), p_profile_id, v_event_id,
                         p_title, p_description,
-                        v_occ_date, p_event_time, p_timezone,
+                        v_occ_date, p_event_time, p_event_end_time, p_timezone,
                         COALESCE(p_livestream, false), COALESCE(p_video, false), true,
                         now(), now()
                     );
@@ -298,14 +303,14 @@ BEGIN
                         INSERT INTO event_mst (
                             event_id, profile_id, parent_event_id,
                             title, description,
-                            event_date, event_time, event_timezone,
+                            event_date, event_time, event_end_time, event_timezone,
                             livestream, video, is_recurring,
                             created_at, updated_at
                         )
                         VALUES (
                             gen_random_uuid(), p_profile_id, v_event_id,
                             p_title, p_description,
-                            v_occ_date, p_event_time, p_timezone,
+                            v_occ_date, p_event_time, p_event_end_time, p_timezone,
                             COALESCE(p_livestream, false), COALESCE(p_video, false), true,
                             now(), now()
                         );

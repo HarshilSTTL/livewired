@@ -76,6 +76,7 @@ parent/template row (which holds the definition but has no meaningful display da
         "description":     null,
         "event_date":      "2026-04-06",
         "event_time":      "03:00:00",
+        "event_end_time":  "05:00:00",
         "livestream":      true,
         "video":           false,
         "is_recurring":    true,
@@ -122,6 +123,7 @@ parent/template row (which holds the definition but has no meaningful display da
 | `event_id` | The child occurrence row's own UUID (use for single-event actions) |
 | `parent_event_id` | Present on recurring occurrences — the parent/template event UUID. null for non-recurring |
 | `event_date` | The actual date of this occurrence |
+| `event_end_time` | Nullable — if present, the event has a defined end time |
 | `is_recurring` | `true` → show ↻ icon on the event card |
 | `livestream` | `true` → show live indicator |
 | `description` | Nullable — omit or show placeholder in UI |

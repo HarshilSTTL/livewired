@@ -29,6 +29,7 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 | `p_description` | text | ❌ | New description |
 | `p_event_date` | date | ❌ | New date in creator's local timezone (`YYYY-MM-DD`) |
 | `p_event_time` | time | ❌ | New time in creator's local timezone (`HH:MM:SS`) |
+| `p_event_end_time` | time | ❌ | Optional end time (`HH:MM:SS`) — must be after the final event start time |
 | `p_timezone` | text | ❌ | Creator's IANA timezone — e.g. `'America/New_York'` |
 | `p_livestream` | boolean | ❌ | Toggle livestream flag |
 | `p_video` | boolean | ❌ | Toggle video flag |
@@ -114,6 +115,7 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 |---------|-------|
 | `p_event_id and p_user_id are required` | Either required param is null |
 | `Event not found or access denied` | No matching event, or belongs to a different user |
+| `Event end time must be after event time` | Final end time ≤ final start time (same-day only) |
 | `One or more platform IDs are invalid` | A `platform_id` in `p_platforms` does not exist |
 | `Stream URL is required for each platform` | A platform object is missing `stream_url` |
 | `Recurring days cannot be empty` | `p_recurring_days` passed as empty array |

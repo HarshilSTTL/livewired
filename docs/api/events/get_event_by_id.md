@@ -49,6 +49,7 @@ For recurring child events, platforms and recurring rules are inherited from the
     "description":     "Weekly gaming stream",
     "event_date":      "2026-04-06",
     "event_time":      "03:00:00",
+    "event_end_time":  "05:00:00",
     "livestream":      true,
     "video":           false,
     "is_recurring":    true,
@@ -56,7 +57,6 @@ For recurring child events, platforms and recurring rules are inherited from the
     "creator": {
       "profile_id":   "uuid...",
       "profile_name": "Creator One",
-      "username":     "creator_one",
       "avatar":       "https://..."
     },
     "platforms": [
@@ -95,6 +95,7 @@ For recurring child events, platforms and recurring rules are inherited from the
 | Field | Notes |
 |-------|-------|
 | `parent_event_id` | `null` for non-recurring or parent template. UUID for recurring child occurrences |
+| `event_end_time` | Nullable — if present, the event has a defined end time |
 | `recurring` | `null` if the event is not recurring |
 | `platforms` | Inherited from parent for recurring child events. Always `[]` if none |
 | `creator.avatar` | Supabase Storage URL (or null if not set) |

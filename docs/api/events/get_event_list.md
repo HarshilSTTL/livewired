@@ -45,10 +45,10 @@
 ### Branch 2: Today (`p_date = CURRENT_DATE`)
 | Section | Condition |
 |---------|-----------|
-| `live` | `livestream = true` AND `event_time <= current_time` AND `event_time >= (current_time - 3 hours)` |
-| `today` | `event_time > current_time` (not yet started) |
+| `live` | `livestream = true` AND `event_end_time IS NOT NULL` AND `NOW()` is between start and end times |
+| `today` | upcoming events (`event_time > NOW()`) OR started events with no end time (`event_end_time IS NULL`) |
 
-> ⚠️ **Terminated events** (started > 3 hours ago) are hidden from **both** sections.
+> Events that have an end time and are already ended are hidden from **both** sections.
 
 ### Branch 3: Future Date (`p_date > CURRENT_DATE`)
 | Section | Result |
@@ -61,8 +61,9 @@
 | Scenario | `live` | `today` |
 |----------|--------|---------|
 | Past date | `[]` | All events of that day |
-| Today — started, within 3h | Shows here | Not shown |
-| Today — started, > 3h ago | Not shown (terminated) | Not shown |
+| Today — started + has end_time + not ended | Shows here | Not shown |
+| Today — ended (has end_time and end < now) | Not shown | Not shown |
+| Today — started + no end_time | Not shown | Shows here |
 | Today — not started yet | Not shown | Shows here |
 | Future date | `[]` | All events of that day |
 
@@ -86,6 +87,7 @@
         "event_title":  "Valorant Ranked Grind",
         "event_date":   "2026-03-30",
         "time":         "18:00:00",
+        "end_time":     "20:00:00",
         "livestream":   true,
         "is_recurring": false,
         "platforms": [
@@ -128,6 +130,7 @@
 | event_title | event_mst.title | — |
 | event_date | converted from event_timezone → p_timezone | viewer's local date |
 | time | converted from event_timezone → p_timezone | viewer's local time |
+| end_time | converted from event_timezone → p_timezone | nullable — viewer's local time |
 | livestream | event_mst.livestream | — |
 | is_recurring | event_mst.is_recurring | — |
 | platforms | joined from event_platforms + platforms | array, never null |

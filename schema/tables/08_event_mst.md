@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS public.event_mst (
     description       text        NULL,   -- nullable
     event_date        date,
     event_time        time,
+    event_end_time    time        NULL,   -- nullable (optional end time)
     event_timezone    text        NOT NULL DEFAULT 'UTC', -- creator's IANA timezone at time of creation
     livestream        bool        DEFAULT false,
     video             bool        DEFAULT false,
@@ -27,6 +28,7 @@ CREATE TABLE IF NOT EXISTS public.event_mst (
 --   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT false;
 --   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS deleted_at timestamptz NULL;
 --   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS event_timezone text NOT NULL DEFAULT 'UTC';
+--   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS event_end_time time NULL;
 --   Note: event_date + event_time store UTC values. event_timezone stores the creator's original IANA timezone.
 --   Existing rows default to 'UTC' which is safe — they had no timezone context.
 
