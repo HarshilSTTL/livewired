@@ -20,18 +20,6 @@
               "icon": "lucide-file",
               "title": "2026-05-01"
             }
-          },
-          {
-            "id": "62eea04076c9c98b",
-            "type": "leaf",
-            "pinned": true,
-            "state": {
-              "type": "empty",
-              "state": {},
-              "pinned": true,
-              "icon": "lucide-file",
-              "title": "New tab"
-            }
           }
         ],
         "stacked": true

@@ -1,5 +1,4 @@
-# LiveWired 
- — Project Documentation
+# LiveWired — Project Documentation
 
 **Tech Stack:** Flutter (Frontend) · Supabase (Backend · PostgreSQL)
 **Architecture:** PostgreSQL Stored Procedures (RPC) as APIs
