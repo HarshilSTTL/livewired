@@ -134,6 +134,7 @@
 | time | converted from event_timezone → p_timezone | viewer's local time |
 | end_time | converted from event_timezone → p_timezone | nullable — viewer's local time |
 | livestream | event_mst.livestream | — |
+| is_collaborative | event_mst.is_collaborative | true = collaborative event |
 | is_recurring | event_mst.is_recurring | — |
 | platforms | joined from event_platforms + platforms | array, never null |
 
@@ -145,6 +146,7 @@
 - Live/upcoming checks use `AT TIME ZONE e.event_timezone` to get the correct UTC moment for comparison with `NOW()`
 - Cross-midnight events: when `event_end_time < event_time`, the end timestamp uses `event_date + 1` as the date
 - Only events from `creator_profiles` with `status = 'active'` are returned
+- When `p_user_id` is provided, collaborative events where the user is an accepted collaborator are included even if they don't follow the event owner
 - Events are ordered by `event_time ASC` within each section
 - `streaming` array uses `coalesce(..., '[]'::json)` — never null
 - `logo_url` in streaming can be null (platforms.logo_url is nullable)

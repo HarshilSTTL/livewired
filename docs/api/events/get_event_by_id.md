@@ -50,10 +50,11 @@ For recurring child events, platforms and recurring rules are inherited from the
     "event_date":      "2026-04-06",
     "event_time":      "03:00:00",
     "event_end_time":  "05:00:00",
-    "livestream":      true,
-    "video":           false,
-    "is_recurring":    true,
-    "created_at":      "2026-03-30T18:45:00Z",
+    "livestream":       true,
+    "video":            false,
+    "is_collaborative": true,
+    "is_recurring":     true,
+    "created_at":       "2026-03-30T18:45:00Z",
     "creator": {
       "profile_id":   "uuid...",
       "profile_name": "Creator One",
@@ -65,6 +66,16 @@ For recurring child events, platforms and recurring rules are inherited from the
         "platform_name": "YouTube",
         "logo_url":      "https://...",
         "stream_url":    "https://youtube.com/live/abc"
+      }
+    ],
+    "collaborators": [
+      {
+        "profile_id":   "uuid",
+        "profile_name": "Harshil Gaming",
+        "avatar":       "https://...",
+        "status":       "accepted",
+        "invited_at":   "2026-05-01T10:00:00Z",
+        "responded_at": "2026-05-01T11:30:00Z"
       }
     ],
     "recurring": {
@@ -96,6 +107,8 @@ For recurring child events, platforms and recurring rules are inherited from the
 |-------|-------|
 | `parent_event_id` | `null` for non-recurring or parent template. UUID for recurring child occurrences |
 | `event_end_time` | Nullable — if present, the event has a defined end time |
+| `is_collaborative` | `true` if collaborator invites are enabled on this event |
+| `collaborators` | Array of active (non-deleted) collaborators with their invite status. Always `[]` if none. Inherited from parent for recurring child events. |
 | `recurring` | `null` if the event is not recurring |
 | `platforms` | Inherited from parent for recurring child events. Always `[]` if none |
 | `creator.avatar` | Supabase Storage URL (or null if not set) |

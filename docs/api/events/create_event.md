@@ -75,6 +75,7 @@ Rows inserted into `event_mst`:
 | `p_description` | text | ❌ | null | Event description |
 | `p_livestream` | boolean | ❌ | false | Is this a live stream? |
 | `p_video` | boolean | ❌ | false | Is this a video premiere? |
+| `p_is_collaborative` | boolean | ❌ | false | Enable collaborator invites on this event (max 5 accepted collaborators) |
 | `p_is_recurring` | boolean | ❌ | false | Is this recurring? If true, recurring params below are required |
 | `p_platforms` | jsonb | ❌ | null | Platforms to stream on (see format below) |
 

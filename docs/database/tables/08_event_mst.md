@@ -15,6 +15,7 @@
 | event_time       | time        | NULL              | Yes      | —                              | Time of the event (stored as UTC)                                      |
 | event_end_time   | time        | NULL              | **Yes**  | —                              | Optional end time. If less than event_time, treated as next-day (cross-midnight). Cannot equal event_time. |
 | event_timezone   | text        | `'UTC'`           | No       | —                              | Creator's IANA timezone at time of creation (e.g. `'America/New_York'`) |
+| is_collaborative | bool        | false             | No       | —                              | True = collaborative event (owner + up to 5 accepted collaborators)    |
 | livestream       | bool        | false             | No       | —                              | Is this a live stream?                                                 |
 | video            | bool        | false             | No       | —                              | Is this a video premiere?                                              |
 | is_recurring     | bool        | false             | No       | —                              | Is this a repeating event?                                             |
@@ -69,6 +70,8 @@ When `create_event` is called with `p_is_recurring = true`, it inserts:
 - `event_date` and `event_time` are stored in **UTC**. Creator's local timezone is stored in `event_timezone`.
 - Read SPs accept `p_timezone` (viewer's IANA timezone) and convert UTC → viewer's local date/time before returning.
 - **Live section rule:** `event_end_time IS NOT NULL` AND `NOW()` is between start and end times (cross-midnight supported). The `livestream` flag no longer determines Live placement.
+- `is_collaborative = true` enables the collaborator invite system. Up to 5 accepted collaborators allowed per event. Collaborators have full permissions (update, postpone, delete).
+- Collaborator records are stored in `event_collaborators` (FK on `event_id`)
 
 ## Referenced By (Stored Procedures & Tables)
 

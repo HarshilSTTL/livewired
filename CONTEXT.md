@@ -37,7 +37,7 @@ LiveWired is a creator-discovery and live-stream scheduling platform. Creators a
 
 ---
 
-## Database: 12 Tables
+## Database: 13 Tables
 
 | # | Table | Purpose |
 |---|-------|---------|
@@ -53,13 +53,14 @@ LiveWired is a creator-discovery and live-stream scheduling platform. Creators a
 | 10 | `follows` | User → Creator follow relationships (soft delete) |
 | 11 | `user_preferred_platforms` | User's platform preferences (onboarding) |
 | 12 | `user_interests` | User's interest tags (onboarding) |
+| 13 | `event_collaborators` | Collaboration invites for events (pending/accepted/declined, soft delete) |
 
 Full table schemas → `docs/database/tables/`
 SQL CREATE statements → `schema/tables/`
 
 ---
 
-## APIs: 20 Stored Procedures
+## APIs: 23 Stored Procedures
 
 | # | Function | Endpoint | Method | Group |
 |---|----------|----------|--------|-------|
@@ -83,6 +84,9 @@ SQL CREATE statements → `schema/tables/`
 | 18 | get_event_list | /rpc/get_event_list | POST | Events |
 | 19 | search_profiles | /rpc/search_profiles | POST | Search |
 | 20 | search_events | /rpc/search_events | POST | Search |
+| 21 | invite_collaborator | /rpc/invite_collaborator | POST | Events |
+| 22 | respond_collaborator_invite | /rpc/respond_collaborator_invite | POST | Events |
+| 23 | remove_collaborator | /rpc/remove_collaborator | POST | Events |
 
 Full API docs → `docs/api/`
 SQL function code → `functions/`

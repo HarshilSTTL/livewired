@@ -62,6 +62,7 @@ BEGIN
                                         ELSE e.event_date::text
                                    END || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
                 'livestream',    e.livestream,
+                'is_collaborative', e.is_collaborative,
                 'is_recurring',  e.is_recurring,
                 'platforms', (
                     SELECT coalesce(
@@ -92,6 +93,15 @@ BEGIN
                   SELECT profile_id FROM follows
                   WHERE user_id = p_user_id AND is_active = true
               )
+              -- Also show events where the user is an accepted collaborator
+              OR COALESCE(e.parent_event_id, e.event_id) IN (
+                  SELECT ec.event_id
+                  FROM event_collaborators ec
+                  JOIN creator_profiles cp2 ON cp2.id = ec.profile_id
+                  WHERE cp2.user_id  = p_user_id
+                    AND ec.status    = 'accepted'
+                    AND ec.is_deleted = false
+              )
           );
 
     -- ── TODAY ─────────────────────────────────────────────────────────────────
@@ -116,6 +126,7 @@ BEGIN
                                         ELSE e.event_date::text
                                    END || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
                 'livestream',    e.livestream,
+                'is_collaborative', e.is_collaborative,
                 'is_recurring',  e.is_recurring,
                 'platforms', (
                     SELECT coalesce(
@@ -155,6 +166,15 @@ BEGIN
                   SELECT profile_id FROM follows
                   WHERE user_id = p_user_id AND is_active = true
               )
+              -- Also show events where the user is an accepted collaborator
+              OR COALESCE(e.parent_event_id, e.event_id) IN (
+                  SELECT ec.event_id
+                  FROM event_collaborators ec
+                  JOIN creator_profiles cp2 ON cp2.id = ec.profile_id
+                  WHERE cp2.user_id  = p_user_id
+                    AND ec.status    = 'accepted'
+                    AND ec.is_deleted = false
+              )
           );
 
         -- TODAY section: events that are upcoming OR have started but have no end_time
@@ -176,6 +196,7 @@ BEGIN
                                         ELSE e.event_date::text
                                    END || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
                 'livestream',    e.livestream,
+                'is_collaborative', e.is_collaborative,
                 'is_recurring',  e.is_recurring,
                 'platforms', (
                     SELECT coalesce(
@@ -225,6 +246,15 @@ BEGIN
                   SELECT profile_id FROM follows
                   WHERE user_id = p_user_id AND is_active = true
               )
+              -- Also show events where the user is an accepted collaborator
+              OR COALESCE(e.parent_event_id, e.event_id) IN (
+                  SELECT ec.event_id
+                  FROM event_collaborators ec
+                  JOIN creator_profiles cp2 ON cp2.id = ec.profile_id
+                  WHERE cp2.user_id  = p_user_id
+                    AND ec.status    = 'accepted'
+                    AND ec.is_deleted = false
+              )
           );
 
     -- ── FUTURE DATE ───────────────────────────────────────────────────────────
@@ -250,6 +280,7 @@ BEGIN
                                         ELSE e.event_date::text
                                    END || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
                 'livestream',    e.livestream,
+                'is_collaborative', e.is_collaborative,
                 'is_recurring',  e.is_recurring,
                 'platforms', (
                     SELECT coalesce(
@@ -279,6 +310,15 @@ BEGIN
               OR cp.id IN (
                   SELECT profile_id FROM follows
                   WHERE user_id = p_user_id AND is_active = true
+              )
+              -- Also show events where the user is an accepted collaborator
+              OR COALESCE(e.parent_event_id, e.event_id) IN (
+                  SELECT ec.event_id
+                  FROM event_collaborators ec
+                  JOIN creator_profiles cp2 ON cp2.id = ec.profile_id
+                  WHERE cp2.user_id  = p_user_id
+                    AND ec.status    = 'accepted'
+                    AND ec.is_deleted = false
               )
           );
 

@@ -42,6 +42,7 @@ CREATE OR REPLACE FUNCTION create_event(
     p_description            text     DEFAULT null,
     p_livestream             boolean  DEFAULT false,
     p_video                  boolean  DEFAULT false,
+    p_is_collaborative       boolean  DEFAULT false,
     p_is_recurring           boolean  DEFAULT false,
     p_platforms              jsonb    DEFAULT null,
     -- Recurring fields (only used when p_is_recurring = true)
@@ -186,14 +187,15 @@ BEGIN
         event_id, profile_id, parent_event_id,
         title, description,
         event_date, event_time, event_end_time, event_timezone,
-        livestream, video, is_recurring,
+        livestream, video, is_collaborative, is_recurring,
         created_at, updated_at
     )
     VALUES (
         gen_random_uuid(), p_profile_id, NULL,
         p_title, p_description,
         p_event_date, p_event_time, p_event_end_time, p_timezone,
-        COALESCE(p_livestream, false), COALESCE(p_video, false), COALESCE(p_is_recurring, false),
+        COALESCE(p_livestream, false), COALESCE(p_video, false),
+        COALESCE(p_is_collaborative, false), COALESCE(p_is_recurring, false),
         now(), now()
     )
     RETURNING event_id INTO v_event_id;

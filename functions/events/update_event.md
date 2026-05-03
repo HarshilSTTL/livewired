@@ -21,6 +21,7 @@ CREATE OR REPLACE FUNCTION update_event(
     p_timezone             text     DEFAULT NULL,
     p_livestream           boolean  DEFAULT NULL,
     p_video                boolean  DEFAULT NULL,
+    p_is_collaborative     boolean  DEFAULT NULL,
     p_platforms            jsonb    DEFAULT NULL,
     -- Recurring fields (pass any to trigger recurring update + child regeneration)
     p_recurring_days       text[]   DEFAULT NULL,
@@ -76,7 +77,9 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'p_event_id and p_user_id are required');
     END IF;
 
-    -- ── Ownership check ───────────────────────────────────────────────────────
+    -- ── Ownership / collaborator check ───────────────────────────────────────
+    -- Allows the event owner OR any accepted (non-deleted) collaborator.
+    -- For child occurrences, collaborators are resolved via the parent event_id.
     IF NOT EXISTS (
         SELECT 1
         FROM event_mst e
@@ -84,6 +87,17 @@ BEGIN
         WHERE e.event_id = p_event_id
           AND cp.user_id = p_user_id
           AND cp.status  = 'active'
+    ) AND NOT EXISTS (
+        SELECT 1
+        FROM event_collaborators ec
+        JOIN creator_profiles cp ON cp.id = ec.profile_id
+        WHERE ec.event_id = COALESCE(
+                (SELECT parent_event_id FROM event_mst WHERE event_id = p_event_id),
+                p_event_id
+              )
+          AND cp.user_id   = p_user_id
+          AND ec.status    = 'accepted'
+          AND ec.is_deleted = false
     ) THEN
         RETURN json_build_object('status', false, 'message', 'Event not found or access denied');
     END IF;
@@ -175,16 +189,17 @@ BEGIN
 
     -- ── Update event_mst ──────────────────────────────────────────────────────
     UPDATE event_mst
-    SET title          = COALESCE(p_title,       title),
-        description    = COALESCE(p_description, description),
-        event_date     = COALESCE(p_event_date,  event_date),
-        event_time     = COALESCE(p_event_time,  event_time),
-        event_end_time = COALESCE(p_event_end_time, event_end_time),
-        event_timezone = COALESCE(p_timezone,    event_timezone),
-        livestream     = COALESCE(p_livestream,  livestream),
-        video          = COALESCE(p_video,       video),
-        updated_at     = now()
-    WHERE event_id     = p_event_id;
+    SET title             = COALESCE(p_title,            title),
+        description       = COALESCE(p_description,      description),
+        event_date        = COALESCE(p_event_date,        event_date),
+        event_time        = COALESCE(p_event_time,        event_time),
+        event_end_time    = COALESCE(p_event_end_time,    event_end_time),
+        event_timezone    = COALESCE(p_timezone,          event_timezone),
+        livestream        = COALESCE(p_livestream,        livestream),
+        video             = COALESCE(p_video,             video),
+        is_collaborative  = COALESCE(p_is_collaborative,  is_collaborative),
+        updated_at        = now()
+    WHERE event_id        = p_event_id;
 
     -- ── Update platforms ──────────────────────────────────────────────────────
     IF p_platforms IS NOT NULL THEN

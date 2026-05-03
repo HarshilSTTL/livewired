@@ -77,6 +77,7 @@ BEGIN
                                   END || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
             'livestream',      e.livestream,
             'video',           e.video,
+            'is_collaborative', e.is_collaborative,
             'is_recurring',    e.is_recurring,
             'platforms', (
                 SELECT COALESCE(
@@ -102,7 +103,17 @@ BEGIN
     )
     INTO v_events
     FROM event_mst e
-    WHERE e.profile_id = p_profile_id
+    WHERE (
+        -- Events directly owned by this profile
+        e.profile_id = p_profile_id
+        -- Events where this profile is an accepted collaborator
+        OR COALESCE(e.parent_event_id, e.event_id) IN (
+            SELECT event_id FROM event_collaborators
+            WHERE profile_id = p_profile_id
+              AND status     = 'accepted'
+              AND is_deleted = false
+        )
+    )
       AND (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date
           BETWEEN p_week_start AND v_week_end
       AND e.is_deleted = false

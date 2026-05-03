@@ -38,6 +38,7 @@ BEGIN
         'event_timezone',  e.event_timezone,
         'livestream',      e.livestream,
         'video',           e.video,
+        'is_collaborative', e.is_collaborative,
         'is_recurring',    e.is_recurring,
         'created_at',      e.created_at,
         'creator', json_build_object(
@@ -59,6 +60,23 @@ BEGIN
             JOIN platforms p ON p.plat_id = ep.platform_id::bigint
             -- Child events inherit platforms from parent
             WHERE ep.event_id = COALESCE(e.parent_event_id, e.event_id)
+        ),
+        'collaborators', (
+            SELECT COALESCE(
+                json_agg(json_build_object(
+                    'profile_id',   cp2.id,
+                    'profile_name', cp2.profile_name,
+                    'avatar',       cp2.avatar,
+                    'status',       ec.status,
+                    'invited_at',   ec.invited_at,
+                    'responded_at', ec.responded_at
+                )),
+                '[]'::json
+            )
+            FROM event_collaborators ec
+            JOIN creator_profiles cp2 ON cp2.id = ec.profile_id
+            WHERE ec.event_id  = COALESCE(e.parent_event_id, e.event_id)
+              AND ec.is_deleted = false
         ),
         'recurring', (
             SELECT json_build_object(

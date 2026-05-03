@@ -33,6 +33,7 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 | `p_timezone` | text | ❌ | Creator's IANA timezone — e.g. `'America/New_York'` |
 | `p_livestream` | boolean | ❌ | Toggle livestream flag |
 | `p_video` | boolean | ❌ | Toggle video flag |
+| `p_is_collaborative` | boolean | ❌ | Enable or disable collaborative mode |
 | `p_platforms` | jsonb | ❌ | `null` = no change · `[]` = clear · `[{...}]` = replace |
 
 ### Recurring fields (pass `p_recurring_days` to trigger recurring update)
@@ -114,7 +115,7 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 | Message | Cause |
 |---------|-------|
 | `p_event_id and p_user_id are required` | Either required param is null |
-| `Event not found or access denied` | No matching event, or belongs to a different user |
+| `Event not found or access denied` | No matching event, caller is not the owner or an accepted collaborator |
 | `Event end time cannot be the same as event start time` | Final end time equals final start time (zero-duration). End time less than start time is valid — treated as next day |
 | `One or more platform IDs are invalid` | A `platform_id` in `p_platforms` does not exist |
 | `Stream URL is required for each platform` | A platform object is missing `stream_url` |
