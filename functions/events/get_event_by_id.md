@@ -31,7 +31,10 @@ BEGIN
         'description',     e.description,
         'event_date',      (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date,
         'event_time',      (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
-        'event_end_time',  (((e.event_date::text || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
+        'event_end_time',  (((CASE WHEN e.event_end_time IS NOT NULL AND e.event_end_time < e.event_time
+                                   THEN (e.event_date + 1)::text
+                                   ELSE e.event_date::text
+                              END || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
         'event_timezone',  e.event_timezone,
         'livestream',      e.livestream,
         'video',           e.video,

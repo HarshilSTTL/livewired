@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.event_mst (
     description       text        NULL,   -- nullable
     event_date        date,
     event_time        time,
-    event_end_time    time        NULL,   -- nullable (optional end time)
+    event_end_time    time        NULL,   -- nullable (optional end time; < event_time = cross-midnight/next day)
     event_timezone    text        NOT NULL DEFAULT 'UTC', -- creator's IANA timezone at time of creation
     livestream        bool        DEFAULT false,
     video             bool        DEFAULT false,

@@ -10,6 +10,14 @@
 --   event_date + event_time are stored in the creator's local timezone (event_timezone column).
 --   All output dates/times are converted to the viewer's timezone via p_timezone.
 --   Conversion: (stored_local AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone
+--
+-- Cross-midnight end_time:
+--   When event_end_time < event_time, the event runs past midnight.
+--   End timestamp uses (event_date + 1) as the date for the end_time calculation.
+--
+-- Live vs Today:
+--   LIVE  — event has end_time AND has started AND has not yet ended.
+--   TODAY — all other events (no end_time, not yet started, or already ended).
 
 CREATE OR REPLACE FUNCTION get_event_list(
     p_user_id   uuid DEFAULT null,
@@ -49,7 +57,10 @@ BEGIN
                 'event_title',   e.title,
                 'event_date',    (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date,
                 'time',          (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
-                'end_time',      (((e.event_date::text || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
+                'end_time',      (((CASE WHEN e.event_end_time IS NOT NULL AND e.event_end_time < e.event_time
+                                        THEN (e.event_date + 1)::text
+                                        ELSE e.event_date::text
+                                   END || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
                 'livestream',    e.livestream,
                 'is_recurring',  e.is_recurring,
                 'platforms', (
@@ -86,7 +97,7 @@ BEGIN
     -- ── TODAY ─────────────────────────────────────────────────────────────────
     ELSIF p_date = v_local_now THEN
 
-        -- LIVE section: livestream events that have started and have an end time (not ended yet)
+        -- LIVE section: events that have an end_time, have started, and haven't ended yet
         SELECT json_agg(
             json_build_object(
                 'event_id',      e.event_id,
@@ -100,7 +111,10 @@ BEGIN
                 'event_title',   e.title,
                 'event_date',    (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date,
                 'time',          (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
-                'end_time',      (((e.event_date::text || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
+                'end_time',      (((CASE WHEN e.event_end_time IS NOT NULL AND e.event_end_time < e.event_time
+                                        THEN (e.event_date + 1)::text
+                                        ELSE e.event_date::text
+                                   END || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
                 'livestream',    e.livestream,
                 'is_recurring',  e.is_recurring,
                 'platforms', (
@@ -124,14 +138,17 @@ BEGIN
         FROM event_mst e
         JOIN creator_profiles cp ON cp.id = e.profile_id
         WHERE (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date = p_date
-          AND e.livestream  = true
           AND cp.status     = 'active'
           AND e.is_deleted  = false
+          -- Must have an end time
+          AND e.event_end_time IS NOT NULL
           -- Has started
           AND (e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone <= NOW()
-          -- Must have end time and not ended yet
-          AND e.event_end_time IS NOT NULL
-          AND (e.event_date::text || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone >= NOW()
+          -- Has not yet ended (cross-midnight: if end_time < start_time, use next day's date)
+          AND (CASE WHEN e.event_end_time < e.event_time
+                    THEN (e.event_date + 1)::text
+                    ELSE e.event_date::text
+               END || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone >= NOW()
           AND (
               p_user_id IS NULL
               OR cp.id IN (
@@ -140,7 +157,7 @@ BEGIN
               )
           );
 
-        -- TODAY section: upcoming events that have NOT started yet
+        -- TODAY section: events that are upcoming OR have started but have no end_time
         SELECT json_agg(
             json_build_object(
                 'event_id',      e.event_id,
@@ -154,7 +171,10 @@ BEGIN
                 'event_title',   e.title,
                 'event_date',    (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date,
                 'time',          (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
-                'end_time',      (((e.event_date::text || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
+                'end_time',      (((CASE WHEN e.event_end_time IS NOT NULL AND e.event_end_time < e.event_time
+                                        THEN (e.event_date + 1)::text
+                                        ELSE e.event_date::text
+                                   END || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
                 'livestream',    e.livestream,
                 'is_recurring',  e.is_recurring,
                 'platforms', (
@@ -180,7 +200,7 @@ BEGIN
         WHERE (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date = p_date
           AND cp.status    = 'active'
           AND e.is_deleted = false
-          -- Not yet started
+          -- Not yet started, OR started but no end_time (unknown duration)
           AND (
               -- upcoming
               (e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone > NOW()
@@ -192,10 +212,12 @@ BEGIN
           )
           -- Exclude events that are currently Live (avoid duplicates)
           AND NOT (
-              e.livestream = true
-              AND e.event_end_time IS NOT NULL
+              e.event_end_time IS NOT NULL
               AND (e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone <= NOW()
-              AND (e.event_date::text || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone >= NOW()
+              AND (CASE WHEN e.event_end_time < e.event_time
+                        THEN (e.event_date + 1)::text
+                        ELSE e.event_date::text
+                   END || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone >= NOW()
           )
           AND (
               p_user_id IS NULL
@@ -223,7 +245,10 @@ BEGIN
                 'event_title',   e.title,
                 'event_date',    (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date,
                 'time',          (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
-                'end_time',      (((e.event_date::text || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
+                'end_time',      (((CASE WHEN e.event_end_time IS NOT NULL AND e.event_end_time < e.event_time
+                                        THEN (e.event_date + 1)::text
+                                        ELSE e.event_date::text
+                                   END || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
                 'livestream',    e.livestream,
                 'is_recurring',  e.is_recurring,
                 'platforms', (

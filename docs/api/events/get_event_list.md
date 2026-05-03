@@ -45,10 +45,11 @@
 ### Branch 2: Today (`p_date = CURRENT_DATE`)
 | Section | Condition |
 |---------|-----------|
-| `live` | `livestream = true` AND `event_end_time IS NOT NULL` AND `NOW()` is between start and end times |
+| `live` | `event_end_time IS NOT NULL` AND `NOW()` is between start and end times (cross-midnight supported) |
 | `today` | upcoming events (`event_time > NOW()`) OR started events with no end time (`event_end_time IS NULL`) |
 
-> Events that have an end time and are already ended are hidden from **both** sections.
+> Events with an end time that have already ended are hidden from **both** sections.
+> The `livestream` flag no longer determines Live placement — any event type with an `end_time` can appear in Live.
 
 ### Branch 3: Future Date (`p_date > CURRENT_DATE`)
 | Section | Result |
@@ -62,6 +63,7 @@
 |----------|--------|---------|
 | Past date | `[]` | All events of that day |
 | Today — started + has end_time + not ended | Shows here | Not shown |
+| Today — started + has end_time + not ended (cross-midnight) | Shows here | Not shown |
 | Today — ended (has end_time and end < now) | Not shown | Not shown |
 | Today — started + no end_time | Not shown | Shows here |
 | Today — not started yet | Not shown | Shows here |
@@ -141,6 +143,7 @@
 
 - `event_date` and `time` in the response are returned in the **viewer's local timezone** (`p_timezone`)
 - Live/upcoming checks use `AT TIME ZONE e.event_timezone` to get the correct UTC moment for comparison with `NOW()`
+- Cross-midnight events: when `event_end_time < event_time`, the end timestamp uses `event_date + 1` as the date
 - Only events from `creator_profiles` with `status = 'active'` are returned
 - Events are ordered by `event_time ASC` within each section
 - `streaming` array uses `coalesce(..., '[]'::json)` — never null

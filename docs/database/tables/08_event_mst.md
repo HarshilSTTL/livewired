@@ -13,7 +13,7 @@
 | description      | text        | NULL              | **Yes**  | —                              | Event description (nullable)                                           |
 | event_date       | date        | NULL              | Yes      | —                              | Date of the event in UTC (or occurrence date for child rows)           |
 | event_time       | time        | NULL              | Yes      | —                              | Time of the event (stored as UTC)                                      |
-| event_end_time   | time        | NULL              | **Yes**  | —                              | Optional end time (must be after event_time; same-day only)            |
+| event_end_time   | time        | NULL              | **Yes**  | —                              | Optional end time. If less than event_time, treated as next-day (cross-midnight). Cannot equal event_time. |
 | event_timezone   | text        | `'UTC'`           | No       | —                              | Creator's IANA timezone at time of creation (e.g. `'America/New_York'`) |
 | livestream       | bool        | false             | No       | —                              | Is this a live stream?                                                 |
 | video            | bool        | false             | No       | —                              | Is this a video premiere?                                              |
@@ -60,7 +60,7 @@ When `create_event` is called with `p_is_recurring = true`, it inserts:
 
 - Events belong to a creator **profile**, not directly to a user
 - `description` and `updated_at` are nullable
-- `event_end_time` is optional; if provided it must be **after** `event_time` (same-day only)
+- `event_end_time` is optional; if provided it cannot equal `event_time`. Values less than `event_time` are valid and treated as **cross-midnight** (end is on the next day)
 - `parent_event_id` is only set on generated occurrence rows; the parent itself has `parent_event_id = NULL`
 - `is_recurring = true` on both the parent template and all child occurrence rows
 - `livestream = true` → used for live section logic in `get_event_list`
@@ -68,7 +68,7 @@ When `create_event` is called with `p_is_recurring = true`, it inserts:
 - One event can stream on multiple platforms via `event_platforms` table
 - `event_date` and `event_time` are stored in **UTC**. Creator's local timezone is stored in `event_timezone`.
 - Read SPs accept `p_timezone` (viewer's IANA timezone) and convert UTC → viewer's local date/time before returning.
-- **Live section rule:** `livestream = true` AND `event_end_time IS NOT NULL` AND `NOW()` is between start and end times
+- **Live section rule:** `event_end_time IS NOT NULL` AND `NOW()` is between start and end times (cross-midnight supported). The `livestream` flag no longer determines Live placement.
 
 ## Referenced By (Stored Procedures & Tables)
 

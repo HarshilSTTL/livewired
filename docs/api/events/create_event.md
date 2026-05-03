@@ -70,7 +70,7 @@ Rows inserted into `event_mst`:
 | `p_title` | text | ✅ | — | Event title |
 | `p_event_date` | date | ✅ | — | Date of the event in creator's local timezone (`YYYY-MM-DD`) |
 | `p_event_time` | time | ✅ | — | Time of the event in creator's local timezone (`HH:MM:SS`) |
-| `p_event_end_time` | time | ❌ | null | Optional end time in creator's local timezone (`HH:MM:SS`) — must be after `p_event_time` |
+| `p_event_end_time` | time | ❌ | null | Optional end time in creator's local timezone (`HH:MM:SS`). If less than `p_event_time`, treated as next-day (cross-midnight). Cannot equal `p_event_time`. |
 | `p_timezone` | text | ❌ | `'UTC'` | Creator's IANA timezone — e.g. `'America/New_York'`, `'Asia/Kolkata'` |
 | `p_description` | text | ❌ | null | Event description |
 | `p_livestream` | boolean | ❌ | false | Is this a live stream? |
@@ -205,7 +205,7 @@ Rows inserted into `event_mst`:
 | `Event title is required` | `p_title` null or empty |
 | `Event date is required` | `p_event_date` is null |
 | `Event time is required` | `p_event_time` is null |
-| `Event end time must be after event time` | `p_event_end_time <= p_event_time` |
+| `Event end time cannot be the same as event start time` | `p_event_end_time = p_event_time` (zero-duration). Values less than start time are valid — treated as next day |
 | `One or more platform IDs are invalid` | `platform_id` not in `platforms` table |
 | `Stream URL is required for each platform` | Platform object missing `stream_url` |
 | `Recurring days are required` | `p_recurring_days` null or empty when `p_is_recurring = true` |

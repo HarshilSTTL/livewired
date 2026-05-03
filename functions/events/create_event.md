@@ -105,9 +105,11 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'Event time is required');
     END IF;
 
-    -- ── Platform validation (if provided and non-empty) ───────────────────────
-    IF p_event_end_time IS NOT NULL AND p_event_end_time <= p_event_time THEN
-        RETURN json_build_object('status', false, 'message', 'Event end time must be after event time');
+    -- ── End time validation ───────────────────────────────────────────────────
+    -- end_time < start_time is valid (cross-midnight, treated as next day).
+    -- Only reject if end_time = start_time (zero-duration event).
+    IF p_event_end_time IS NOT NULL AND p_event_end_time = p_event_time THEN
+        RETURN json_build_object('status', false, 'message', 'Event end time cannot be the same as event start time');
     END IF;
 
     IF p_platforms IS NOT NULL AND jsonb_array_length(p_platforms) > 0 THEN

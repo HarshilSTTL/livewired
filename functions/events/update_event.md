@@ -97,8 +97,9 @@ BEGIN
     v_final_event_time     := COALESCE(p_event_time,     v_existing_event_time);
     v_final_event_end_time := COALESCE(p_event_end_time, v_existing_event_end_time);
 
-    IF v_final_event_end_time IS NOT NULL AND v_final_event_end_time <= v_final_event_time THEN
-        RETURN json_build_object('status', false, 'message', 'Event end time must be after event time');
+    -- end_time < start_time is valid (cross-midnight, treated as next day).
+    IF v_final_event_end_time IS NOT NULL AND v_final_event_end_time = v_final_event_time THEN
+        RETURN json_build_object('status', false, 'message', 'Event end time cannot be the same as event start time');
     END IF;
 
     IF p_platforms IS NOT NULL AND jsonb_array_length(p_platforms) > 0 THEN
