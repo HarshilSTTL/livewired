@@ -60,7 +60,7 @@ SQL CREATE statements → `schema/tables/`
 
 ---
 
-## APIs: 23 Stored Procedures
+## APIs: 24 Stored Procedures
 
 | # | Function | Endpoint | Method | Group |
 |---|----------|----------|--------|-------|
@@ -87,6 +87,7 @@ SQL CREATE statements → `schema/tables/`
 | 21 | invite_collaborator | /rpc/invite_collaborator | POST | Events |
 | 22 | respond_collaborator_invite | /rpc/respond_collaborator_invite | POST | Events |
 | 23 | remove_collaborator | /rpc/remove_collaborator | POST | Events |
+| 24 | notify_expiring_recurring_events | /rpc/notify_expiring_recurring_events | POST | Events |
 
 Full API docs → `docs/api/`
 SQL function code → `functions/`

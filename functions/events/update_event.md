@@ -223,13 +223,19 @@ BEGIN
     -- ── Update recurring rule + regenerate child rows ─────────────────────────
     IF p_recurring_days IS NOT NULL THEN
 
+        -- Compute final end date: default to 3 months if not provided.
+        -- Always store a concrete date so notify_expiring_recurring_events can query it.
+        v_safe_end := COALESCE(v_rec_end, v_rec_start + INTERVAL '3 months');
+        v_rec_end  := v_safe_end;
+
         -- Update event_recurring row
         UPDATE event_recurring
         SET recurring_days       = v_rec_days,
             recurring_type       = v_rec_type,
             recurring_interval   = v_rec_interval,
             recurring_start_date = v_rec_start,
-            recurring_end_date   = v_rec_end
+            recurring_end_date   = v_rec_end,
+            renewal_notified_at  = NULL  -- reset notification flag when schedule changes
         WHERE event_id = p_event_id;
 
         -- Delete all existing child occurrence rows
@@ -239,8 +245,6 @@ BEGIN
         SELECT profile_id, title, description, event_time, event_end_time, event_timezone, livestream, video
         INTO v_profile_id, v_title, v_description, v_event_time, v_event_end_time, v_event_tz, v_livestream, v_video
         FROM event_mst WHERE event_id = p_event_id;
-
-        v_safe_end := COALESCE(v_rec_end, v_rec_start + INTERVAL '1 year');
 
         IF v_rec_type = 'weekly' THEN
 

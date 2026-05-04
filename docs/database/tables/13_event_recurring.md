@@ -14,7 +14,8 @@
 | recurring_type | text | — | No | — | `'weekly'` · `'first'` · `'last'` |
 | recurring_interval | int | NULL | **Yes** | — | 1–12 (weeks). Only for `recurring_type = 'weekly'`. NULL for first/last |
 | recurring_start_date | date | — | No | — | When the recurring schedule begins |
-| recurring_end_date | date | NULL | **Yes** | — | When recurring ends. NULL = open-ended |
+| recurring_end_date | date | NULL | **Yes** | — | When recurring ends. Always populated — defaults to `recurring_start_date + 3 months` if not provided |
+| renewal_notified_at | timestamptz | NULL | **Yes** | — | Timestamp when the renewal reminder notification was sent. NULL = not yet sent |
 | created_at | timestamptz | now() | No | — | Record creation time |
 
 ## Foreign Keys
@@ -54,7 +55,8 @@ Array of day abbreviations — any non-empty subset of:
 - Exactly **one** `event_recurring` row per recurring event
 - `recurring_days` must have at least one valid day abbreviation
 - `recurring_interval` is required when `recurring_type = 'weekly'`; must be NULL for `'first'` / `'last'`
-- `recurring_end_date`, if provided, must be after `recurring_start_date`
+- `recurring_end_date`, if provided, must be after `recurring_start_date`. If not provided, `create_event` stores `recurring_start_date + 3 months` as the default — this value is always written so the notification SP can query it
+- `renewal_notified_at` is set by `notify_expiring_recurring_events` when a renewal reminder is sent. Once set, the SP will not send a second notification for the same event
 - Deleting the parent event automatically deletes this row (ON DELETE CASCADE)
 - Validation is enforced by the `create_event` SP, not DB constraints
 
@@ -63,7 +65,8 @@ Array of day abbreviations — any non-empty subset of:
 | SP | How |
 |----|-----|
 | `create_event` | INSERT when `p_is_recurring = true` |
-| `update_event` | Will UPDATE/DELETE+INSERT when built |
+| `update_event` | UPDATE recurring rule + regenerate child rows |
+| `notify_expiring_recurring_events` | Reads `recurring_end_date` + writes `renewal_notified_at` |
 
 ## SQL Reference
 

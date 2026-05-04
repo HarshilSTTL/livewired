@@ -22,7 +22,9 @@
 --        one per computed occurrence date between recurring_start_date and recurring_end_date
 --
 --   Child rows have individual event_date values but share all other fields with the parent.
---   If recurring_end_date is null, occurrences are generated up to 1 year from start_date.
+--   If recurring_end_date is null, occurrences are generated up to 3 months from start_date.
+--   The computed end date is always written to event_recurring so notify_expiring_recurring_events
+--   can query it without needing to handle NULLs.
 --
 -- Occurrence date generation:
 --   weekly → for each day in recurring_days, find first occurrence on/after start_date,
@@ -221,6 +223,10 @@ BEGIN
 
     -- ── Insert recurrence rule into event_recurring ───────────────────────────
     IF COALESCE(p_is_recurring, false) = true THEN
+        -- Compute final end date: default to 3 months if not provided.
+        -- Always store a concrete date so notify_expiring_recurring_events can query it.
+        v_safe_end := COALESCE(p_recurring_end_date, p_recurring_start_date + INTERVAL '3 months');
+
         INSERT INTO event_recurring (
             id, event_id, recurring_days, recurring_type,
             recurring_interval, recurring_start_date, recurring_end_date,
@@ -228,13 +234,9 @@ BEGIN
         )
         VALUES (
             gen_random_uuid(), v_event_id, p_recurring_days, p_recurring_type,
-            p_recurring_interval, p_recurring_start_date, p_recurring_end_date,
+            p_recurring_interval, p_recurring_start_date, v_safe_end,
             now()
         );
-
-        -- ── Generate child occurrence rows ────────────────────────────────────
-        -- Safety end cap: if no end date given, generate up to 1 year from start.
-        v_safe_end := COALESCE(p_recurring_end_date, p_recurring_start_date + INTERVAL '1 year');
 
         IF p_recurring_type = 'weekly' THEN
 

@@ -31,7 +31,7 @@ When `p_is_recurring = true`, `create_event` inserts:
 Each child row has the correct `event_date` for its occurrence. `get_profile_events` returns
 child rows directly by date — no calculation at query time.
 
-If `p_recurring_end_date` is not provided, occurrences are generated **up to 1 year** from `p_recurring_start_date`.
+If `p_recurring_end_date` is not provided, occurrences are generated **up to 3 months** from `p_recurring_start_date`. The computed end date is always stored in `event_recurring` — 7 days before that date, `notify_expiring_recurring_events` (run daily via pg_cron) sends a renewal reminder to the owner.
 
 ### Occurrence date generation algorithm
 
@@ -87,7 +87,7 @@ Rows inserted into `event_mst`:
 | `p_recurring_type` | text | ✅ | `'weekly'` · `'first'` · `'last'` |
 | `p_recurring_interval` | int | ✅ when type=weekly | 1–12 weeks. Must be null for `first`/`last` |
 | `p_recurring_start_date` | date | ✅ | When the recurring schedule begins |
-| `p_recurring_end_date` | date | ❌ | When recurring ends. If omitted, generates 1 year of occurrences |
+| `p_recurring_end_date` | date | ❌ | When recurring ends. If omitted, defaults to `p_recurring_start_date + 3 months`. A renewal notification is sent to the owner 7 days before this date |
 
 ### p_platforms format
 
@@ -241,7 +241,8 @@ Rows inserted into `event_mst`:
    └── INSERT into event_platforms (on parent only; children inherit)
 8. If p_is_recurring = true:
    ├── INSERT into event_recurring (recurrence rule for parent)
-   ├── v_safe_end = COALESCE(p_recurring_end_date, p_recurring_start_date + 1 year)
+   ├── v_safe_end = COALESCE(p_recurring_end_date, p_recurring_start_date + 3 months)
+   ├── Stored in event_recurring.recurring_end_date = v_safe_end (always a concrete date)
    └── Generate child occurrence rows:
        weekly → FOREACH day: find first_occ >= start, WHILE occ <= safe_end: INSERT, advance +7×interval
        first  → FOREACH day: WHILE month <= safe_end: INSERT first weekday of month (if in range), advance month
@@ -260,3 +261,4 @@ Rows inserted into `event_mst`:
 - [`event_mst` table](../../database/tables/08_event_mst.md)
 - [`event_platforms` table](../../database/tables/09_event_platforms.md)
 - [`event_recurring` table](../../database/tables/13_event_recurring.md)
+- [`notify_expiring_recurring_events`](notify_expiring_recurring_events.md) — renewal reminder SP

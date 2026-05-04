@@ -19,9 +19,12 @@ CREATE TABLE IF NOT EXISTS public.event_recurring (
     recurring_type       text,       -- 'weekly' | 'first' | 'last'
     recurring_interval   int         DEFAULT NULL,  -- 1–12 weeks (only for 'weekly' type)
     recurring_start_date date,       -- when the recurring schedule begins
-    recurring_end_date   date        DEFAULT NULL,  -- when recurring ends (NULL = open-ended)
+    recurring_end_date   date        DEFAULT NULL,  -- when recurring ends; always populated (default = start + 3 months)
+    renewal_notified_at  timestamptz DEFAULT NULL,  -- set when renewal notification is sent; NULL = not yet notified
     created_at           timestamptz DEFAULT now()
 );
 
 -- FK: event_recurring_event_id_fkey → event_mst.event_id ON DELETE CASCADE
+-- Migration: run once in Supabase SQL editor
+--   ALTER TABLE public.event_recurring ADD COLUMN IF NOT EXISTS renewal_notified_at timestamptz DEFAULT NULL;
 ```
