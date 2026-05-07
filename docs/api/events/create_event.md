@@ -3,7 +3,7 @@
 **Endpoint:** `POST /rpc/create_event`
 **Group:** Events
 **SQL:** [`functions/events/create_event.md`](../../../functions/events/create_event.md)
-**Tables written:** `event_mst` (INSERT) · `event_platforms` (INSERT) · `event_recurring` (INSERT if recurring)
+**Tables written:** `event_mst` (INSERT) · `event_platforms` (INSERT) · `event_recurring` (INSERT if recurring) · `event_collaborators` (INSERT if collaborative) · `notifications` (INSERT if collaborative)
 
 ---
 

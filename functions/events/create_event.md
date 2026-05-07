@@ -273,14 +273,15 @@ BEGIN
                         event_id, profile_id, parent_event_id,
                         title, description,
                         event_date, event_time, event_end_time, event_timezone,
-                        livestream, video, is_recurring,
+                        livestream, video, is_collaborative, is_recurring,
                         created_at, updated_at
                     )
                     VALUES (
                         gen_random_uuid(), p_profile_id, v_event_id,
                         p_title, p_description,
                         v_occ_date, p_event_time, p_event_end_time, p_timezone,
-                        COALESCE(p_livestream, false), COALESCE(p_video, false), true,
+                        COALESCE(p_livestream, false), COALESCE(p_video, false),
+                        COALESCE(p_is_collaborative, false), true,
                         now(), now()
                     );
                     v_occ_date := v_occ_date + (7 * p_recurring_interval);
@@ -324,14 +325,15 @@ BEGIN
                             event_id, profile_id, parent_event_id,
                             title, description,
                             event_date, event_time, event_end_time, event_timezone,
-                            livestream, video, is_recurring,
+                            livestream, video, is_collaborative, is_recurring,
                             created_at, updated_at
                         )
                         VALUES (
                             gen_random_uuid(), p_profile_id, v_event_id,
                             p_title, p_description,
                             v_occ_date, p_event_time, p_event_end_time, p_timezone,
-                            COALESCE(p_livestream, false), COALESCE(p_video, false), true,
+                            COALESCE(p_livestream, false), COALESCE(p_video, false),
+                            COALESCE(p_is_collaborative, false), true,
                             now(), now()
                         );
                     END IF;
