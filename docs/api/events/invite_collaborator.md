@@ -1,5 +1,9 @@
 # SP: `invite_collaborator`
 
+> ⚠️ **Deprecated** — This SP is no longer exposed as a standalone endpoint.
+> Collaborator invites are now sent via `p_collaborator_ids` in [`create_event`](create_event.md) (at creation) or [`update_event`](update_event.md) (after creation).
+> This file is kept for reference only.
+
 **Endpoint:** `POST /rpc/invite_collaborator`
 **Group:** Events
 **SQL:** [`functions/events/invite_collaborator.md`](../../../functions/events/invite_collaborator.md)

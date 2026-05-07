@@ -4,10 +4,14 @@
 -- Function: update_event
 -- Group: Events
 -- Endpoint: POST /rpc/update_event
+-- Tables:   event_mst (UPDATE), event_platforms (DELETE+INSERT), event_recurring (UPDATE if recurring)
+--           event_collaborators (INSERT/UPDATE if collaborative), notifications (INSERT if collaborative)
 -- Doc: docs/api/events/update_event.md
+--
 -- COALESCE pattern — only fields that are passed (non-null) are updated.
 -- p_platforms: null = don't touch | [] = clear all | [...] = replace all
 -- p_recurring_days: if passed, recurring rule is updated + all child rows are regenerated
+-- p_collaborator_ids: null = don't touch | [...] = append new invites only (PATCH, never removes existing)
 
 CREATE OR REPLACE FUNCTION update_event(
     p_event_id             uuid,
@@ -22,6 +26,7 @@ CREATE OR REPLACE FUNCTION update_event(
     p_livestream           boolean  DEFAULT NULL,
     p_video                boolean  DEFAULT NULL,
     p_is_collaborative     boolean  DEFAULT NULL,
+    p_collaborator_ids     uuid[]   DEFAULT NULL,
     p_platforms            jsonb    DEFAULT NULL,
     -- Recurring fields (pass any to trigger recurring update + child regeneration)
     p_recurring_days       text[]   DEFAULT NULL,
@@ -39,14 +44,15 @@ DECLARE
     v_platform      jsonb;
 
     -- For recurring child regeneration
-    v_profile_id    uuid;
-    v_title         text;
-    v_description   text;
-    v_event_time    time;
-    v_event_end_time time;
-    v_event_tz      text;
-    v_livestream    boolean;
-    v_video         boolean;
+    v_profile_id         uuid;
+    v_title              text;
+    v_description        text;
+    v_event_time         time;
+    v_event_end_time     time;
+    v_event_tz           text;
+    v_livestream         boolean;
+    v_video              boolean;
+    v_is_collaborative   boolean;
 
     v_existing_event_time     time;
     v_existing_event_end_time time;
@@ -70,6 +76,17 @@ DECLARE
     v_month_start   date;
     v_month_end     date;
     v_dow_month_end int;
+
+    -- Collaborator invite variables
+    v_owner_profile_id   uuid;
+    v_owner_name         text;
+    v_event_title        text;
+    v_collab_id          uuid;
+    v_invitee_user_id    uuid;
+    v_skipped_ids        uuid[];
+    v_collab_count       int;
+    v_existing_collab_id uuid;
+    v_existing_deleted   boolean;
 BEGIN
 
     -- ── Null guards ───────────────────────────────────────────────────────────
@@ -87,6 +104,16 @@ BEGIN
           AND cp.status  = 'active'
     ) THEN
         RETURN json_build_object('status', false, 'message', 'Event not found or access denied');
+    END IF;
+
+    -- ── Collaborator IDs require is_collaborative = true (effective value) ────
+    IF p_collaborator_ids IS NOT NULL AND array_length(p_collaborator_ids, 1) > 0 THEN
+        IF COALESCE(
+            p_is_collaborative,
+            (SELECT is_collaborative FROM event_mst WHERE event_id = p_event_id)
+        ) = false THEN
+            RETURN json_build_object('status', false, 'message', 'Cannot add collaborators when is_collaborative is false');
+        END IF;
     END IF;
 
     -- ── Platform validation ───────────────────────────────────────────────────
@@ -229,8 +256,10 @@ BEGIN
         DELETE FROM event_mst WHERE parent_event_id = p_event_id;
 
         -- Fetch parent row values needed for child generation
-        SELECT profile_id, title, description, event_time, event_end_time, event_timezone, livestream, video
-        INTO v_profile_id, v_title, v_description, v_event_time, v_event_end_time, v_event_tz, v_livestream, v_video
+        SELECT profile_id, title, description, event_time, event_end_time,
+               event_timezone, livestream, video, is_collaborative
+        INTO v_profile_id, v_title, v_description, v_event_time, v_event_end_time,
+             v_event_tz, v_livestream, v_video, v_is_collaborative
         FROM event_mst WHERE event_id = p_event_id;
 
         IF v_rec_type = 'weekly' THEN
@@ -252,14 +281,14 @@ BEGIN
                         event_id, profile_id, parent_event_id,
                         title, description,
                         event_date, event_time, event_end_time, event_timezone,
-                        livestream, video, is_recurring,
+                        livestream, video, is_collaborative, is_recurring,
                         created_at, updated_at
                     )
                     VALUES (
                         gen_random_uuid(), v_profile_id, p_event_id,
                         v_title, v_description,
                         v_occ_date, v_event_time, v_event_end_time, v_event_tz,
-                        v_livestream, v_video, true,
+                        v_livestream, v_video, v_is_collaborative, true,
                         now(), now()
                     );
                     v_occ_date := v_occ_date + (7 * v_rec_interval);
@@ -295,14 +324,14 @@ BEGIN
                             event_id, profile_id, parent_event_id,
                             title, description,
                             event_date, event_time, event_end_time, event_timezone,
-                            livestream, video, is_recurring,
+                            livestream, video, is_collaborative, is_recurring,
                             created_at, updated_at
                         )
                         VALUES (
                             gen_random_uuid(), v_profile_id, p_event_id,
                             v_title, v_description,
                             v_occ_date, v_event_time, v_event_end_time, v_event_tz,
-                            v_livestream, v_video, true,
+                            v_livestream, v_video, v_is_collaborative, true,
                             now(), now()
                         );
                     END IF;
@@ -316,7 +345,113 @@ BEGIN
 
     END IF;
 
-    RETURN json_build_object('status', true, 'message', 'Event updated successfully');
+    -- ── Append collaborator invites (PATCH — only add new, never remove) ──────
+    v_skipped_ids := ARRAY[]::uuid[];
+
+    IF p_collaborator_ids IS NOT NULL AND array_length(p_collaborator_ids, 1) > 0 THEN
+
+        -- Fetch owner profile info for notifications
+        SELECT cp.id, cp.profile_name, e.title
+        INTO v_owner_profile_id, v_owner_name, v_event_title
+        FROM event_mst e
+        JOIN creator_profiles cp ON cp.id = e.profile_id
+        WHERE e.event_id = p_event_id;
+
+        -- Pre-fetch accepted collaborator count (cap applies to accepted only)
+        SELECT COUNT(*) INTO v_collab_count
+        FROM event_collaborators
+        WHERE event_id   = p_event_id
+          AND status     = 'accepted'
+          AND is_deleted = false;
+
+        FOREACH v_collab_id IN ARRAY p_collaborator_ids LOOP
+
+            -- Cannot invite the owner
+            IF v_collab_id = v_owner_profile_id THEN
+                v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
+                CONTINUE;
+            END IF;
+
+            -- Hard cap: max 5 accepted collaborators
+            IF v_collab_count >= 5 THEN
+                v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
+                CONTINUE;
+            END IF;
+
+            -- Check for any existing row (active or soft-deleted)
+            SELECT id, is_deleted
+            INTO v_existing_collab_id, v_existing_deleted
+            FROM event_collaborators
+            WHERE event_id   = p_event_id
+              AND profile_id = v_collab_id
+            LIMIT 1;
+
+            -- Skip if already has an active invite (pending / accepted / declined)
+            IF v_existing_collab_id IS NOT NULL AND v_existing_deleted = false THEN
+                v_skipped_ids        := array_append(v_skipped_ids, v_collab_id);
+                v_existing_collab_id := NULL;
+                CONTINUE;
+            END IF;
+
+            -- Verify invitee profile exists and is active
+            SELECT user_id INTO v_invitee_user_id
+            FROM creator_profiles WHERE id = v_collab_id AND status = 'active';
+
+            IF v_invitee_user_id IS NULL THEN
+                v_skipped_ids        := array_append(v_skipped_ids, v_collab_id);
+                v_existing_collab_id := NULL;
+                CONTINUE;
+            END IF;
+
+            IF v_existing_collab_id IS NOT NULL THEN
+                -- Soft-deleted row: reactivate as a fresh pending invite
+                UPDATE event_collaborators
+                SET status       = 'pending',
+                    invited_by   = v_owner_profile_id,
+                    invited_at   = now(),
+                    responded_at = NULL,
+                    updated_at   = now(),
+                    is_deleted   = false,
+                    deleted_at   = NULL
+                WHERE id = v_existing_collab_id;
+            ELSE
+                -- No prior row: fresh INSERT
+                INSERT INTO event_collaborators (
+                    id, event_id, profile_id, invited_by, status, invited_at, updated_at
+                )
+                VALUES (
+                    gen_random_uuid(), p_event_id, v_collab_id,
+                    v_owner_profile_id, 'pending', now(), now()
+                );
+            END IF;
+
+            -- Notify the invitee
+            INSERT INTO notifications (user_id, title, body, data)
+            VALUES (
+                v_invitee_user_id,
+                'Collaboration Invite',
+                v_owner_name || ' invited you to collaborate on "' || v_event_title || '"',
+                json_build_object(
+                    'type',                  'collaborator_invite',
+                    'event_id',              p_event_id,
+                    'invited_by_profile_id', v_owner_profile_id
+                )
+            );
+
+            v_invitee_user_id    := NULL;
+            v_existing_collab_id := NULL;
+
+        END LOOP;
+
+    END IF;
+
+    RETURN json_build_object(
+        'status',  true,
+        'message', 'Event updated successfully',
+        'data', json_build_object(
+            'skipped_collaborator_ids', v_skipped_ids
+        )
+    );
 
 EXCEPTION
     WHEN OTHERS THEN

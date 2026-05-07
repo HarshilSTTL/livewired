@@ -3,7 +3,7 @@
 **Endpoint:** `POST /rpc/update_event`
 **Group:** Events
 **SQL:** [`functions/events/update_event.md`](../../../functions/events/update_event.md)
-**Tables written:** `event_mst` · `event_platforms` · `event_recurring`
+**Tables written:** `event_mst` · `event_platforms` · `event_recurring` · `event_collaborators` (INSERT/UPDATE if collaborative) · `notifications` (INSERT if collaborative)
 
 ---
 
@@ -14,6 +14,8 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 **Platforms:** `null` = don't touch · `[]` = clear all · `[{...}]` = replace all
 
 **Recurring:** Pass `p_recurring_days` to trigger a recurring rule update. All existing child occurrence rows are deleted and regenerated from the new rules. Any recurring field not passed keeps its existing value.
+
+**Collaborators:** `null` = don't touch · `[uuid, ...]` = append new invites only. This is a **PATCH** — existing collaborator rows are never deleted or modified. Already-invited profiles (active row with any status) are skipped silently.
 
 ---
 
@@ -34,6 +36,7 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 | `p_livestream` | boolean | ❌ | Toggle livestream flag |
 | `p_video` | boolean | ❌ | Toggle video flag |
 | `p_is_collaborative` | boolean | ❌ | Enable or disable collaborative mode |
+| `p_collaborator_ids` | uuid[] | ❌ | Profile IDs to invite. Requires `p_is_collaborative = true` (current or being set now). Appends only — never removes existing collaborators. Max 5 accepted per event. |
 | `p_platforms` | jsonb | ❌ | `null` = no change · `[]` = clear · `[{...}]` = replace |
 
 ### Recurring fields (pass `p_recurring_days` to trigger recurring update)
@@ -94,14 +97,41 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 }
 ```
 
+### Append collaborators (existing collaborators are untouched)
+```json
+{
+  "p_event_id":          "uuid...",
+  "p_user_id":           "uuid...",
+  "p_collaborator_ids":  ["profile-uuid-1", "profile-uuid-2"]
+}
+```
+
+### Enable collaboration and invite in one call
+```json
+{
+  "p_event_id":          "uuid...",
+  "p_user_id":           "uuid...",
+  "p_is_collaborative":  true,
+  "p_collaborator_ids":  ["profile-uuid-1"]
+}
+```
+
 ---
 
 ## Response
 
 ### Success
 ```json
-{ "status": true, "message": "Event updated successfully" }
+{
+  "status":  true,
+  "message": "Event updated successfully",
+  "data": {
+    "skipped_collaborator_ids": []
+  }
+}
 ```
+
+> `skipped_collaborator_ids` is always present. Empty array `[]` when all invites succeeded or `p_collaborator_ids` was not passed. Contains profile UUIDs that were skipped (already invited, invalid/inactive profile, self-invite, or cap reached).
 
 ### Error
 ```json
@@ -127,6 +157,7 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 | `recurring_interval must be null for first/last type` | Interval passed for first/last |
 | `Recurring start date is required` | No start date in DB or passed |
 | `Recurring end date must be after start date` | End ≤ start |
+| `Cannot add collaborators when is_collaborative is false` | `p_collaborator_ids` passed but neither `p_is_collaborative: true` nor the event's current flag is true |
 | `Something went wrong` | Unhandled DB exception |
 
 ---
@@ -135,23 +166,33 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 
 ```
 1. Null check: p_event_id, p_user_id
-2. Ownership check: event_mst JOIN creator_profiles
-3. Validate p_platforms (if provided and non-empty)
-4. If p_recurring_days IS NOT NULL:
+2. Ownership check: event_mst JOIN creator_profiles (owner only)
+3. Collaborator guard: if p_collaborator_ids provided AND effective is_collaborative = false → error
+4. Validate p_platforms (if provided and non-empty)
+5. If p_recurring_days IS NOT NULL:
    - Fetch existing event_recurring row (for COALESCE)
    - Merge passed values over existing
    - Validate merged recurring rule
-5. UPDATE event_mst with COALESCE for all optional fields
-6. If p_platforms IS NOT NULL:
+6. UPDATE event_mst with COALESCE for all optional fields
+7. If p_platforms IS NOT NULL:
    - DELETE + INSERT event_platforms (full replace)
-7. If p_recurring_days IS NOT NULL:
+8. If p_recurring_days IS NOT NULL:
    - UPDATE event_recurring with merged values
    - DELETE all child rows (WHERE parent_event_id = p_event_id)
-   - Fetch parent row (profile_id, title, description, event_time, event_timezone, etc.)
-   - Regenerate child rows using same algorithm as create_event
+   - Fetch parent row (profile_id, title, description, event_time, event_timezone, is_collaborative, etc.)
+   - Regenerate child rows — each inherits is_collaborative from parent
      weekly → FOREACH day: find first occ, step +7×interval until safe_end
      first/last → FOREACH day: WHILE month <= safe_end: insert first/last weekday of month
-8. Return success
+9. If p_collaborator_ids IS NOT NULL and non-empty (PATCH append):
+   - Pre-fetch accepted collaborator count
+   - FOREACH collab_id:
+     ├── Skip if = owner (self-invite)
+     ├── Skip if accepted count >= 5 (cap)
+     ├── Skip if active non-deleted row already exists (any status)
+     ├── Skip if profile not found or inactive
+     ├── If soft-deleted row exists → reactivate (UPDATE to pending, is_deleted = false)
+     └── Else → INSERT new pending invite + notify invitee
+10. Return success with skipped_collaborator_ids
 ```
 
 ---
@@ -159,6 +200,10 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 ## Related
 
 - [`get_event_by_id`](get_event_by_id.md) — fetch current event state before editing
-- [`create_event`](create_event.md) — original creation
+- [`create_event`](create_event.md) — original creation (also supports bundled collaborator invites)
 - [`delete_event`](delete_event.md) — remove this event
+- [`remove_collaborator`](remove_collaborator.md) — owner removes a collaborator
+- [`respond_collaborator_invite`](respond_collaborator_invite.md) — invitee accepts/declines
+- [`search_collaborator_profiles`](../search/search_collaborator_profiles.md) — search profiles for the collaborator picker
 - [`event_recurring` table](../../database/tables/13_event_recurring.md)
+- [`event_collaborators` table](../../database/tables/15_event_collaborators.md)

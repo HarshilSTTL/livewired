@@ -34,10 +34,11 @@
 ## Status Flow
 
 ```
-invite_collaborator        → status = 'pending'
-respond_collaborator_invite → status = 'accepted' | 'declined'
-remove_collaborator         → is_deleted = true (soft delete)
-invite_collaborator (again) → reactivates the soft-deleted row back to 'pending'
+create_event (p_collaborator_ids)   → status = 'pending'
+update_event (p_collaborator_ids)   → status = 'pending' (new) or reactivate soft-deleted row
+respond_collaborator_invite         → status = 'accepted' | 'declined'
+remove_collaborator                 → is_deleted = true (soft delete)
+update_event / create_event (again) → reactivates the soft-deleted row back to 'pending'
 ```
 
 ## Business Rules
@@ -54,10 +55,10 @@ invite_collaborator (again) → reactivates the soft-deleted row back to 'pendin
 
 | SP | How |
 |----|-----|
-| `invite_collaborator` | INSERT / reactivate row |
-| `respond_collaborator_invite` | UPDATE status |
-| `remove_collaborator` | Soft delete |
-| `update_event` | Owner-only — collaborators cannot update |
+| `create_event` | INSERT pending invites via `p_collaborator_ids` |
+| `update_event` | INSERT / reactivate pending invites via `p_collaborator_ids` (append only) |
+| `respond_collaborator_invite` | UPDATE status → accepted / declined |
+| `remove_collaborator` | Soft delete (`is_deleted = true`) |
 | `delete_event` | Owner-only — collaborators cannot delete |
 | `get_event_list` | Collaborator filter in visibility check |
 | `get_profile_events` | Includes events where profile is a collaborator |

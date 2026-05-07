@@ -3,9 +3,15 @@
 ```sql
 -- Function: invite_collaborator
 -- Group:    Events
--- Endpoint: POST /rpc/invite_collaborator
+-- Endpoint: POST /rpc/invite_collaborator  [DEPRECATED]
 -- Tables:   event_collaborators (INSERT / UPDATE), notifications (INSERT)
 -- Doc:      docs/api/events/invite_collaborator.md
+--
+-- DEPRECATED: This SP is no longer the primary invite mechanism.
+-- Collaborator invites are now handled via p_collaborator_ids in:
+--   - create_event  (invite at creation time)
+--   - update_event  (append invites after creation)
+-- This function is kept for reference but should not be called directly.
 --
 -- Sends a collaboration invite to any active creator profile.
 -- Only the event owner can invite. Event must be is_collaborative = true.
