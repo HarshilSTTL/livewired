@@ -44,7 +44,7 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 | `p_recurring_type` | text | ❌ | `'weekly'` · `'first'` · `'last'` — kept from existing if not passed |
 | `p_recurring_interval` | int | ❌ | 1–12 weeks (weekly type only) |
 | `p_recurring_start_date` | date | ❌ | New start date for the recurring schedule |
-| `p_recurring_end_date` | date | ❌ | New end date (null = open-ended) |
+| `p_recurring_end_date` | date | ❌ | New end date. If omitted, keeps the existing value. If no existing value, defaults to `recurring_start_date + 3 months` |
 
 > Passing `p_recurring_days` is the trigger. Any recurring field not passed keeps its current value via COALESCE.
 
@@ -115,7 +115,7 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 | Message | Cause |
 |---------|-------|
 | `p_event_id and p_user_id are required` | Either required param is null |
-| `Event not found or access denied` | No matching event, caller is not the owner or an accepted collaborator |
+| `Event not found or access denied` | No matching event, or caller is not the event owner |
 | `Event end time cannot be the same as event start time` | Final end time equals final start time (zero-duration). End time less than start time is valid — treated as next day |
 | `One or more platform IDs are invalid` | A `platform_id` in `p_platforms` does not exist |
 | `Stream URL is required for each platform` | A platform object is missing `stream_url` |

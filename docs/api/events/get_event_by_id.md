@@ -50,6 +50,7 @@ For recurring child events, platforms and recurring rules are inherited from the
     "event_date":      "2026-04-06",
     "event_time":      "03:00:00",
     "event_end_time":  "05:00:00",
+    "event_timezone":  "America/New_York",
     "livestream":       true,
     "video":            false,
     "is_collaborative": true,
@@ -107,6 +108,7 @@ For recurring child events, platforms and recurring rules are inherited from the
 |-------|-------|
 | `parent_event_id` | `null` for non-recurring or parent template. UUID for recurring child occurrences |
 | `event_end_time` | Nullable — if present, the event has a defined end time |
+| `event_timezone` | Creator's IANA timezone at time of creation — e.g. `'America/New_York'`. Use this to display the original creator timezone alongside the converted time |
 | `is_collaborative` | `true` if collaborator invites are enabled on this event |
 | `collaborators` | Array of active (non-deleted) collaborators with their invite status. Always `[]` if none. Inherited from parent for recurring child events. |
 | `recurring` | `null` if the event is not recurring |

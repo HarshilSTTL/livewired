@@ -272,7 +272,10 @@ Rows inserted into `event_mst`:
 - [`delete_event`](delete_event.md) — delete event (cascades to all child occurrences)
 - [`get_profile_events`](get_profile_events.md) — fetch events for a week (reads pre-generated child rows)
 - [`get_event_list`](get_event_list.md) — read events by date
+- [`invite_collaborator`](invite_collaborator.md) — invite additional collaborators after creation
+- [`search_collaborator_profiles`](../search/search_collaborator_profiles.md) — search profiles to pass as `p_collaborator_ids`
 - [`event_mst` table](../../database/tables/08_event_mst.md)
 - [`event_platforms` table](../../database/tables/09_event_platforms.md)
 - [`event_recurring` table](../../database/tables/13_event_recurring.md)
+- [`event_collaborators` table](../../database/tables/15_event_collaborators.md)
 - [`notify_expiring_recurring_events`](notify_expiring_recurring_events.md) — renewal reminder SP
