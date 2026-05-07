@@ -3,7 +3,7 @@
 **Endpoint:** `POST /rpc/get_event_by_id`
 **Group:** Events
 **SQL:** [`functions/events/get_event_by_id.md`](../../../functions/events/get_event_by_id.md)
-**Tables read:** `event_mst` · `creator_profiles` · `event_platforms` · `platforms` · `event_recurring`
+**Tables read:** `event_mst` · `creator_profiles` · `event_platforms` · `platforms` · `event_collaborators` · `event_recurring`
 
 ---
 
@@ -137,8 +137,11 @@ For recurring child events, platforms and recurring rules are inherited from the
 3. Subquery platforms:
    WHERE ep.event_id = COALESCE(e.parent_event_id, e.event_id)
    → recurring children inherit platforms from parent row
-4. Subquery recurring rules from event_recurring (NULL for non-recurring)
-5. Return full event object or "Event not found"
+4. Subquery collaborators from event_collaborators (non-deleted):
+   WHERE ec.event_id = COALESCE(e.parent_event_id, e.event_id)
+   → recurring children inherit collaborators from parent row
+5. Subquery recurring rules from event_recurring (NULL for non-recurring)
+6. Return full event object or "Event not found"
 ```
 
 ---

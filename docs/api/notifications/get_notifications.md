@@ -95,4 +95,4 @@ Returns the authenticated user's notification history from the past 2 days, sort
 
 ## Related
 
-- [`process_event_reminders`](../../database/functions/process_event_reminders.md) — cron job that inserts notifications
+- [`process_event_reminders`](../../../functions/notifications/process_event_reminders.md) — cron job that inserts notifications

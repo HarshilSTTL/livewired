@@ -10,7 +10,7 @@
 
 > This screen shows the weekly calendar (week navigator + day strip) and events grouped by date, each with time, title, platform icons, and bell icon. The ↻ icon on event title indicates a recurring event.
 > Save screenshot as: `docs/assets/screenshots/profile_events.png`
-**Tables read:** `event_mst` · `event_platforms` · `platforms`
+**Tables read:** `event_mst` · `event_platforms` · `platforms` · `event_collaborators`
 
 ---
 
@@ -79,6 +79,7 @@ parent/template row (which holds the definition but has no meaningful display da
         "event_end_time":  "05:00:00",
         "livestream":      true,
         "video":           false,
+        "is_collaborative": false,
         "is_recurring":    true,
         "platforms": [
           {
@@ -124,6 +125,7 @@ parent/template row (which holds the definition but has no meaningful display da
 | `parent_event_id` | Present on recurring occurrences — the parent/template event UUID. null for non-recurring |
 | `event_date` | The actual date of this occurrence |
 | `event_end_time` | Nullable — if present, the event has a defined end time |
+| `is_collaborative` | `true` → event has collaborators enabled. Shown for both owner events and events where this profile is an accepted collaborator |
 | `is_recurring` | `true` → show ↻ icon on the event card |
 | `livestream` | `true` → show live indicator |
 | `description` | Nullable — omit or show placeholder in UI |
@@ -168,8 +170,11 @@ DateTime nextWeekStart = currentWeekStart.add(Duration(days: 7));
 2. Check profile exists in creator_profiles
 3. Calculate v_week_end = p_week_start + 6 days
 4. SELECT from event_mst WHERE:
-   - profile_id = p_profile_id
+   - (profile_id = p_profile_id
+      OR COALESCE(parent_event_id, event_id) IN accepted collaborators for this profile)
+     → includes own events AND events where this profile is an accepted collaborator
    - event_date BETWEEN p_week_start AND v_week_end
+   - is_deleted = false
    - (is_recurring = false OR parent_event_id IS NOT NULL)
      → returns non-recurring events + recurring child occurrences
      → excludes recurring parent/template rows
@@ -193,7 +198,7 @@ User taps a profile card
  │     → tags[]
  │
  └── get_profile_events(p_profile_id, week_start)
-       → events[{ title, event_date, event_time, is_recurring,
+       → events[{ title, event_date, event_time, is_collaborative, is_recurring,
                   platforms[{ logo_url, stream_url }] }]
                   ↑ icons shown on event cards
 
