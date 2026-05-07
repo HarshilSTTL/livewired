@@ -101,6 +101,63 @@ Rows inserted into `event_mst`:
 
 ---
 
+## Collaborator Invites
+
+Collaboration is controlled by two params:
+
+| Param | Role |
+|-------|------|
+| `p_is_collaborative` | Toggle — enables the collaborator feature on this event. Must be `true` to accept invites. |
+| `p_collaborator_ids` | Optional array of profile UUIDs to invite at creation time. Requires `p_is_collaborative = true`. |
+
+### Behaviour
+
+| Scenario | Result |
+|----------|--------|
+| `p_is_collaborative: false` | Event created with no collaboration. `p_collaborator_ids` must not be passed. |
+| `p_is_collaborative: true`, no IDs | Event marked collaborative, no invites sent. Use [`invite_collaborator`](invite_collaborator.md) later to add people. |
+| `p_is_collaborative: true`, IDs provided | Event created + pending invites sent in one call. Each invitee gets a push notification. |
+| `p_is_collaborative: false`, IDs provided | **Error:** `"Cannot add collaborators when is_collaborative is false"` |
+
+### Skip Rules
+
+IDs in `p_collaborator_ids` that cannot be invited are silently skipped and returned in `skipped_collaborator_ids`:
+
+| Skip reason | Condition |
+|-------------|-----------|
+| Self-invite | `collab_id = p_profile_id` |
+| Cap reached | 5 accepted collaborators already on this event |
+| Invalid profile | Profile not found or `status ≠ 'active'` |
+
+### Flutter Usage
+
+```dart
+// Toggle ON — invite collaborators at creation
+await supabase.rpc('create_event', params: {
+  'p_profile_id':       profileId,
+  'p_user_id':          userId,
+  'p_title':            'Co-stream Night',
+  'p_event_date':       '2026-05-10',
+  'p_event_time':       '20:00:00',
+  'p_is_collaborative': true,
+  'p_collaborator_ids': ['uuid-1', 'uuid-2'],
+});
+
+// Toggle ON — no collaborators yet, invite later
+await supabase.rpc('create_event', params: {
+  'p_profile_id':       profileId,
+  'p_user_id':          userId,
+  'p_title':            'Co-stream Night',
+  'p_event_date':       '2026-05-10',
+  'p_event_time':       '20:00:00',
+  'p_is_collaborative': true,
+});
+```
+
+> Use [`search_collaborator_profiles`](../search/search_collaborator_profiles.md) to populate the collaborator picker UI before calling this SP.
+
+---
+
 ## `recurring_type` + `recurring_interval` Mapping
 
 | UI (Repeats dropdown) | `p_recurring_type` | `p_recurring_interval` |
