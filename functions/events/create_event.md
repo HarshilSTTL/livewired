@@ -45,6 +45,7 @@ CREATE OR REPLACE FUNCTION create_event(
     p_livestream             boolean  DEFAULT false,
     p_video                  boolean  DEFAULT false,
     p_is_collaborative       boolean  DEFAULT false,
+    p_collaborator_ids       uuid[]   DEFAULT null,
     p_is_recurring           boolean  DEFAULT false,
     p_platforms              jsonb    DEFAULT null,
     -- Recurring fields (only used when p_is_recurring = true)
@@ -64,6 +65,13 @@ DECLARE
     v_platform           jsonb;
     v_platform_id        bigint;
     v_stream_url         text;
+
+    -- Collaborator invite variables
+    v_owner_name         text;
+    v_collab_id          uuid;
+    v_invitee_user_id    uuid;
+    v_skipped_ids        uuid[];
+    v_collab_count       int;
 
     -- Recurring generation variables
     v_safe_end           date;
@@ -93,6 +101,12 @@ BEGIN
         WHERE id = p_profile_id AND user_id = p_user_id AND status = 'active'
     ) THEN
         RETURN json_build_object('status', false, 'message', 'Profile not found, access denied, or profile is not active');
+    END IF;
+
+    -- ── Collaborator IDs require is_collaborative = true ─────────────────────
+    IF p_collaborator_ids IS NOT NULL AND array_length(p_collaborator_ids, 1) > 0
+       AND COALESCE(p_is_collaborative, false) = false THEN
+        RETURN json_build_object('status', false, 'message', 'Cannot add collaborators when is_collaborative is false');
     END IF;
 
     -- ── Required field validation ─────────────────────────────────────────────
@@ -333,11 +347,75 @@ BEGIN
 
     END IF; -- is_recurring
 
+    -- ── Send collaborator invites ─────────────────────────────────────────────
+    v_skipped_ids  := ARRAY[]::uuid[];
+    v_collab_count := 0;
+
+    IF COALESCE(p_is_collaborative, false) = true
+       AND p_collaborator_ids IS NOT NULL
+       AND array_length(p_collaborator_ids, 1) > 0 THEN
+
+        SELECT profile_name INTO v_owner_name
+        FROM creator_profiles WHERE id = p_profile_id;
+
+        FOREACH v_collab_id IN ARRAY p_collaborator_ids LOOP
+
+            -- Cannot invite the creating profile
+            IF v_collab_id = p_profile_id THEN
+                v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
+                CONTINUE;
+            END IF;
+
+            -- Hard cap: max 5 collaborators
+            IF v_collab_count >= 5 THEN
+                v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
+                CONTINUE;
+            END IF;
+
+            -- Verify profile exists and is active
+            SELECT user_id INTO v_invitee_user_id
+            FROM creator_profiles WHERE id = v_collab_id AND status = 'active';
+
+            IF v_invitee_user_id IS NULL THEN
+                v_skipped_ids     := array_append(v_skipped_ids, v_collab_id);
+                v_invitee_user_id := NULL;
+                CONTINUE;
+            END IF;
+
+            -- Insert pending invite
+            INSERT INTO event_collaborators (
+                id, event_id, profile_id, invited_by, status, invited_at, updated_at
+            )
+            VALUES (
+                gen_random_uuid(), v_event_id, v_collab_id, p_profile_id, 'pending', now(), now()
+            );
+
+            -- Notify the invitee
+            INSERT INTO notifications (user_id, title, body, data)
+            VALUES (
+                v_invitee_user_id,
+                'Collaboration Invite',
+                v_owner_name || ' invited you to collaborate on "' || p_title || '"',
+                json_build_object(
+                    'type',                  'collaborator_invite',
+                    'event_id',              v_event_id,
+                    'invited_by_profile_id', p_profile_id
+                )
+            );
+
+            v_collab_count    := v_collab_count + 1;
+            v_invitee_user_id := NULL;
+
+        END LOOP;
+
+    END IF;
+
     RETURN json_build_object(
         'status',  true,
         'message', 'Event created successfully',
         'data', json_build_object(
-            'event_id', v_event_id
+            'event_id',                 v_event_id,
+            'skipped_collaborator_ids', v_skipped_ids
         )
     );
 

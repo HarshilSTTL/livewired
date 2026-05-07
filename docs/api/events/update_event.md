@@ -9,7 +9,7 @@
 
 ## Overview
 
-Updates a single event. All fields except `p_event_id` and `p_user_id` are optional — only passed (non-null) fields are applied (COALESCE pattern). Ownership is verified before any changes are made.
+Updates a single event. All fields except `p_event_id` and `p_user_id` are optional — only passed (non-null) fields are applied (COALESCE pattern). Only the event **owner** can update — collaborators do not have update permission.
 
 **Platforms:** `null` = don't touch · `[]` = clear all · `[{...}]` = replace all
 

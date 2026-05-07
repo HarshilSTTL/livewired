@@ -47,7 +47,7 @@ invite_collaborator (again) → reactivates the soft-deleted row back to 'pendin
 - The owner cannot invite themselves
 - Only active creator profiles (`creator_profiles.status = 'active'`) can be invited
 - Any active creator on the platform is eligible — no follow relationship required
-- Collaborators inherit **full permissions** on the event: update, postpone, delete
+- Collaborators have **read-only** visibility — they can see the event on their profile but cannot update, delete, or postpone it. Only the event owner has those permissions.
 - For recurring events, collaborators are stored on the **parent event** and resolve to all child occurrences via `COALESCE(parent_event_id, event_id)`
 
 ## Referenced By
@@ -57,8 +57,8 @@ invite_collaborator (again) → reactivates the soft-deleted row back to 'pendin
 | `invite_collaborator` | INSERT / reactivate row |
 | `respond_collaborator_invite` | UPDATE status |
 | `remove_collaborator` | Soft delete |
-| `update_event` | Ownership check extended to collaborators |
-| `delete_event` | Ownership check extended to collaborators |
+| `update_event` | Owner-only — collaborators cannot update |
+| `delete_event` | Owner-only — collaborators cannot delete |
 | `get_event_list` | Collaborator filter in visibility check |
 | `get_profile_events` | Includes events where profile is a collaborator |
 | `get_event_by_id` | Returns collaborators array |

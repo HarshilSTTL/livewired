@@ -9,7 +9,7 @@
 
 ## Overview
 
-Soft deletes a single event. Sets `is_deleted = true` and `deleted_at = now()` on the event row. The caller must be the event owner **or** an accepted collaborator on the event.
+Soft deletes a single event. Sets `is_deleted = true` and `deleted_at = now()` on the event row. Only the event **owner** can delete — collaborators do not have delete permission.
 
 For recurring parent events, all child occurrence rows are also soft deleted in the same operation.
 
@@ -22,7 +22,7 @@ The rows are **not removed** from the database — they are hidden from all publ
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `p_event_id` | uuid | ✅ | The event to delete |
-| `p_user_id` | uuid | ✅ | Must be the event owner or an accepted collaborator |
+| `p_user_id` | uuid | ✅ | Must be the event owner |
 
 ---
 
@@ -72,7 +72,7 @@ The rows are **not removed** from the database — they are hidden from all publ
 | Message | Cause |
 |---------|-------|
 | `p_event_id and p_user_id are required` | Either param is null |
-| `Event not found or access denied` | No event with that ID, already deleted, or caller is neither owner nor accepted collaborator |
+| `Event not found or access denied` | No event with that ID, already deleted, or caller is not the owner |
 | `Something went wrong` | Unhandled DB exception |
 
 ---

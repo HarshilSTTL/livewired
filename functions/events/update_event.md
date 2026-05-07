@@ -77,9 +77,7 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'p_event_id and p_user_id are required');
     END IF;
 
-    -- ── Ownership / collaborator check ───────────────────────────────────────
-    -- Allows the event owner OR any accepted (non-deleted) collaborator.
-    -- For child occurrences, collaborators are resolved via the parent event_id.
+    -- ── Ownership check (owner only) ─────────────────────────────────────────
     IF NOT EXISTS (
         SELECT 1
         FROM event_mst e
@@ -87,17 +85,6 @@ BEGIN
         WHERE e.event_id = p_event_id
           AND cp.user_id = p_user_id
           AND cp.status  = 'active'
-    ) AND NOT EXISTS (
-        SELECT 1
-        FROM event_collaborators ec
-        JOIN creator_profiles cp ON cp.id = ec.profile_id
-        WHERE ec.event_id = COALESCE(
-                (SELECT parent_event_id FROM event_mst WHERE event_id = p_event_id),
-                p_event_id
-              )
-          AND cp.user_id   = p_user_id
-          AND ec.status    = 'accepted'
-          AND ec.is_deleted = false
     ) THEN
         RETURN json_build_object('status', false, 'message', 'Event not found or access denied');
     END IF;

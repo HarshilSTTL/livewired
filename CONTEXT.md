@@ -60,7 +60,7 @@ SQL CREATE statements → `schema/tables/`
 
 ---
 
-## APIs: 24 Stored Procedures
+## APIs: 25 Stored Procedures
 
 | # | Function | Endpoint | Method | Group |
 |---|----------|----------|--------|-------|
@@ -84,6 +84,7 @@ SQL CREATE statements → `schema/tables/`
 | 18 | get_event_list | /rpc/get_event_list | POST | Events |
 | 19 | search_profiles | /rpc/search_profiles | POST | Search |
 | 20 | search_events | /rpc/search_events | POST | Search |
+| 25 | search_collaborator_profiles | /rpc/search_collaborator_profiles | POST | Search |
 | 21 | invite_collaborator | /rpc/invite_collaborator | POST | Events |
 | 22 | respond_collaborator_invite | /rpc/respond_collaborator_invite | POST | Events |
 | 23 | remove_collaborator | /rpc/remove_collaborator | POST | Events |

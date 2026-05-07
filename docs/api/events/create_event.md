@@ -76,6 +76,7 @@ Rows inserted into `event_mst`:
 | `p_livestream` | boolean | ❌ | false | Is this a live stream? |
 | `p_video` | boolean | ❌ | false | Is this a video premiere? |
 | `p_is_collaborative` | boolean | ❌ | false | Enable collaborator invites on this event (max 5 accepted collaborators) |
+| `p_collaborator_ids` | uuid[] | ❌ | null | Profile IDs to invite as collaborators. Requires `p_is_collaborative = true`. Max 5. Invalid/inactive IDs are skipped and returned in `skipped_collaborator_ids`. |
 | `p_is_recurring` | boolean | ❌ | false | Is this recurring? If true, recurring params below are required |
 | `p_platforms` | jsonb | ❌ | null | Platforms to stream on (see format below) |
 
@@ -178,13 +179,18 @@ Rows inserted into `event_mst`:
   "status":  true,
   "message": "Event created successfully",
   "data": {
-    "event_id": "parent-event-uuid"
+    "event_id":                 "parent-event-uuid",
+    "skipped_collaborator_ids": []
   }
 }
 ```
 
 > `event_id` returned is the **parent** event_id. All child occurrences link back to it
 > via `parent_event_id`. Use this ID to update or delete the entire recurring series.
+>
+> `skipped_collaborator_ids` is always present. It is an empty array when all invites
+> succeeded, or contains the profile IDs that were skipped (invalid/inactive profile,
+> duplicate of creating profile, or over the 5-collaborator cap).
 
 ### Error
 ```json
@@ -207,6 +213,7 @@ Rows inserted into `event_mst`:
 | `Event date is required` | `p_event_date` is null |
 | `Event time is required` | `p_event_time` is null |
 | `Event end time cannot be the same as event start time` | `p_event_end_time = p_event_time` (zero-duration). Values less than start time are valid — treated as next day |
+| `Cannot add collaborators when is_collaborative is false` | `p_collaborator_ids` was provided but `p_is_collaborative` is false or omitted |
 | `One or more platform IDs are invalid` | `platform_id` not in `platforms` table |
 | `Stream URL is required for each platform` | Platform object missing `stream_url` |
 | `Recurring days are required` | `p_recurring_days` null or empty when `p_is_recurring = true` |
@@ -226,20 +233,20 @@ Rows inserted into `event_mst`:
 ```
 1. Null check: p_profile_id, p_user_id
 2. Ownership + active check on creator_profiles
-3. Required field checks: title, event_date, event_time
-4. Platform validation (if p_platforms non-null/non-empty)
-5. Recurring validation (only if p_is_recurring = true):
+3. Collaborator guard: if p_collaborator_ids provided AND p_is_collaborative = false → error
+4. Required field checks: title, event_date, event_time
+5. Platform validation (if p_platforms non-null/non-empty)
+6. Recurring validation (only if p_is_recurring = true):
    ├── recurring_days: non-null, non-empty, all valid abbreviations
    ├── recurring_type: must be 'weekly' | 'first' | 'last'
    ├── If type='weekly': interval required, must be 1–12
    ├── If type='first'/'last': interval must be null
    ├── recurring_start_date: required
    └── recurring_end_date: if provided, must be > start_date
-6. Convert (p_event_date + p_event_time) from p_timezone → UTC → v_utc_date, v_utc_time
-7. INSERT parent row into event_mst with UTC date/time + event_timezone → returns v_event_id
-7. If p_platforms non-null/non-empty:
+7. INSERT parent row into event_mst → returns v_event_id
+8. If p_platforms non-null/non-empty:
    └── INSERT into event_platforms (on parent only; children inherit)
-8. If p_is_recurring = true:
+9. If p_is_recurring = true:
    ├── INSERT into event_recurring (recurrence rule for parent)
    ├── v_safe_end = COALESCE(p_recurring_end_date, p_recurring_start_date + 3 months)
    ├── Stored in event_recurring.recurring_end_date = v_safe_end (always a concrete date)
@@ -247,7 +254,14 @@ Rows inserted into `event_mst`:
        weekly → FOREACH day: find first_occ >= start, WHILE occ <= safe_end: INSERT, advance +7×interval
        first  → FOREACH day: WHILE month <= safe_end: INSERT first weekday of month (if in range), advance month
        last   → FOREACH day: WHILE month <= safe_end: INSERT last weekday of month (if in range), advance month
-9. RETURN success with parent event_id
+10. If p_is_collaborative = true AND p_collaborator_ids non-null/non-empty:
+    FOREACH collab_id in p_collaborator_ids:
+    ├── Skip if collab_id = p_profile_id (cannot invite self) → add to skipped
+    ├── Skip if collab_count >= 5 (cap reached) → add to skipped
+    ├── Skip if profile not found or inactive → add to skipped
+    ├── INSERT into event_collaborators (status = 'pending')
+    └── INSERT notification for invitee
+11. RETURN success with event_id + skipped_collaborator_ids
 ```
 
 ---

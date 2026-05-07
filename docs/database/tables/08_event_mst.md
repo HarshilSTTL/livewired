@@ -70,7 +70,7 @@ When `create_event` is called with `p_is_recurring = true`, it inserts:
 - `event_date` and `event_time` are stored in **UTC**. Creator's local timezone is stored in `event_timezone`.
 - Read SPs accept `p_timezone` (viewer's IANA timezone) and convert UTC → viewer's local date/time before returning.
 - **Live section rule:** `event_end_time IS NOT NULL` AND `NOW()` is between start and end times (cross-midnight supported). The `livestream` flag no longer determines Live placement.
-- `is_collaborative = true` enables the collaborator invite system. Up to 5 accepted collaborators allowed per event. Collaborators have full permissions (update, postpone, delete).
+- `is_collaborative = true` enables the collaborator invite system. Up to 5 accepted collaborators allowed per event. Collaborators have **read-only** visibility — they can view the event but cannot update, delete, or postpone it.
 - Collaborator records are stored in `event_collaborators` (FK on `event_id`)
 
 ## Referenced By (Stored Procedures & Tables)
