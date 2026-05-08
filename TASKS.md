@@ -1,7 +1,7 @@
 # LiveWired — Task Tracker
 
 > Status key: ✅ Complete · ⏳ Pending
-> Last updated: 2026-05-07
+> Last updated: 2026-05-08
 
 ---
 
@@ -10,9 +10,9 @@
 | # | Task | Status |
 |---|------|--------|
 | 1 | Add `twitch_by_default` and `kick_by_default` flags to creator profile | ✅ Complete |
-| 2 | Add `is_read` flag to notifications table | ⏳ Pending |
-| 3 | API — get count of unread notifications | ⏳ Pending |
-| 4 | API — mark notification(s) as read | ⏳ Pending |
+| 2 | Add `is_read` flag to notifications table | ✅ Complete |
+| 3 | API — get count of unread notifications | ✅ Complete |
+| 4 | API — mark notification(s) as read | ✅ Complete |
 | 5 | Add optional `end_time` to events | ✅ Complete |
 | 6 | Live list = events with `end_time`; Today list = everything else | ✅ Complete |
 | 7 | `recurring_end_date` optional when creating a recurring event | ✅ Complete |
@@ -68,6 +68,16 @@
 - Idempotent: `renewal_notified_at` column prevents duplicate sends; resets on schedule change
 - **Files:** [[functions/events/notify_expiring_recurring_events.md]] · [[docs/api/events/notify_expiring_recurring_events.md]]
 - **Log:** [[updates/2026-05-04.md]]
+
+---
+
+### 2 + 3 + 4 — Notification read state
+- `is_read boolean NOT NULL DEFAULT false` added to `notifications` table (migration required)
+- New SP: `get_unread_notification_count` — returns `{ "unread_count": N }` for badge display
+- New SP: `mark_notifications_read` — marks all or specific notifications as read (owner-scoped)
+- `get_notifications` updated to return `is_read` on every notification row
+- **Files:** [[functions/notifications/get_notifications.md]] · [[functions/notifications/get_unread_notification_count.md]] · [[functions/notifications/mark_notifications_read.md]] · [[docs/api/notifications/get_notifications.md]] · [[docs/api/notifications/get_unread_notification_count.md]] · [[docs/api/notifications/mark_notifications_read.md]]
+- **Log:** [[updates/2026-05-08.md]]
 
 ---
 

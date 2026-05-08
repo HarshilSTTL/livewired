@@ -49,6 +49,7 @@ Returns the authenticated user's notification history from the past 2 days, sort
         "profile_id":       "uuid",
         "reminder_minutes": 10
       },
+      "is_read":    false,
       "created_at": "2026-04-09T14:30:00+00:00"
     }
   ]
@@ -72,6 +73,7 @@ Returns the authenticated user's notification history from the past 2 days, sort
 | title | notifications.title | Push notification title |
 | body | notifications.body | Push notification body (event title) |
 | data | notifications.data | jsonb payload — type, event_id, profile_id, reminder_minutes |
+| is_read | notifications.is_read | `false` = unread · `true` = read |
 | created_at | notifications.created_at | UTC timestamp |
 
 ---
@@ -95,4 +97,6 @@ Returns the authenticated user's notification history from the past 2 days, sort
 
 ## Related
 
+- [`get_unread_notification_count`](get_unread_notification_count.md) — badge count for unread notifications
+- [`mark_notifications_read`](mark_notifications_read.md) — mark all or specific notifications as read
 - [`process_event_reminders`](../../../functions/notifications/process_event_reminders.md) — cron job that inserts notifications

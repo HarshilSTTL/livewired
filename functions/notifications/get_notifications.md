@@ -35,6 +35,7 @@ BEGIN
                         title,
                         body,
                         data,
+                        is_read,
                         created_at
                     FROM notifications
                     WHERE user_id    = p_user_id
