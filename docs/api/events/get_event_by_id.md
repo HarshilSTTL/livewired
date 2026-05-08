@@ -112,7 +112,7 @@ For recurring child events, platforms and recurring rules are inherited from the
 | `is_collaborative` | `true` if collaborator invites are enabled on this event |
 | `collaborators` | Array of active (non-deleted) collaborators with their invite status. Always `[]` if none. Inherited from parent for recurring child events. |
 | `recurring` | `null` if the event is not recurring |
-| `platforms` | Inherited from parent for recurring child events. Always `[]` if none |
+| `platforms` | If child has `is_overridden = true`, uses child's own platforms. Otherwise inherited from parent. Always `[]` if none |
 | `creator.avatar` | Supabase Storage URL (or null if not set) |
 | `livestream` | `true` → show Live indicator on detail screen |
 | `is_recurring` | `true` → show ↻ icon on detail screen |
@@ -134,13 +134,13 @@ For recurring child events, platforms and recurring rules are inherited from the
 ```
 1. Null check: p_event_id
 2. JOIN event_mst + creator_profiles on profile_id
-3. Subquery platforms using EXISTS CASE:
+3. Subquery platforms using is_overridden CASE:
    WHERE ep.event_id = CASE
-     WHEN EXISTS (SELECT 1 FROM event_platforms WHERE event_id = e.event_id) THEN e.event_id
+     WHEN e.is_overridden THEN e.event_id
      ELSE COALESCE(e.parent_event_id, e.event_id)
    END
-   → if child has its own platform rows (set via p_scope='this'), use them
-   → otherwise fall back to parent's platforms
+   → is_overridden = true → child was edited via p_scope='this', use its own platforms
+   → is_overridden = false → child inherits parent's platforms (default)
 4. Subquery collaborators from event_collaborators (non-deleted):
    WHERE ec.event_id = COALESCE(e.parent_event_id, e.event_id)
    → recurring children inherit collaborators from parent row

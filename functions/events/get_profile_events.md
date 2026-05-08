@@ -97,7 +97,7 @@ BEGIN
                 -- If this child has its own event_platforms rows (set via 'this' scope update),
                 -- use them. Otherwise fall back to the parent's platforms.
                 WHERE ep.event_id = CASE
-                    WHEN EXISTS (SELECT 1 FROM event_platforms ep2 WHERE ep2.event_id = e.event_id)
+                    WHEN e.is_overridden
                     THEN e.event_id
                     ELSE COALESCE(e.parent_event_id, e.event_id)
                 END

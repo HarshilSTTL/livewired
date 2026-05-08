@@ -187,6 +187,7 @@ BEGIN
         END IF;
 
         -- Update this occurrence only (COALESCE — only passed fields change)
+        -- is_overridden = true tells read SPs to use this child's own data instead of parent's
         UPDATE event_mst
         SET title          = COALESCE(p_title,          title),
             description    = COALESCE(p_description,    description),
@@ -196,12 +197,12 @@ BEGIN
             event_timezone = COALESCE(p_timezone,       event_timezone),
             livestream     = COALESCE(p_livestream,     livestream),
             video          = COALESCE(p_video,          video),
+            is_overridden  = true,
             updated_at     = now()
         WHERE event_id = p_event_id;
 
         -- Handle platforms for this occurrence specifically.
-        -- Storing event_platforms rows on the child's own event_id signals an override
-        -- to read SPs — they detect per-child rows and skip the parent fallback.
+        -- is_overridden = true above tells read SPs to look at this child's own event_platforms rows.
         IF p_platforms IS NOT NULL THEN
             DELETE FROM event_platforms WHERE event_id = p_event_id;
             IF jsonb_array_length(p_platforms) > 0 THEN
@@ -340,7 +341,7 @@ BEGIN
 
     -- ── Propagate scalar changes to all child occurrences ─────────────────────
     -- event_date intentionally excluded — each child keeps its own occurrence date.
-    -- Fields not passed are left as-is on each child (COALESCE pattern per row).
+    -- is_overridden reset to false — children now inherit from parent again.
     UPDATE event_mst
     SET title            = COALESCE(p_title,            title),
         description      = COALESCE(p_description,      description),
@@ -350,6 +351,7 @@ BEGIN
         livestream       = COALESCE(p_livestream,       livestream),
         video            = COALESCE(p_video,            video),
         is_collaborative = COALESCE(p_is_collaborative, is_collaborative),
+        is_overridden    = false,
         updated_at       = now()
     WHERE parent_event_id = v_target_parent_id;
 

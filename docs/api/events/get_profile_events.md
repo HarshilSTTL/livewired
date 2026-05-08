@@ -178,13 +178,13 @@ DateTime nextWeekStart = currentWeekStart.add(Duration(days: 7));
    - (is_recurring = false OR parent_event_id IS NOT NULL)
      → returns non-recurring events + recurring child occurrences
      → excludes recurring parent/template rows
-5. For each event: subquery platforms using EXISTS CASE:
+5. For each event: subquery platforms using is_overridden CASE:
    WHERE ep.event_id = CASE
-     WHEN EXISTS (SELECT 1 FROM event_platforms WHERE event_id = e.event_id) THEN e.event_id
+     WHEN e.is_overridden THEN e.event_id
      ELSE COALESCE(e.parent_event_id, e.event_id)
    END
-   → if child has its own platform rows (per-occurrence override via p_scope='this'), use them
-   → otherwise fall back to parent's platforms
+   → is_overridden = true → child was edited via p_scope='this', use its own platforms
+   → is_overridden = false → child inherits parent's platforms (default)
    ⚠️ Cast event_platforms.platform_id::bigint to join platforms.plat_id
 6. RETURN week_start, week_end, events[] sorted by event_date ASC, event_time ASC
 ```

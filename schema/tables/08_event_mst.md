@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS public.event_mst (
     is_recurring      bool        DEFAULT false,
     created_at        timestamptz DEFAULT now(),
     updated_at        timestamptz NULL,    -- nullable
+    is_overridden     boolean     NOT NULL DEFAULT false, -- true = child occurrence has its own overridden fields (set via p_scope='this')
     is_deleted        boolean     NOT NULL DEFAULT false, -- soft delete flag
     deleted_at        timestamptz NULL                    -- timestamp of soft delete
 );
@@ -31,6 +32,7 @@ CREATE TABLE IF NOT EXISTS public.event_mst (
 --   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS event_timezone text NOT NULL DEFAULT 'UTC';
 --   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS event_end_time time NULL;
 --   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS is_collaborative boolean NOT NULL DEFAULT false;
+--   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS is_overridden boolean NOT NULL DEFAULT false;
 --   Note: event_date + event_time store UTC values. event_timezone stores the creator's original IANA timezone.
 --   Existing rows default to 'UTC' which is safe — they had no timezone context.
 
@@ -48,4 +50,9 @@ CREATE TABLE IF NOT EXISTS public.event_mst (
 --
 -- Deleting the parent cascades to all child occurrences automatically.
 -- event_platforms rows are only on the parent; children inherit via get_profile_events.
+--
+-- is_overridden usage:
+--   false (default) → child inherits parent's data for platforms/fields (p_scope='all' path)
+--   true            → child has its own overridden data (set via p_scope='this' update)
+--                     Read SPs use child's own event_platforms rows when is_overridden = true
 ```

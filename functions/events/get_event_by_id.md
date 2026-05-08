@@ -58,10 +58,10 @@ BEGIN
             )
             FROM event_platforms ep
             JOIN platforms p ON p.plat_id = ep.platform_id::bigint
-            -- If this child has its own event_platforms rows (set via 'this' scope update),
-            -- use them. Otherwise fall back to the parent's platforms.
+            -- is_overridden = true → child has its own platform data (set via p_scope='this')
+            -- is_overridden = false → fall back to parent's platforms
             WHERE ep.event_id = CASE
-                WHEN EXISTS (SELECT 1 FROM event_platforms ep2 WHERE ep2.event_id = e.event_id)
+                WHEN e.is_overridden
                 THEN e.event_id
                 ELSE COALESCE(e.parent_event_id, e.event_id)
             END
