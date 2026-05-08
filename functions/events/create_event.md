@@ -401,6 +401,7 @@ BEGIN
                 json_build_object(
                     'type',                  'collaborator_invite',
                     'event_id',              v_event_id,
+                    'invited_profile_id',    v_collab_id,
                     'invited_by_profile_id', p_profile_id
                 )
             );

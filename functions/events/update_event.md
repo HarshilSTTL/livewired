@@ -565,6 +565,7 @@ BEGIN
                 json_build_object(
                     'type',                  'collaborator_invite',
                     'event_id',              v_target_parent_id,
+                    'invited_profile_id',    v_collab_id,
                     'invited_by_profile_id', v_owner_profile_id
                 )
             );

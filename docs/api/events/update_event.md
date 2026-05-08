@@ -119,6 +119,21 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 }
 ```
 
+### Collaborator invite notification payload
+
+Each invited profile receives a push notification with this `data` payload:
+
+```json
+{
+  "type":                  "collaborator_invite",
+  "event_id":              "parent-event-uuid",
+  "invited_profile_id":    "invitee-profile-uuid",
+  "invited_by_profile_id": "owner-profile-uuid"
+}
+```
+
+Flutter uses `type = 'collaborator_invite'` to show **Accept** / **Decline** buttons. On tap, call [`respond_collaborator_invite`](respond_collaborator_invite.md) with `event_id` and `invited_profile_id` from this payload.
+
 ---
 
 ## Response

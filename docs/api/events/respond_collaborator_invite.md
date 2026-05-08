@@ -24,8 +24,9 @@ Allows the invited collaborator to accept or decline a pending invite. The calle
 
 ---
 
-## Request Example — Accept
+## Request Examples
 
+### Accept
 ```json
 {
   "p_event_id":   "event-uuid",
@@ -33,6 +34,33 @@ Allows the invited collaborator to accept or decline a pending invite. The calle
   "p_user_id":    "collaborator-user-uuid",
   "p_response":   "accepted"
 }
+```
+
+### Decline
+```json
+{
+  "p_event_id":   "event-uuid",
+  "p_profile_id": "collaborator-profile-uuid",
+  "p_user_id":    "collaborator-user-uuid",
+  "p_response":   "declined"
+}
+```
+
+> `p_event_id` and `p_profile_id` come from the `collaborator_invite` push notification payload fields `event_id` and `invited_profile_id`. `p_user_id` is the logged-in user's ID (already known to the app).
+
+---
+
+## Flutter Usage
+
+```dart
+// Called when the user taps Accept or Decline on the notification
+// notif.data comes from the push notification payload
+await supabase.rpc('respond_collaborator_invite', params: {
+  'p_event_id':   notif.data['event_id'],
+  'p_profile_id': notif.data['invited_profile_id'],
+  'p_user_id':    currentUserId,
+  'p_response':   'accepted',  // or 'declined'
+});
 ```
 
 ---

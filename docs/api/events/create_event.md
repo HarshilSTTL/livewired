@@ -154,6 +154,21 @@ await supabase.rpc('create_event', params: {
 });
 ```
 
+### Notification Payload (sent to each invitee)
+
+When an invite is sent, the invitee receives a push notification with this `data` payload:
+
+```json
+{
+  "type":                  "collaborator_invite",
+  "event_id":              "parent-event-uuid",
+  "invited_profile_id":    "invitee-profile-uuid",
+  "invited_by_profile_id": "creator-profile-uuid"
+}
+```
+
+Flutter uses `type = 'collaborator_invite'` to show **Accept** / **Decline** action buttons. On tap, call [`respond_collaborator_invite`](respond_collaborator_invite.md) using `event_id` and `invited_profile_id` from this payload.
+
 > Use [`search_collaborator_profiles`](../search/search_collaborator_profiles.md) to populate the collaborator picker UI before calling this SP.
 
 ---
