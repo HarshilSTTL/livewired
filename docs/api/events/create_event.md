@@ -143,14 +143,14 @@ await supabase.rpc('create_event', params: {
   'p_collaborator_ids': ['uuid-1', 'uuid-2'],
 });
 
-// Toggle ON — no collaborators yet, invite later
+// Toggle OFF — no collaborators yet, invite later
 await supabase.rpc('create_event', params: {
   'p_profile_id':       profileId,
   'p_user_id':          userId,
   'p_title':            'Co-stream Night',
   'p_event_date':       '2026-05-10',
   'p_event_time':       '20:00:00',
-  'p_is_collaborative': true,
+  'p_is_collaborative': false,
 });
 ```
 
