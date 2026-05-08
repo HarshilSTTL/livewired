@@ -153,6 +153,7 @@
 - `logo_url` in streaming can be null (platforms.logo_url is nullable)
 - `p_device_ip` is accepted but has no effect on the query
 - `ep.platform_id::bigint` cast required — event_platforms.platform_id is `int4`, platforms.plat_id is `int8`
+- Platform resolution uses `EXISTS CASE`: if a recurring child has its own `event_platforms` rows (set via `p_scope='this'` update), those are used; otherwise falls back to parent's platforms
 
 ---
 

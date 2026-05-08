@@ -58,12 +58,36 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 
 ## Request Examples
 
-### Update title only
+### Update title only — all occurrences (default)
 ```json
 {
   "p_event_id": "uuid...",
   "p_user_id":  "uuid...",
   "p_title":    "Metroid Monday — Special Edition"
+}
+```
+
+### Update only this occurrence (`p_scope = 'this'`)
+> Pass the **child** occurrence's `event_id`. Parent and all other occurrences are untouched.
+```json
+{
+  "p_event_id":       "child-occurrence-uuid",
+  "p_user_id":        "uuid...",
+  "p_scope":          "this",
+  "p_event_date":     "2026-05-19",
+  "p_event_time":     "21:00:00",
+  "p_event_end_time": "23:00:00"
+}
+```
+
+### Update all occurrences (`p_scope = 'all'`)
+> Can pass child or parent `event_id` — SP always resolves to the parent.
+```json
+{
+  "p_event_id":   "uuid...",
+  "p_user_id":    "uuid...",
+  "p_scope":      "all",
+  "p_event_time": "20:00:00"
 }
 ```
 
@@ -138,7 +162,7 @@ Flutter uses `type = 'collaborator_invite'` to show **Accept** / **Decline** but
 
 ## Response
 
-### Success
+### Success — `p_scope = 'all'` (default)
 ```json
 {
   "status":  true,
@@ -149,7 +173,18 @@ Flutter uses `type = 'collaborator_invite'` to show **Accept** / **Decline** but
 }
 ```
 
-> `skipped_collaborator_ids` is always present. Empty array `[]` when all invites succeeded or `p_collaborator_ids` was not passed. Contains profile UUIDs that were skipped (already invited, invalid/inactive profile, self-invite, or cap reached).
+### Success — `p_scope = 'this'`
+```json
+{
+  "status":  true,
+  "message": "Event occurrence updated successfully",
+  "data": {
+    "skipped_collaborator_ids": []
+  }
+}
+```
+
+> `skipped_collaborator_ids` is always present in both responses. Empty array `[]` when all invites succeeded or `p_collaborator_ids` was not passed. Contains profile UUIDs that were skipped (already invited, invalid/inactive profile, self-invite, or cap reached).
 
 ### Error
 ```json
@@ -189,32 +224,53 @@ Flutter uses `type = 'collaborator_invite'` to show **Accept** / **Decline** but
 ```
 1. Null check: p_event_id, p_user_id
 2. Ownership check: event_mst JOIN creator_profiles (owner only)
-3. Collaborator guard: if p_collaborator_ids provided AND effective is_collaborative = false → error
-4. Validate p_platforms (if provided and non-empty)
-5. If p_recurring_days IS NOT NULL:
-   - Fetch existing event_recurring row (for COALESCE)
-   - Merge passed values over existing
-   - Validate merged recurring rule
-6. UPDATE event_mst with COALESCE for all optional fields
-7. If p_platforms IS NOT NULL:
-   - DELETE + INSERT event_platforms (full replace)
-8. If p_recurring_days IS NOT NULL:
-   - UPDATE event_recurring with merged values
-   - DELETE all child rows (WHERE parent_event_id = p_event_id)
-   - Fetch parent row (profile_id, title, description, event_time, event_timezone, is_collaborative, etc.)
-   - Regenerate child rows — each inherits is_collaborative from parent
-     weekly → FOREACH day: find first occ, step +7×interval until safe_end
-     first/last → FOREACH day: WHILE month <= safe_end: insert first/last weekday of month
-9. If p_collaborator_ids IS NOT NULL and non-empty (PATCH append):
-   - Pre-fetch accepted collaborator count
-   - FOREACH collab_id:
-     ├── Skip if = owner (self-invite)
-     ├── Skip if accepted count >= 5 (cap)
-     ├── Skip if active non-deleted row already exists (any status)
-     ├── Skip if profile not found or inactive
-     ├── If soft-deleted row exists → reactivate (UPDATE to pending, is_deleted = false)
-     └── Else → INSERT new pending invite + notify invitee
-10. Return success with skipped_collaborator_ids
+   - Fetch v_parent_event_id (NULL if p_event_id is the parent)
+   - v_target_parent_id = COALESCE(v_parent_event_id, p_event_id)
+3. Validate p_scope ∈ {'all', 'this'} (default 'all')
+
+── BRANCH A: p_scope = 'this' ──────────────────────────────────────────────
+4a. Guard: v_parent_event_id must not be NULL (must be a child occurrence row)
+5a. Guard: p_recurring_days must be NULL (cannot change schedule for one occurrence)
+6a. Guard: p_collaborator_ids must be NULL (collaborators are always parent-level)
+7a. UPDATE event_mst SET COALESCE fields WHERE event_id = p_event_id (child only)
+8a. If p_platforms IS NOT NULL:
+    - DELETE event_platforms WHERE event_id = p_event_id (child's own rows)
+    - INSERT new platform rows on the child's own event_id (per-occurrence override)
+    - Read SPs detect this via EXISTS CASE and serve child's platforms instead of parent's
+9a. RETURN "Event occurrence updated successfully" + skipped_collaborator_ids: []
+
+── BRANCH B: p_scope = 'all' (default) ─────────────────────────────────────
+4b. Collaborator guard: if p_collaborator_ids provided AND effective is_collaborative = false → error
+5b. Validate p_platforms (if provided and non-empty)
+6b. If p_recurring_days IS NOT NULL:
+    - Fetch existing event_recurring row (for COALESCE)
+    - Merge passed values over existing
+    - Validate merged recurring rule
+7b. UPDATE event_mst (parent) with COALESCE for all optional fields WHERE event_id = v_target_parent_id
+8b. Propagate scalar changes to all child rows:
+    UPDATE event_mst SET title, description, event_time, event_end_time, event_timezone,
+                         livestream, video, is_collaborative
+    WHERE parent_event_id = v_target_parent_id (COALESCE — unchanged fields kept)
+9b. If p_platforms IS NOT NULL:
+    - DELETE event_platforms WHERE event_id = v_target_parent_id (parent)
+    - DELETE event_platforms for all child event_ids (clears per-occurrence overrides)
+    - INSERT new platform rows on parent (children inherit via EXISTS CASE in read SPs)
+10b. If p_recurring_days IS NOT NULL:
+    - UPDATE event_recurring with merged values
+    - DELETE all child rows (WHERE parent_event_id = v_target_parent_id)
+    - Regenerate child rows — each inherits is_collaborative from parent
+      weekly → FOREACH day: find first occ, step +7×interval until safe_end
+      first/last → FOREACH day: WHILE month <= safe_end: insert first/last weekday of month
+11b. If p_collaborator_ids IS NOT NULL and non-empty (PATCH append):
+    - Pre-fetch accepted collaborator count
+    - FOREACH collab_id:
+      ├── Skip if = owner (self-invite)
+      ├── Skip if accepted count >= 5 (cap)
+      ├── Skip if active non-deleted row already exists (any status)
+      ├── Skip if profile not found or inactive
+      ├── If soft-deleted row exists → reactivate (UPDATE to pending, is_deleted = false)
+      └── Else → INSERT new pending invite + notify invitee (with invited_profile_id in data)
+12b. RETURN "Event updated successfully" + skipped_collaborator_ids
 ```
 
 ---

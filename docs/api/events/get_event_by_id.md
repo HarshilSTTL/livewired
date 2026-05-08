@@ -134,9 +134,13 @@ For recurring child events, platforms and recurring rules are inherited from the
 ```
 1. Null check: p_event_id
 2. JOIN event_mst + creator_profiles on profile_id
-3. Subquery platforms:
-   WHERE ep.event_id = COALESCE(e.parent_event_id, e.event_id)
-   → recurring children inherit platforms from parent row
+3. Subquery platforms using EXISTS CASE:
+   WHERE ep.event_id = CASE
+     WHEN EXISTS (SELECT 1 FROM event_platforms WHERE event_id = e.event_id) THEN e.event_id
+     ELSE COALESCE(e.parent_event_id, e.event_id)
+   END
+   → if child has its own platform rows (set via p_scope='this'), use them
+   → otherwise fall back to parent's platforms
 4. Subquery collaborators from event_collaborators (non-deleted):
    WHERE ec.event_id = COALESCE(e.parent_event_id, e.event_id)
    → recurring children inherit collaborators from parent row
