@@ -15,7 +15,9 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 
 **Recurring:** Pass `p_recurring_days` to trigger a recurring rule update. All existing child occurrence rows are deleted and regenerated from the new rules. Any recurring field not passed keeps its existing value.
 
-**Collaborators:** `null` = don't touch · `[uuid, ...]` = append new invites only. This is a **PATCH** — existing collaborator rows are never deleted or modified. Already-invited profiles (active row with any status) are skipped silently.
+**Collaborators:** `null` = don't touch · `[uuid, ...]` = append new invites only. This is a **PATCH** — existing collaborator rows are never deleted or modified. Already-invited profiles (active row with any status) are skipped silently. (`'all'` scope only)
+
+**Scope (`p_scope`):** `'all'` (default) = update parent + all occurrences · `'this'` = update only this specific occurrence. Pass the child's `event_id` for `'this'` scope. Flutter should show the dialog whenever `is_recurring = true`.
 
 ---
 
@@ -25,8 +27,9 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `p_event_id` | uuid | ✅ | The event to update |
+| `p_event_id` | uuid | ✅ | The event to update. For `p_scope='this'`: pass the **child** occurrence's `event_id`. For `p_scope='all'`: can pass child or parent — SP resolves to parent automatically |
 | `p_user_id` | uuid | ✅ | Must own the profile that created this event |
+| `p_scope` | text | ❌ | `'all'` (default) = update parent + all occurrences · `'this'` = update only this child occurrence |
 | `p_title` | text | ❌ | New title |
 | `p_description` | text | ❌ | New description |
 | `p_event_date` | date | ❌ | New date in creator's local timezone (`YYYY-MM-DD`) |
@@ -157,6 +160,10 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 | `recurring_interval must be null for first/last type` | Interval passed for first/last |
 | `Recurring start date is required` | No start date in DB or passed |
 | `Recurring end date must be after start date` | End ≤ start |
+| `p_scope must be 'all' or 'this'` | Invalid scope value passed |
+| `Scope 'this' can only be used on a specific recurring occurrence` | `p_scope='this'` passed with a parent or non-recurring event_id |
+| `Recurring schedule cannot be changed for a single occurrence` | `p_recurring_days` passed with `p_scope='this'` |
+| `Collaborator invites cannot be scoped to a single occurrence` | `p_collaborator_ids` passed with `p_scope='this'` |
 | `Cannot add collaborators when is_collaborative is false` | `p_collaborator_ids` passed but neither `p_is_collaborative: true` nor the event's current flag is true |
 | `Something went wrong` | Unhandled DB exception |
 

@@ -58,8 +58,13 @@ BEGIN
             )
             FROM event_platforms ep
             JOIN platforms p ON p.plat_id = ep.platform_id::bigint
-            -- Child events inherit platforms from parent
-            WHERE ep.event_id = COALESCE(e.parent_event_id, e.event_id)
+            -- If this child has its own event_platforms rows (set via 'this' scope update),
+            -- use them. Otherwise fall back to the parent's platforms.
+            WHERE ep.event_id = CASE
+                WHEN EXISTS (SELECT 1 FROM event_platforms ep2 WHERE ep2.event_id = e.event_id)
+                THEN e.event_id
+                ELSE COALESCE(e.parent_event_id, e.event_id)
+            END
         ),
         'collaborators', (
             SELECT COALESCE(

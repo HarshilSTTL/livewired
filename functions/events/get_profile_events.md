@@ -94,9 +94,13 @@ BEGIN
                 )
                 FROM event_platforms ep
                 LEFT JOIN platforms p ON p.plat_id = ep.platform_id::bigint
-                -- Recurring children have no event_platforms of their own —
-                -- resolve to the parent's event_id to inherit its platforms.
-                WHERE ep.event_id = COALESCE(e.parent_event_id, e.event_id)
+                -- If this child has its own event_platforms rows (set via 'this' scope update),
+                -- use them. Otherwise fall back to the parent's platforms.
+                WHERE ep.event_id = CASE
+                    WHEN EXISTS (SELECT 1 FROM event_platforms ep2 WHERE ep2.event_id = e.event_id)
+                    THEN e.event_id
+                    ELSE COALESCE(e.parent_event_id, e.event_id)
+                END
             )
         )
         ORDER BY e.event_date ASC, e.event_time ASC

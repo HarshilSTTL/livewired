@@ -76,7 +76,11 @@ BEGIN
                     )
                     FROM event_platforms ep
                     LEFT JOIN platforms p ON p.plat_id = ep.platform_id::bigint
-                    WHERE ep.event_id = COALESCE(e.parent_event_id, e.event_id)
+                    WHERE ep.event_id = CASE
+                        WHEN EXISTS (SELECT 1 FROM event_platforms ep2 WHERE ep2.event_id = e.event_id)
+                        THEN e.event_id
+                        ELSE COALESCE(e.parent_event_id, e.event_id)
+                    END
                 )
             )
             ORDER BY e.event_date ASC, e.event_time ASC
@@ -140,7 +144,11 @@ BEGIN
                     )
                     FROM event_platforms ep
                     LEFT JOIN platforms p ON p.plat_id = ep.platform_id::bigint
-                    WHERE ep.event_id = COALESCE(e.parent_event_id, e.event_id)
+                    WHERE ep.event_id = CASE
+                        WHEN EXISTS (SELECT 1 FROM event_platforms ep2 WHERE ep2.event_id = e.event_id)
+                        THEN e.event_id
+                        ELSE COALESCE(e.parent_event_id, e.event_id)
+                    END
                 )
             )
             ORDER BY e.event_date ASC, e.event_time ASC
@@ -210,7 +218,11 @@ BEGIN
                     )
                     FROM event_platforms ep
                     LEFT JOIN platforms p ON p.plat_id = ep.platform_id::bigint
-                    WHERE ep.event_id = COALESCE(e.parent_event_id, e.event_id)
+                    WHERE ep.event_id = CASE
+                        WHEN EXISTS (SELECT 1 FROM event_platforms ep2 WHERE ep2.event_id = e.event_id)
+                        THEN e.event_id
+                        ELSE COALESCE(e.parent_event_id, e.event_id)
+                    END
                 )
             )
             ORDER BY e.event_date ASC, e.event_time ASC
@@ -294,7 +306,11 @@ BEGIN
                     )
                     FROM event_platforms ep
                     LEFT JOIN platforms p ON p.plat_id = ep.platform_id::bigint
-                    WHERE ep.event_id = COALESCE(e.parent_event_id, e.event_id)
+                    WHERE ep.event_id = CASE
+                        WHEN EXISTS (SELECT 1 FROM event_platforms ep2 WHERE ep2.event_id = e.event_id)
+                        THEN e.event_id
+                        ELSE COALESCE(e.parent_event_id, e.event_id)
+                    END
                 )
             )
             ORDER BY e.event_date ASC, e.event_time ASC
