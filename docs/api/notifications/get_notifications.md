@@ -50,7 +50,9 @@ Returns the authenticated user's notification history from the past 2 days, sort
         "reminder_minutes": 10
       },
       "is_read":    false,
-      "created_at": "2026-04-09T14:30:00+00:00"
+      "created_at": "2026-04-09T14:30:00+00:00",
+      "profile_name": "Harshil Gaming",
+      "avatar": "base64..."
     }
   ]
 }
@@ -75,6 +77,8 @@ Returns the authenticated user's notification history from the past 2 days, sort
 | data | notifications.data | jsonb payload — type, event_id, profile_id, reminder_minutes |
 | is_read | notifications.is_read | `false` = unread · `true` = read |
 | created_at | notifications.created_at | UTC timestamp |
+| profile_name | creator_profiles.profile_name | Display name of the related profile |
+| avatar | creator_profiles.avatar | Profile picture Base64 (nullable) |
 
 ---
 
