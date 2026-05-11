@@ -5,16 +5,17 @@
 -- Group: Notifications
 -- Type: Cron job — runs every minute via pg_cron
 -- Schedule: * * * * *
--- Tables: event_reminders (UPDATE), follow_reminder_dispatches (INSERT),
---         notifications (INSERT)
+-- Tables: profile_event_notifications (SELECT), event_reminders (UPDATE),
+--         follow_reminder_dispatches (INSERT), notifications (INSERT)
 --
--- Two reminder sources:
---   1. event_reminders   — manual, per-(user, event), set explicitly by the follower
---   2. follows           — automatic, per-(user, profile), YouTube-style bell-icon opt-in
+-- Three reminder sources:
+--   1. profile_event_notifications — profile owner notifications for events on their profiles
+--   2. event_reminders   — manual, per-(user, event), set explicitly by the follower
+--   3. follows           — automatic, per-(user, profile), YouTube-style bell-icon opt-in
 --
--- Both produce notification rows with the SAME body shape; only data.type differs
--- ('reminder' vs 'follow_reminder'). For any event where a follower has a manual
--- event_reminders row, the follow-level reminder is suppressed — manual takes precedence.
+-- Profile owner reminders fire for any event on their own profiles (before_event, on_event_start, or both).
+-- Manual and follow-level reminders have same behavior: manual takes precedence over follow-level
+-- for the same event.
 
 CREATE OR REPLACE FUNCTION process_event_reminders()
 RETURNS void
@@ -25,7 +26,64 @@ AS $$
 BEGIN
 
     -- ══════════════════════════════════════════════════════════════════════════
-    -- 1. MANUAL reminders — from event_reminders
+    -- 1. PROFILE OWNER notifications — from profile_event_notifications
+    -- ══════════════════════════════════════════════════════════════════════════
+    -- Profile owners get notifications for any event on their profiles.
+    -- Two types: 'before_event' (X min before) and 'on_event_start' (at start time).
+    -- Each child occurrence fires separately.
+
+    -- ── "Before event" profile notifications ────────────────────────────────
+    INSERT INTO notifications (user_id, title, body, data)
+    SELECT
+        u.id,
+        cp.profile_name || ' event starting: ' || e.title,
+        e.title,
+        json_build_object(
+            'type',             'profile_event',
+            'event_id',         e.event_id,
+            'profile_id',       cp.id,
+            'reminder_minutes', pen.reminder_minutes,
+            'fired_at',         'before_event'
+        )
+    FROM profile_event_notifications pen
+    JOIN creator_profiles cp ON cp.id = pen.profile_id
+    JOIN users u ON u.id = pen.user_id
+    JOIN event_mst e ON e.profile_id = cp.id
+    WHERE pen.notification_enabled = true
+      AND pen.notification_type IN ('before_event', 'both')
+      AND e.is_deleted = false
+      AND cp.status = 'active'
+      AND (e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone
+            BETWEEN NOW() + ((pen.reminder_minutes - 0.5) * interval '1 minute')
+                AND NOW() + ((pen.reminder_minutes + 0.5) * interval '1 minute');
+
+    -- ── "On event start" profile notifications ──────────────────────────────
+    INSERT INTO notifications (user_id, title, body, data)
+    SELECT
+        u.id,
+        cp.profile_name || ' event starting: ' || e.title,
+        e.title,
+        json_build_object(
+            'type',       'profile_event',
+            'event_id',   e.event_id,
+            'profile_id', cp.id,
+            'fired_at',   'on_event_start'
+        )
+    FROM profile_event_notifications pen
+    JOIN creator_profiles cp ON cp.id = pen.profile_id
+    JOIN users u ON u.id = pen.user_id
+    JOIN event_mst e ON e.profile_id = cp.id
+    WHERE pen.notification_enabled = true
+      AND pen.notification_type IN ('on_event_start', 'both')
+      AND e.is_deleted = false
+      AND cp.status = 'active'
+      -- Fire when event start time is now (within ±0.5 minute window)
+      AND (e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone
+            BETWEEN NOW() - interval '0.5 minute'
+                AND NOW() + interval '0.5 minute';
+
+    -- ══════════════════════════════════════════════════════════════════════════
+    -- 2. MANUAL reminders — from event_reminders
     -- ══════════════════════════════════════════════════════════════════════════
 
     -- ── Insert notifications for due manual reminders ────────────────────────
@@ -62,7 +120,7 @@ BEGIN
                 AND NOW() + ((er.reminder_minutes + 0.5) * interval '1 minute');
 
     -- ══════════════════════════════════════════════════════════════════════════
-    -- 2. FOLLOW-LEVEL reminders — from follows.reminder_enabled
+    -- 3. FOLLOW-LEVEL reminders — from follows.reminder_enabled
     -- ══════════════════════════════════════════════════════════════════════════
     -- Exactly-once delivery: INSERT into follow_reminder_dispatches with
     -- ON CONFLICT DO NOTHING. Only rows that actually land produce a
@@ -125,5 +183,5 @@ $$;
 > `column "data" is of type jsonb but expression is of type text`.
 > `json_build_object()` → `json` → implicitly cast to `jsonb` ✅
 >
-> **Cron schedule:** `* * * * *` (every minute). Both blocks use a ±0.5-minute time
-> window to catch each event exactly once per minute of cron firings.
+> **Cron schedule:** `* * * * *` (every minute). All three blocks use a ±0.5-minute time
+> window (or ±0.5 second for on_event_start) to catch each event exactly once per minute of cron firings.
