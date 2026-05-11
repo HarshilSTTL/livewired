@@ -1,7 +1,7 @@
 # LiveWired — Task Tracker
 
 > Status key: ✅ Complete · ⏳ Pending
-> Last updated: 2026-05-11
+> Last updated: 2026-05-11 (Task #11 complete)
 
 ---
 
@@ -19,7 +19,7 @@
 | 8 | Default recurring duration = 3 months when no end date provided | ✅ Complete |
 | 9 | Send renewal notification 7 days before recurring event expires | ✅ Complete |
 | 10 | Collaborator functionality (owner + max 5 collaborators) | ✅ Complete |
-| 11 | Postpone or remove a single occurrence within a recurring series | ⏳ Pending |
+| 11 | Postpone or remove a single occurrence within a recurring series | ✅ Complete |
 | 12 | Profile-level notification settings (per-follower auto-reminder, YouTube bell) | ✅ Complete |
 | 13 | Recurring-event notification options (auto-reminder for every occurrence) | ✅ Complete (folded into #12) |
 
@@ -118,33 +118,15 @@ CREATE TABLE IF NOT EXISTS public.follow_reminder_dispatches (
 
 ---
 
-## ⏳ Pending Tasks
-
 ### 11 — Postpone / remove a single occurrence in a recurring series
-
-**What's needed:**
-
-Two sub-features:
-
-**A — Skip (remove) a single occurrence:**
-- New SP: `skip_recurring_occurrence`
-- Input: `p_event_id uuid` (a child occurrence), `p_user_id uuid`
-- Soft deletes only that child row (`is_deleted = true`) — parent and other children untouched
-- Only the event owner can do this
-
-**B — Postpone a single occurrence:**
-- New SP: `postpone_recurring_occurrence`
-- Input: `p_event_id uuid`, `p_user_id uuid`, `p_new_date date`, `p_new_time time DEFAULT null`
-- Updates `event_date` (and optionally `event_time`) on that child row only
-- Validates new date is not in the past
-- Only the event owner can do this
-
-> Note: these operate on **child rows** (parent_event_id IS NOT NULL). Applying to a parent or non-recurring event should return an error.
+- **A — Skip a single occurrence:** New SP `skip_recurring_occurrence` soft-deletes child row only (`is_deleted = true`)
+- **B — Postpone a single occurrence:** New SP `postpone_recurring_occurrence` updates `event_date` + `event_time` on child row only
+- Both require event owner auth; both error on parent or non-recurring event
+- **Files:** [[functions/events/skip_recurring_occurrence.md]] · [[functions/events/postpone_recurring_occurrence.md]] · [[docs/api/events/skip_recurring_occurrence.md]] · [[docs/api/events/postpone_recurring_occurrence.md]]
+- **Log:** [[updates/2026-05-11.md]]
 
 ---
 
-## Suggested Implementation Order
+## ⏳ Pending Tasks
 
-| Priority | Task | Reason |
-|----------|------|--------|
-| Next | #11 | Self-contained. No schema changes — two new SPs (`skip_recurring_occurrence`, `postpone_recurring_occurrence`) on existing tables. |
+No pending tasks. All 13 task items complete.
