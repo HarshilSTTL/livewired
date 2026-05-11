@@ -30,6 +30,8 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 
 **Scope (`p_scope`):** `'all'` (default) = update parent + all occurrences · `'this'` = update only this specific occurrence (scalar + platforms). `null` / `''` is treated as `'all'`. Pass the child's `event_id` for `'this'` scope. Flutter should show the dialog whenever `is_recurring = true`.
 
+**Auto-demotion of `'this'`:** `'this'` is only meaningful for a child occurrence row of a recurring series. If the caller passes `'this'` with a non-recurring event or the series parent (`parent_event_id IS NULL`), the SP silently treats it as `'all'`. The response message in that case is `Event updated successfully` rather than `Event occurrence updated successfully`. This is intentional — there are no other rows to scope to, so erroring would be unhelpful.
+
 ---
 
 ## Parameters
@@ -332,8 +334,7 @@ Flutter uses `type = 'collaborator_invite'` to show **Accept** / **Decline** but
 | `p_event_id and p_user_id are required` | Either required param is null |
 | `p_scope must be 'all' or 'this'` | Invalid scope value passed |
 | `Event not found or access denied` | No matching event, or caller is not the event owner |
-| `Scope 'this' can only be used on a specific recurring occurrence — pass the child event_id, not the parent` | `p_scope='this'` with a parent or non-recurring `event_id` |
-| `Recurring schedule cannot be changed for a single occurrence — use scope 'all'` | `p_recurring_days` passed **non-empty** with `p_scope='this'`. Cannot regen children without deleting the row being edited. |
+| `Recurring schedule cannot be changed for a single occurrence — use scope 'all'` | `p_recurring_days` passed **non-empty** with `p_scope='this'` on a true child occurrence. Cannot regen children without deleting the row being edited. |
 | `Cannot add collaborators when is_collaborative is false` | `p_collaborator_ids` non-empty but neither `p_is_collaborative: true` is being set in the same call nor the parent's current `is_collaborative` is true |
 | `Event end time cannot be the same as event start time` | Final end time equals final start time (zero-duration). End time less than start time is valid — treated as next day |
 | `One or more platform IDs are invalid` | A `platform_id` in `p_platforms` does not exist |
@@ -347,6 +348,7 @@ Flutter uses `type = 'collaborator_invite'` to show **Accept** / **Decline** but
 | `Recurring end date must be after start date` | End ≤ start |
 | `Something went wrong` | Unhandled DB exception (see `error` field for SQLERRM) |
 
+> `Scope 'this' can only be used on a specific recurring occurrence` is **no longer a returnable error** — `p_scope='this'` on a non-recurring event or series parent now auto-demotes to `'all'`.
 > `Collaborator invites cannot be scoped to a single occurrence` is **no longer a returnable error** — collaborator invites with `p_scope='this'` now auto-route to the parent.
 > `Recurring days cannot be empty` is **no longer a returnable error** — empty arrays are treated as "no intent to change."
 
@@ -367,9 +369,11 @@ Flutter uses `type = 'collaborator_invite'` to show **Accept** / **Decline** but
 5. Resolve parent:
    - SELECT parent_event_id INTO v_parent_event_id
    - v_target_parent_id = COALESCE(v_parent_event_id, p_event_id)
+6. Auto-demote scope:
+   - IF v_scope = 'this' AND v_parent_event_id IS NULL → v_scope := 'all'
+     (non-recurring event or series parent has no per-occurrence semantics)
 
-── BRANCH A: p_scope = 'this' ──────────────────────────────────────────────
-6a. Guard: v_parent_event_id must not be NULL (must be a child occurrence row)
+── BRANCH A: p_scope = 'this' (reached only when event is a true child) ────
 7a. Guard: v_update_recurring must be FALSE (regen would delete this row)
 8a. End-time validation against this child's current values (only when v_has_scalar)
 9a. Platform validation (only when p_platforms non-empty)
@@ -421,16 +425,19 @@ Flutter uses `type = 'collaborator_invite'` to show **Accept** / **Decline** but
 
 ## Behavioural Matrix — what does each combination do?
 
-| `p_scope` | `p_recurring_days` | `p_collaborator_ids` | `p_is_collaborative` | Result |
-|-----------|--------------------|----------------------|----------------------|--------|
-| `'this'`  | null / `[]`        | null / `[]`          | null                 | Update this occurrence only |
-| `'this'`  | null / `[]`        | non-empty            | null / true          | Update this occurrence + append invites on parent |
-| `'this'`  | null / `[]`        | non-empty            | false (or parent flag false) | Error: `Cannot add collaborators when is_collaborative is false` |
-| `'this'`  | null / `[]`        | null / `[]`          | true / false         | Update this occurrence + set is_collaborative on parent + propagate |
-| `'this'`  | non-empty          | any                  | any                  | Error: schedule can't be per-occurrence |
-| `'all'`   | null / `[]`        | null / `[]`          | null                 | Update parent + propagate to children |
-| `'all'`   | non-empty          | any                  | any                  | Update parent + regenerate children from new rule |
-| `'all'`   | any                | non-empty            | null / true          | Append invites on parent |
+> **Event type column:** `child` = the event row has `parent_event_id IS NOT NULL` (one occurrence of a recurring series). `parent / non-recurring` = `parent_event_id IS NULL` (either the series template row or a standalone event). When the row is `parent / non-recurring`, `p_scope='this'` is auto-demoted to `'all'`.
+
+| `p_scope` | Event type | `p_recurring_days` | `p_collaborator_ids` | `p_is_collaborative` | Result |
+|-----------|------------|--------------------|----------------------|----------------------|--------|
+| `'this'`  | child      | null / `[]`        | null / `[]`          | null                 | Update this occurrence only |
+| `'this'`  | child      | null / `[]`        | non-empty            | null / true          | Update this occurrence + append invites on parent |
+| `'this'`  | child      | null / `[]`        | non-empty            | false (or parent flag false) | Error: `Cannot add collaborators when is_collaborative is false` |
+| `'this'`  | child      | null / `[]`        | null / `[]`          | true / false         | Update this occurrence + set is_collaborative on parent + propagate |
+| `'this'`  | child      | non-empty          | any                  | any                  | Error: schedule can't be per-occurrence |
+| `'this'`  | parent / non-recurring | any        | any                  | any                  | Auto-demoted to `'all'` — see rows below |
+| `'all'`   | any        | null / `[]`        | null / `[]`          | null                 | Update parent + propagate to children (no-op for non-recurring) |
+| `'all'`   | any        | non-empty          | any                  | any                  | Update parent + regenerate children from new rule (requires existing `event_recurring` row) |
+| `'all'`   | any        | any                | non-empty            | null / true          | Append invites on parent |
 
 ---
 

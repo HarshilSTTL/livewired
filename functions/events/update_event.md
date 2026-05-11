@@ -186,18 +186,23 @@ BEGIN
 
     v_target_parent_id := COALESCE(v_parent_event_id, p_event_id);
 
+    -- ── 6. Effective scope: demote 'this' to 'all' when there's nothing to scope ─
+    -- 'this' is only meaningful for a child occurrence row of a recurring series.
+    -- If the caller passes 'this' with a non-recurring event or the series parent,
+    -- silently treat it as 'all' rather than erroring — there are no other rows to
+    -- distinguish from. This makes the SP forgiving when the client doesn't know
+    -- (or doesn't care) whether the event is recurring.
+    IF v_scope = 'this' AND v_parent_event_id IS NULL THEN
+        v_scope := 'all';
+    END IF;
+
     -- ══════════════════════════════════════════════════════════════════════════
     -- BRANCH A: p_scope = 'this' — per-occurrence scalar/platform overrides
+    -- Reached only when v_parent_event_id IS NOT NULL (true child occurrence).
     -- Series-level fields (is_collaborative, collaborator_ids) are handled by
     -- the shared section after this branch.
     -- ══════════════════════════════════════════════════════════════════════════
     IF v_scope = 'this' THEN
-
-        -- Must be a recurring child occurrence
-        IF v_parent_event_id IS NULL THEN
-            RETURN json_build_object('status', false, 'message',
-                'Scope ''this'' can only be used on a specific recurring occurrence — pass the child event_id, not the parent');
-        END IF;
 
         -- Recurring rule changes regenerate all children — would delete this row
         IF v_update_recurring THEN
