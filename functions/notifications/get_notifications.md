@@ -31,16 +31,25 @@ BEGIN
                 SELECT json_agg(row_to_json(n))
                 FROM (
                     SELECT
-                        id,
-                        title,
-                        body,
-                        data,
-                        is_read,
-                        created_at
-                    FROM notifications
-                    WHERE user_id    = p_user_id
-                      AND created_at >= NOW() - INTERVAL '2 days'
-                    ORDER BY created_at DESC
+                        n.id,
+                        n.title,
+                        n.body,
+                        n.data,
+                        n.is_read,
+                        n.created_at,
+                        cp.profile_name,
+                        cp.avatar
+                    FROM notifications n
+                    LEFT JOIN creator_profiles cp ON cp.id = (
+                        COALESCE(
+                            (n.data->>'profile_id'),
+                            (n.data->>'invited_by_profile_id'),
+                            (n.data->>'responding_profile_id')
+                        )
+                    )::uuid
+                    WHERE n.user_id    = p_user_id
+                      AND n.created_at >= NOW() - INTERVAL '2 days'
+                    ORDER BY n.created_at DESC
                 ) n
             ),
             '[]'::json
