@@ -61,7 +61,7 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 |-----------|------|----------|-------------|
 | `p_recurring_days` | text[] | ❌ | Days to recur — e.g. `["Mon","Wed"]`. `null` or `[]` = no change. Non-empty triggers full child regeneration. `'all'` scope only. |
 | `p_recurring_type` | text | ❌ | `'weekly'` · `'first'` · `'last'` — kept from existing if not passed |
-| `p_recurring_interval` | int | ❌ | 1–12 weeks (weekly type only) |
+| `p_recurring_interval` | int | ❌ | 1–12 weeks. Required when the resolved type is `'weekly'`. **Ignored when the resolved type is `'first'` or `'last'`** — the SP forces it to `NULL` so a previously-stored interval doesn't leak across a type change. Safe to send any value (or `null`) from form state. |
 | `p_recurring_start_date` | date | ❌ | New start date for the recurring schedule |
 | `p_recurring_end_date` | date | ❌ | New end date. If omitted, keeps the existing value. If no existing value, defaults to `recurring_start_date + 3 months` |
 
@@ -342,8 +342,7 @@ Flutter uses `type = 'collaborator_invite'` to show **Accept** / **Decline** but
 | `Invalid recurring day — must be Mon, Tue, Wed, Thu, Fri, Sat, or Sun` | Invalid day string in `p_recurring_days` |
 | `recurring_type must be weekly, first, or last` | Invalid type value (or no existing type and none provided) |
 | `recurring_interval is required for weekly type` | Interval null when type is weekly |
-| `recurring_interval must be between 1 and 12` | Interval out of range |
-| `recurring_interval must be null for first/last type` | Interval passed for first/last |
+| `recurring_interval must be between 1 and 12` | Interval out of range (weekly type only) |
 | `Recurring start date is required` | No start date in DB or passed |
 | `Recurring end date must be after start date` | End ≤ start |
 | `Something went wrong` | Unhandled DB exception (see `error` field for SQLERRM) |
@@ -351,6 +350,7 @@ Flutter uses `type = 'collaborator_invite'` to show **Accept** / **Decline** but
 > `Scope 'this' can only be used on a specific recurring occurrence` is **no longer a returnable error** — `p_scope='this'` on a non-recurring event or series parent now auto-demotes to `'all'`.
 > `Collaborator invites cannot be scoped to a single occurrence` is **no longer a returnable error** — collaborator invites with `p_scope='this'` now auto-route to the parent.
 > `Recurring days cannot be empty` is **no longer a returnable error** — empty arrays are treated as "no intent to change."
+> `recurring_interval must be null for first/last type` is **no longer a returnable error** — when the resolved type is `'first'`/`'last'`, the SP forces interval to `NULL` regardless of what was passed or stored.
 
 ---
 
@@ -387,7 +387,7 @@ Flutter uses `type = 'collaborator_invite'` to show **Accept** / **Decline** but
 ── BRANCH B: p_scope = 'all' (default) ─────────────────────────────────────
 6b. End-time validation against parent's current values
 7b. Platform validation (only when p_platforms non-empty)
-8b. If v_update_recurring: validate day names, fetch+merge recurring rule, validate
+8b. If v_update_recurring: validate day names; fetch+merge recurring rule from existing event_recurring row; auto-null interval when resolved type is 'first'/'last' (otherwise COALESCE with stored value); validate merged rule (type / interval / start / end)
 9b. UPDATE parent (event_mst) with COALESCE for all optional scalar fields (no is_collaborative — handled in shared section)
 10b. Propagate scalar changes to all child rows + reset is_overridden = false (no is_collaborative)
 11b. If p_platforms IS NOT NULL: clear parent's platforms + per-child overrides, insert new platform rows on parent

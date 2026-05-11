@@ -331,7 +331,6 @@ BEGIN
 
             v_rec_days     := p_recurring_days;
             v_rec_type     := COALESCE(p_recurring_type,       v_rec_type);
-            v_rec_interval := COALESCE(p_recurring_interval,   v_rec_interval);
             v_rec_start    := COALESCE(p_recurring_start_date, v_rec_start);
             v_rec_end      := COALESCE(p_recurring_end_date,   v_rec_end);
 
@@ -339,16 +338,20 @@ BEGIN
                 RETURN json_build_object('status', false, 'message', 'recurring_type must be weekly, first, or last');
             END IF;
 
-            IF v_rec_type = 'weekly' THEN
+            -- recurring_interval is only meaningful for 'weekly'. For first/last we force
+            -- NULL so a stored interval from a previous 'weekly' rule doesn't leak across
+            -- the type change. For weekly, fall back to the existing stored interval if
+            -- the caller didn't provide one.
+            IF v_rec_type IN ('first', 'last') THEN
+                v_rec_interval := NULL;
+            ELSE
+                v_rec_interval := COALESCE(p_recurring_interval, v_rec_interval);
+
                 IF v_rec_interval IS NULL THEN
                     RETURN json_build_object('status', false, 'message', 'recurring_interval is required for weekly type');
                 END IF;
                 IF v_rec_interval < 1 OR v_rec_interval > 12 THEN
                     RETURN json_build_object('status', false, 'message', 'recurring_interval must be between 1 and 12');
-                END IF;
-            ELSE
-                IF v_rec_interval IS NOT NULL THEN
-                    RETURN json_build_object('status', false, 'message', 'recurring_interval must be null for first/last type');
                 END IF;
             END IF;
 
