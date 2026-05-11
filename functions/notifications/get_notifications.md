@@ -6,6 +6,7 @@
 -- Endpoint: POST /rpc/get_notifications
 -- Doc: docs/api/notifications/get_notifications.md
 -- Returns the user's notifications from the past 2 days, latest first.
+-- Includes related profile info and, for collaboration notifications, a list of all collaborators.
 
 CREATE OR REPLACE FUNCTION get_notifications(
     p_user_id uuid
@@ -37,8 +38,28 @@ BEGIN
                         n.data,
                         n.is_read,
                         n.created_at,
+                        cp.id as profile_id,
                         cp.profile_name,
-                        cp.avatar
+                        cp.avatar,
+                        -- For collaboration notifications, include all collaborators on the event
+                        CASE
+                            WHEN n.data->>'type' = 'collaborator_invite' THEN
+                                (
+                                    SELECT json_agg(
+                                        json_build_object(
+                                            'profile_id',   ec.profile_id,
+                                            'profile_name', cp_collab.profile_name,
+                                            'avatar',       cp_collab.avatar,
+                                            'status',       ec.status
+                                        ) ORDER BY ec.invited_at
+                                    )
+                                    FROM event_collaborators ec
+                                    JOIN creator_profiles cp_collab ON cp_collab.id = ec.profile_id
+                                    WHERE ec.event_id = (n.data->>'event_id')::uuid
+                                      AND ec.is_deleted = false
+                                )
+                            ELSE NULL
+                        END as collaborators
                     FROM notifications n
                     LEFT JOIN creator_profiles cp ON cp.id = (
                         COALESCE(
