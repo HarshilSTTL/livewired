@@ -81,6 +81,7 @@ parent/template row (which holds the definition but has no meaningful display da
         "video":           false,
         "is_collaborative": false,
         "is_recurring":    true,
+        "collaborators":   null,
         "platforms": [
           {
             "platform_id":   1,
@@ -129,6 +130,7 @@ parent/template row (which holds the definition but has no meaningful display da
 | `is_recurring` | `true` → show ↻ icon on the event card |
 | `livestream` | `true` → show live indicator |
 | `description` | Nullable — omit or show placeholder in UI |
+| `collaborators` | Array of collaborator objects with `profile_id`, `profile_name`, `avatar`, `status` ('pending' \| 'accepted' \| 'declined'); null if no collaborators |
 | `platforms` | Each entry has `logo_url` (platform icon) + `stream_url` (tap to open stream) |
 | `platforms[].logo_url` | From `platforms` table — use as platform icon image |
 | `platforms[].stream_url` | From `event_platforms` on the parent event — deep link to the stream |

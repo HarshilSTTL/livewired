@@ -64,6 +64,20 @@ BEGIN
                 'livestream',    e.livestream,
                 'is_collaborative', e.is_collaborative,
                 'is_recurring',  e.is_recurring,
+                'collaborators', (
+                    SELECT json_agg(
+                        json_build_object(
+                            'profile_id',   ec.profile_id,
+                            'profile_name', cp_collab.profile_name,
+                            'avatar',       cp_collab.avatar,
+                            'status',       ec.status
+                        ) ORDER BY ec.invited_at
+                    )
+                    FROM event_collaborators ec
+                    JOIN creator_profiles cp_collab ON cp_collab.id = ec.profile_id
+                    WHERE ec.event_id = COALESCE(e.parent_event_id, e.event_id)
+                      AND ec.is_deleted = false
+                ),
                 'platforms', (
                     SELECT coalesce(
                         json_agg(json_build_object(
@@ -132,6 +146,20 @@ BEGIN
                 'livestream',    e.livestream,
                 'is_collaborative', e.is_collaborative,
                 'is_recurring',  e.is_recurring,
+                'collaborators', (
+                    SELECT json_agg(
+                        json_build_object(
+                            'profile_id',   ec.profile_id,
+                            'profile_name', cp_collab.profile_name,
+                            'avatar',       cp_collab.avatar,
+                            'status',       ec.status
+                        ) ORDER BY ec.invited_at
+                    )
+                    FROM event_collaborators ec
+                    JOIN creator_profiles cp_collab ON cp_collab.id = ec.profile_id
+                    WHERE ec.event_id = COALESCE(e.parent_event_id, e.event_id)
+                      AND ec.is_deleted = false
+                ),
                 'platforms', (
                     SELECT coalesce(
                         json_agg(json_build_object(
@@ -206,6 +234,20 @@ BEGIN
                 'livestream',    e.livestream,
                 'is_collaborative', e.is_collaborative,
                 'is_recurring',  e.is_recurring,
+                'collaborators', (
+                    SELECT json_agg(
+                        json_build_object(
+                            'profile_id',   ec.profile_id,
+                            'profile_name', cp_collab.profile_name,
+                            'avatar',       cp_collab.avatar,
+                            'status',       ec.status
+                        ) ORDER BY ec.invited_at
+                    )
+                    FROM event_collaborators ec
+                    JOIN creator_profiles cp_collab ON cp_collab.id = ec.profile_id
+                    WHERE ec.event_id = COALESCE(e.parent_event_id, e.event_id)
+                      AND ec.is_deleted = false
+                ),
                 'platforms', (
                     SELECT coalesce(
                         json_agg(json_build_object(
@@ -294,6 +336,20 @@ BEGIN
                 'livestream',    e.livestream,
                 'is_collaborative', e.is_collaborative,
                 'is_recurring',  e.is_recurring,
+                'collaborators', (
+                    SELECT json_agg(
+                        json_build_object(
+                            'profile_id',   ec.profile_id,
+                            'profile_name', cp_collab.profile_name,
+                            'avatar',       cp_collab.avatar,
+                            'status',       ec.status
+                        ) ORDER BY ec.invited_at
+                    )
+                    FROM event_collaborators ec
+                    JOIN creator_profiles cp_collab ON cp_collab.id = ec.profile_id
+                    WHERE ec.event_id = COALESCE(e.parent_event_id, e.event_id)
+                      AND ec.is_deleted = false
+                ),
                 'platforms', (
                     SELECT coalesce(
                         json_agg(json_build_object(

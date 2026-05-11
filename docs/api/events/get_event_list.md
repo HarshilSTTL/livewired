@@ -93,6 +93,7 @@
         "livestream":       true,
         "is_collaborative": false,
         "is_recurring":     false,
+        "collaborators":    null,
         "platforms": [
           {
             "platform_id":   1,
@@ -137,6 +138,7 @@
 | livestream | event_mst.livestream | — |
 | is_collaborative | event_mst.is_collaborative | true = collaborative event |
 | is_recurring | event_mst.is_recurring | — |
+| collaborators | joined from event_collaborators + creator_profiles | array of collaborator objects with profile_id, profile_name, avatar, status; null if no collaborators |
 | platforms | joined from event_platforms + platforms | array, never null |
 
 ---
