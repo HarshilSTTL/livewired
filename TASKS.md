@@ -1,7 +1,7 @@
 # LiveWired — Task Tracker
 
 > Status key: ✅ Complete · ⏳ Pending
-> Last updated: 2026-05-08
+> Last updated: 2026-05-11
 
 ---
 
@@ -20,8 +20,8 @@
 | 9 | Send renewal notification 7 days before recurring event expires | ✅ Complete |
 | 10 | Collaborator functionality (owner + max 5 collaborators) | ✅ Complete |
 | 11 | Postpone or remove a single occurrence within a recurring series | ⏳ Pending |
-| 12 | Profile-level notification settings (global auto-reminder per profile) | ⏳ Pending |
-| 13 | Recurring-event notification options (auto-reminder for every occurrence) | ⏳ Pending |
+| 12 | Profile-level notification settings (per-follower auto-reminder, YouTube bell) | ✅ Complete |
+| 13 | Recurring-event notification options (auto-reminder for every occurrence) | ✅ Complete (folded into #12) |
 
 ---
 
@@ -94,31 +94,31 @@
 
 ---
 
-## ⏳ Pending Tasks
+### 12 + 13 — Profile-level notification settings (per-follower, YouTube bell)
+- Per-follower opt-in stored on `follows` (`reminder_enabled` + `reminder_minutes`). Recurring series are covered automatically: each occurrence is its own `event_mst` row, so the same setting fires once per occurrence — Task #13's separate-table design ends up redundant and folds in.
+- New table `follow_reminder_dispatches (user_id, event_id, notified_at)` — exactly-once delivery ledger; cron uses `ON CONFLICT DO NOTHING` so duplicate firings can't double-notify.
+- `process_event_reminders` cron gets a second block joining `follows → event_mst`. Manual `event_reminders` rows suppress the follow-level reminder for that event (manual wins). `data.type = 'follow_reminder'` distinguishes from manual `'reminder'`.
+- New SP `update_follow_reminder` — requires an active follow row; range-checks 1–1440 minutes.
+- **Files:** [[schema/tables/10_follows.md]] · [[schema/tables/16_follow_reminder_dispatches.md]] · [[functions/follow/update_follow_reminder.md]] · [[functions/notifications/process_event_reminders.md]] · [[docs/api/follow/update_follow_reminder.md]]
+- **Log:** [[updates/2026-05-11.md]]
 
-### 2 + 3 + 4 — Notification read state
+**Migration required:**
+```sql
+ALTER TABLE public.follows
+  ADD COLUMN IF NOT EXISTS reminder_enabled boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS reminder_minutes int     NOT NULL DEFAULT 10;
 
-**What's needed:**
-
-**Schema change — `notifications` table:**
-- Add `is_read boolean NOT NULL DEFAULT false`
-- Migration: `ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS is_read boolean NOT NULL DEFAULT false;`
-
-**New SP: `get_unread_notification_count`**
-- Input: `p_user_id uuid`
-- Returns: `{ "status": true, "data": { "unread_count": N } }`
-- Query: `SELECT COUNT(*) FROM notifications WHERE user_id = p_user_id AND is_read = false`
-
-**New SP: `mark_notifications_read`**
-- Input: `p_user_id uuid`, `p_notification_ids uuid[] DEFAULT null`
-- If `p_notification_ids` is null → mark ALL unread notifications for this user as read
-- If `p_notification_ids` is provided → mark only those IDs as read (must belong to this user)
-- Returns: `{ "status": true, "message": "N notification(s) marked as read" }`
-
-**Also update `get_notifications`:**
-- Include `is_read` field in the SELECT output so clients know which ones are unread
+CREATE TABLE IF NOT EXISTS public.follow_reminder_dispatches (
+    user_id     uuid        NOT NULL REFERENCES public.users(id)        ON DELETE CASCADE,
+    event_id    uuid        NOT NULL REFERENCES public.event_mst(event_id) ON DELETE CASCADE,
+    notified_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, event_id)
+);
+```
 
 ---
+
+## ⏳ Pending Tasks
 
 ### 11 — Postpone / remove a single occurrence in a recurring series
 
@@ -143,78 +143,8 @@ Two sub-features:
 
 ---
 
-### 12 — Profile-level notification settings
-
-**What's needed:**
-
-**Schema change — `creator_profiles` table:**
-- Add `reminder_enabled boolean NOT NULL DEFAULT false` — global on/off toggle for this profile
-- Add `reminder_minutes int DEFAULT 10` — how many minutes before each event to notify followers
-- Migration:
-  ```sql
-  ALTER TABLE public.creator_profiles
-    ADD COLUMN IF NOT EXISTS reminder_enabled boolean NOT NULL DEFAULT false,
-    ADD COLUMN IF NOT EXISTS reminder_minutes int DEFAULT 10;
-  ```
-
-**Behaviour:**
-- When a user follows a profile with `reminder_enabled = true`, they automatically receive a notification `reminder_minutes` minutes before every event on that profile
-- No manual per-event setup required — it is automatic for all followers
-- This is different from the existing `event_reminders` table which is manual and per-event per-user
-
-**New SP: `update_profile_reminder_settings`**
-- Input: `p_profile_id uuid`, `p_user_id uuid`, `p_reminder_enabled boolean`, `p_reminder_minutes int DEFAULT null`
-- Validates `p_reminder_minutes` is between 1 and 1440 (max 24 hours)
-- Owner check: profile must belong to `p_user_id`
-- Updates both columns on `creator_profiles`
-
-**Update `process_event_reminders` cron job:**
-- Add a second query block that fires for followers of profiles where `reminder_enabled = true`
-- Must deduplicate against `event_reminders` (manual) to avoid double-notifying
-
----
-
-### 13 — Recurring-event notification options
-
-**What's needed:**
-
-This feature allows a user to configure a reminder for an **entire recurring series** rather than individual occurrences.
-
-**Schema — new table `recurring_event_reminders`:**
-```sql
-CREATE TABLE IF NOT EXISTS public.recurring_event_reminders (
-    id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id          uuid        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-    event_id         uuid        NOT NULL REFERENCES public.event_mst(event_id) ON DELETE CASCADE,
-    -- event_id must be the PARENT event (parent_event_id IS NULL, is_recurring = true)
-    reminder_minutes int         NOT NULL,
-    is_active        boolean     NOT NULL DEFAULT true,
-    created_at       timestamptz DEFAULT now(),
-    updated_at       timestamptz DEFAULT now(),
-    UNIQUE (user_id, event_id)
-);
-```
-
-**Behaviour:**
-- Setting a reminder on the parent event applies automatically to every child occurrence
-- `process_event_reminders` resolves child occurrences via `parent_event_id` and fires at the configured time before each child
-
-**New SPs:**
-- `set_recurring_reminder` — upsert a row in `recurring_event_reminders`; validates `event_id` is a parent recurring event
-- `remove_recurring_reminder` — soft-deactivate (`is_active = false`) or delete the row
-
-**Update `process_event_reminders`:**
-- Add a third query block that joins `recurring_event_reminders` → child events via `parent_event_id` and fires at the right time
-
-> **Dependency:** Task 12 (profile-level notifications) should be implemented first, as `process_event_reminders` needs to be refactored for both features together.
-
----
-
 ## Suggested Implementation Order
 
-| Priority | Tasks | Reason |
-|----------|-------|--------|
-| 1st | #2 · #3 · #4 | Single schema column + 2 small SPs. Quick win, unblocks notification UX. |
-| 2nd | #11 | Self-contained. No schema changes — two new SPs on existing tables. |
-| 3rd | #12 | Schema change on `creator_profiles` + SP + cron update. |
-| 4th | #13 | New table + SPs + cron update. Builds on #12's cron refactor. |
+| Priority | Task | Reason |
+|----------|------|--------|
+| Next | #11 | Self-contained. No schema changes — two new SPs (`skip_recurring_occurrence`, `postpone_recurring_occurrence`) on existing tables. |
