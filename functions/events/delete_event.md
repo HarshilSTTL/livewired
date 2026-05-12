@@ -4,7 +4,7 @@
 -- Function: delete_event
 -- Group: Events
 -- Endpoint: POST /rpc/delete_event
--- Tables:   event_mst (UPDATE), event_reminders (soft delete), event_collaborators (soft delete)
+-- Tables:   event_mst (UPDATE), event_reminders (DELETE), event_collaborators (UPDATE)
 -- Doc: docs/api/events/delete_event.md
 --
 -- Soft-deletes an event with scope control for recurring series.
@@ -80,9 +80,8 @@ BEGIN
         SET is_deleted = true, deleted_at = now()
         WHERE event_id = p_event_id;
 
-        -- Soft delete any associated reminders and collaborator records
-        UPDATE event_reminders
-        SET is_deleted = true
+        -- Hard delete associated reminders (no is_deleted column) and soft delete collaborators
+        DELETE FROM event_reminders
         WHERE event_id = p_event_id;
 
         UPDATE event_collaborators
@@ -123,9 +122,8 @@ BEGIN
             SET is_deleted = true, deleted_at = now()
             WHERE parent_event_id = v_target_id;
 
-            -- Soft delete all associated reminders
-            UPDATE event_reminders
-            SET is_deleted = true
+            -- Hard delete all associated reminders (no is_deleted column)
+            DELETE FROM event_reminders
             WHERE event_id IN (
                 SELECT event_id FROM event_mst
                 WHERE event_id = v_target_id OR parent_event_id = v_target_id
