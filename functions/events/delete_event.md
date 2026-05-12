@@ -15,6 +15,10 @@
 --           — if parent_event_id IS NULL (parent or non-recurring), error
 --   'all'   — delete entire recurring series (parent + all children) OR single event
 --           — routes intelligently based on event structure
+--
+-- ⚠️ DEPLOYMENT: After deploying this function, run in Supabase SQL editor:
+--    NOTIFY pgrst, 'reload schema';
+--    This reloads PostgREST schema cache and activates the new function.
 
 CREATE OR REPLACE FUNCTION delete_event(
     p_event_id uuid,
