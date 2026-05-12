@@ -21,19 +21,19 @@ DECLARE
     v_platforms json;
 BEGIN
 
-    -- ── Fetch four platforms ──────────────────────────────────────────────────
+    -- ── Fetch all platforms ───────────────────────────────────────────────────
     SELECT json_agg(
         json_build_object(
             'plat_id',   p.plat_id,
             'plat_name', p.plat_name,
             'logo_url',  p.logo_url
         )
+        
         ORDER BY p.plat_id ASC
     )
     INTO v_platforms
     FROM platforms p
-    WHERE p.plat_name IN ('YouTube', 'Twitch', 'Kick', 'Rumble');
-
+WHERE p.plat_id IN (1,2,3,4);
     RETURN json_build_object(
         'status',  true,
         'message', 'Platforms fetched successfully',
