@@ -21,7 +21,7 @@ Different from `update_follow_reminder` (event-specific manual reminders).
 | `p_user_id` | uuid | ✅ | The logged-in user |
 | `p_profile_id` | uuid | ✅ | The profile to subscribe to |
 | `p_event_notification_enabled` | boolean | ✅ | Enable/disable subscription |
-| `p_event_notification_minutes` | int | ❌ | Minutes before event: 5, 10, 15, or NULL (default: NULL = at event start) |
+| `p_event_notification_minutes` | int | ❌ | Minutes before event: 1-1440, or NULL (default: NULL = at event start) |
 
 ---
 
@@ -140,7 +140,7 @@ Different from `update_follow_reminder` (event-specific manual reminders).
 | `Profile ID is required` | `p_profile_id` is null |
 | `Profile not found` | No profile with that ID |
 | `You do not follow this profile` | User doesn't have active follow relationship |
-| `Event notification minutes must be 5, 10, 15, or NULL (at start)` | Invalid minutes value |
+| `Event notification minutes must be between 1 and 1440, or NULL (at start)` | Minutes outside valid range (1-1440) |
 | `Something went wrong` | Unhandled exception |
 
 ---
@@ -153,8 +153,8 @@ Different from `update_follow_reminder` (event-specific manual reminders).
 
 **Notification Timing:**
 - `p_event_notification_minutes = NULL` → notify exactly at event start time
-- `p_event_notification_minutes = 5/10/15` → notify X minutes before event start
-- Only these 3 values (5, 10, 15) are valid; NULL also valid
+- `p_event_notification_minutes = 1 to 1440` → notify X minutes before event start
+- Range: 1 minute to 24 hours (1440 minutes)
 
 **Applies to All Events:**
 - Notifications fire for ALL events on the profile (recurring + non-recurring)

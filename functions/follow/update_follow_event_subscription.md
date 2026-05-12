@@ -68,10 +68,10 @@ BEGIN
 
     -- ── Validate minutes if enabling with "before" option ────────────────────
     IF p_event_notification_enabled AND p_event_notification_minutes IS NOT NULL THEN
-        IF p_event_notification_minutes NOT IN (5, 10, 15) THEN
+        IF p_event_notification_minutes < 1 OR p_event_notification_minutes > 1440 THEN
             RETURN json_build_object(
                 'status', false,
-                'message', 'Event notification minutes must be 5, 10, 15, or NULL (at start)'
+                'message', 'Event notification minutes must be between 1 and 1440, or NULL (at start)'
             );
         END IF;
     END IF;
