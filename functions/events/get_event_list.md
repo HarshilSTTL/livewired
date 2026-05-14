@@ -105,6 +105,7 @@ BEGIN
         WHERE (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date = p_date
           AND cp.status    = 'active'
           AND e.is_deleted = false
+          AND (e.is_recurring = false OR e.parent_event_id IS NOT NULL)
           AND (
               p_user_id IS NULL
               OR cp.id IN (
@@ -187,6 +188,7 @@ BEGIN
         WHERE (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date = p_date
           AND cp.status     = 'active'
           AND e.is_deleted  = false
+          AND (e.is_recurring = false OR e.parent_event_id IS NOT NULL)
           -- Must have an end time
           AND e.event_end_time IS NOT NULL
           -- Has started
@@ -275,6 +277,7 @@ BEGIN
         WHERE (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date = p_date
           AND cp.status    = 'active'
           AND e.is_deleted = false
+          AND (e.is_recurring = false OR e.parent_event_id IS NOT NULL)
           -- Not yet started, OR started but no end_time (unknown duration)
           AND (
               -- upcoming
@@ -377,6 +380,7 @@ BEGIN
         WHERE (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date = p_date
           AND cp.status    = 'active'
           AND e.is_deleted = false
+          AND (e.is_recurring = false OR e.parent_event_id IS NOT NULL)
           AND (
               p_user_id IS NULL
               OR cp.id IN (
