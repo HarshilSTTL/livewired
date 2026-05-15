@@ -2,7 +2,7 @@
 
 ## Overview
 
-Retrieves the reminder configuration for a profile that a user follows. Tells you whether the user has notifications enabled for that profile and at what interval.
+Retrieves the profile-level event notification settings for a profile that a user follows. Tells you whether the user has profile-level notifications (automatic event subscriptions) enabled and at what interval before event start.
 
 ---
 
@@ -173,6 +173,8 @@ print(result)
 
 ## Notes
 
+- This retrieves **profile-level event notifications** (automatic subscriptions for all events on the profile).
+- For manual per-event reminders, use [`get_event_reminder`](../events/get_event_reminder.md).
 - Only active follows (`is_active = true`) are checked. Unfollowed profiles return an error.
-- When reminders are disabled (`has_reminder: false`), `reminder_minutes` is `null`.
-- When reminders are enabled, `reminder_minutes` contains the notification lead time in minutes (1–1440).
+- When notifications are disabled (`has_reminder: false`), `reminder_minutes` is `null`.
+- When notifications are enabled, `reminder_minutes` contains the notification lead time in minutes before event start (NULL means at event start time).

@@ -7,8 +7,9 @@
 -- Tables:   follows (SELECT)
 -- Doc: docs/api/follow/get_profile_reminder.md
 --
--- Checks if a user has set up reminders for a specific profile they follow.
--- Returns has_reminder status and reminder_minutes if enabled.
+-- Checks if a user has profile-level event notifications enabled for a profile they follow.
+-- Returns notification status (event_notification_enabled) and notification_minutes if enabled.
+-- This is for automatic profile-level event subscriptions (all events on the profile).
 --
 -- If user doesn't follow this profile (or follow is not active),
 -- returns status: false with "User not followed" message.
@@ -34,7 +35,7 @@ BEGIN
     END IF;
 
     -- ── Check if user follows this profile (active only) ──────────────────────
-    SELECT reminder_enabled, reminder_minutes
+    SELECT event_notification_enabled, event_notification_minutes
     INTO v_reminder_enabled, v_reminder_minutes
     FROM follows
     WHERE user_id    = p_user_id
