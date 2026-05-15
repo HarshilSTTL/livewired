@@ -60,7 +60,7 @@ SQL CREATE statements → `schema/tables/`
 
 ---
 
-## APIs: 27 Stored Procedures
+## APIs: 31 Stored Procedures
 
 | # | Function | Endpoint | Method | Group |
 |---|----------|----------|--------|-------|
@@ -81,16 +81,20 @@ SQL CREATE statements → `schema/tables/`
 | 15 | unfollow_creator | /rpc/unfollow_creator | POST | Follow |
 | 16 | get_following_list | /rpc/get_following_list | POST | Follow |
 | 17 | get_followers_list | /rpc/get_followers_list | POST | Follow |
-| 18 | get_event_list | /rpc/get_event_list | POST | Events |
-| 19 | search_profiles | /rpc/search_profiles | POST | Search |
-| 20 | search_events | /rpc/search_events | POST | Search |
-| 25 | search_collaborator_profiles | /rpc/search_collaborator_profiles | POST | Search |
-| 21 | invite_collaborator | /rpc/invite_collaborator | POST | Events |
-| 22 | respond_collaborator_invite | /rpc/respond_collaborator_invite | POST | Events |
-| 23 | remove_collaborator | /rpc/remove_collaborator | POST | Events |
-| 24 | notify_expiring_recurring_events | /rpc/notify_expiring_recurring_events | POST | Events |
-| 26 | get_unread_notification_count | /rpc/get_unread_notification_count | POST | Notifications |
-| 27 | mark_notifications_read | /rpc/mark_notifications_read | POST | Notifications |
+| 18 | update_follow_reminder | /rpc/update_follow_reminder | POST | Follow |
+| 19 | get_profile_reminder | /rpc/get_profile_reminder | POST | Follow |
+| 20 | get_event_list | /rpc/get_event_list | POST | Events |
+| 21 | get_event_reminder | /rpc/get_event_reminder | POST | Events |
+| 22 | search_profiles | /rpc/search_profiles | POST | Search |
+| 23 | search_events | /rpc/search_events | POST | Search |
+| 24 | search_collaborator_profiles | /rpc/search_collaborator_profiles | POST | Search |
+| 25 | invite_collaborator | /rpc/invite_collaborator | POST | Events |
+| 26 | respond_collaborator_invite | /rpc/respond_collaborator_invite | POST | Events |
+| 27 | remove_collaborator | /rpc/remove_collaborator | POST | Events |
+| 28 | notify_expiring_recurring_events | /rpc/notify_expiring_recurring_events | POST | Events |
+| 29 | get_unread_notification_count | /rpc/get_unread_notification_count | POST | Notifications |
+| 30 | mark_notifications_read | /rpc/mark_notifications_read | POST | Notifications |
+| 31 | clear_notifications | /rpc/clear_notifications | POST | Notifications |
 
 Full API docs → `docs/api/`
 SQL function code → `functions/`
