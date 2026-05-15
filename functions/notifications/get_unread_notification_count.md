@@ -28,8 +28,9 @@ BEGIN
     SELECT COUNT(*)
     INTO v_count
     FROM notifications
-    WHERE user_id = p_user_id
-      AND is_read = false;
+    WHERE user_id    = p_user_id
+      AND is_read    = false
+      AND is_cleared = false;
 
     RETURN json_build_object(
         'status',  true,

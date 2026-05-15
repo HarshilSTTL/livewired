@@ -68,7 +68,8 @@ BEGIN
                             (n.data->>'responding_profile_id')
                         )
                     )::uuid
-                    WHERE n.user_id    = p_user_id
+                    WHERE n.user_id     = p_user_id
+                      AND n.is_cleared  = false
                       AND n.created_at >= NOW() - INTERVAL '2 days'
                     ORDER BY n.created_at DESC
                 ) n

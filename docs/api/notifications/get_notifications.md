@@ -140,6 +140,7 @@ Returns the authenticated user's notification history from the past 2 days, sort
 ## Notes
 
 - Only notifications created within the **past 2 days** (`NOW() - INTERVAL '2 days'`) are returned
+- **Cleared notifications are excluded** — notifications with `is_cleared = true` do not appear in this list (use [`clear_notifications`](clear_notifications.md) to hide notifications)
 - Results are ordered by `created_at DESC` (latest first)
 - Returns `[]` (empty array) if the user has no notifications in that window — never `null`
 - **Profile context** — each notification includes the related profile's `profile_id`, `profile_name`, and `avatar` for easy identification of which profile the notification is about
@@ -151,4 +152,5 @@ Returns the authenticated user's notification history from the past 2 days, sort
 
 - [`get_unread_notification_count`](get_unread_notification_count.md) — badge count for unread notifications
 - [`mark_notifications_read`](mark_notifications_read.md) — mark all or specific notifications as read
+- [`clear_notifications`](clear_notifications.md) — clear (hide) all or specific notifications
 - [`process_event_reminders`](../../../functions/notifications/process_event_reminders.md) — cron job that inserts notifications

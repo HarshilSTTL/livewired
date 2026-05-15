@@ -64,12 +64,15 @@ Returns the number of unread notifications for the authenticated user. Use this 
 
 ## Notes
 
-- Counts **all** unread notifications for the user — not limited to a time window
-- Call this on app launch and after `mark_notifications_read` to keep the badge in sync
+- Counts **unread AND not cleared** notifications for the user — cleared notifications are excluded
+- **Cleared notifications do NOT count** — if you clear a notification, it is excluded from this count regardless of its `is_read` status
+- Not limited to a time window (includes notifications older than 2 days)
+- Call this on app launch and after `mark_notifications_read` or `clear_notifications` to keep the badge in sync
 
 ---
 
 ## Related
 
-- [`get_notifications`](get_notifications.md) — fetch notification list (includes `is_read` field)
+- [`get_notifications`](get_notifications.md) — fetch notification list (includes `is_read` field, excludes cleared)
 - [`mark_notifications_read`](mark_notifications_read.md) — mark all or specific notifications as read
+- [`clear_notifications`](clear_notifications.md) — clear (hide) all or specific notifications
