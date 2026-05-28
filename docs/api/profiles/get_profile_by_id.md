@@ -1,6 +1,8 @@
-# SP: `get_profile_by_id`
+# SP: `get_profile_by_id` (v1, v2, v2.1)
 
-**Endpoint:** `POST /rpc/get_profile_by_id`
+**Latest Endpoint:** `POST /rpc/get_profile_by_id_v2_1`
+**Previous Endpoint:** `POST /rpc/get_profile_by_id_v2`
+**Deprecated Endpoint:** `POST /rpc/get_profile_by_id`
 **Group:** Profile
 **SQL:** [`functions/profiles/get_profile_by_id.md`](../../../functions/profiles/get_profile_by_id.md)
 
@@ -19,6 +21,21 @@
 Returns the **full detail** of a single profile by `profile_id`. Used after the user selects
 a profile from the post-login picker — pass the `profile_id` returned by `get_user_profiles`
 to load everything about that profile.
+
+### Version Comparison
+
+| Version | Endpoint | Platform Ordering | Features |
+|---------|----------|-------------------|----------|
+| **v2.1** (Current) | `/rpc/get_profile_by_id_v2_1` | User preferences + group order | Custom drag-drop reordering, all 3 link groups ordered |
+| **v2** | `/rpc/get_profile_by_id_v2` | ID-based (1→2→3→4) | Fixed platform order, platforms only |
+| **v1** (Deprecated) | `/rpc/get_profile_by_id` | Database order | Unordered platforms |
+
+### What's New in v2.1?
+
+- **Respects user preferences:** Links are ordered by the `profile_link_preferences` table
+- **Three link groups:** Platforms (1-4) → Additional Links (5+) → Custom Links
+- **Drag-drop ready:** Each group respects the order set by `reorder_social_links_v2` API
+- **Backward compatible:** Same response structure as v2, just with reordered platforms
 
 ---
 
