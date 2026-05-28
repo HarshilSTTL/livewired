@@ -5,7 +5,7 @@
 -- Group: Notifications
 -- Endpoint: POST /rpc/get_notifications
 -- Doc: docs/api/notifications/get_notifications.md
--- Returns the user's notifications from the past 2 days, latest first.
+-- Returns all of the user's notifications, latest first.
 -- Includes related profile info and, for collaboration notifications, a list of all collaborators.
 
 CREATE OR REPLACE FUNCTION get_notifications(
@@ -70,7 +70,6 @@ BEGIN
                     )::uuid
                     WHERE n.user_id     = p_user_id
                       AND n.is_cleared  = false
-                      AND n.created_at >= NOW() - INTERVAL '2 days'
                     ORDER BY n.created_at DESC
                 ) n
             ),

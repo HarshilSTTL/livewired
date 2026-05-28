@@ -9,7 +9,7 @@
 
 ## Overview
 
-Returns the authenticated user's notification history from the past 2 days, sorted latest first.
+Returns all of the authenticated user's notifications, sorted latest first.
 
 ---
 
@@ -101,7 +101,7 @@ Returns the authenticated user's notification history from the past 2 days, sort
 }
 ```
 
-> `data` always returns as an array — `[]` if no notifications in the past 2 days.
+> `data` always returns as an array — `[]` if no notifications exist.
 > `collaborators` is `null` for non-collaboration notifications; an array of collaborator objects for `type: 'collaborator_invite'`.
 
 ### Error
@@ -139,10 +139,10 @@ Returns the authenticated user's notification history from the past 2 days, sort
 
 ## Notes
 
-- Only notifications created within the **past 2 days** (`NOW() - INTERVAL '2 days'`) are returned
+- **All notifications returned** — no time limit; returns complete notification history
 - **Cleared notifications are excluded** — notifications with `is_cleared = true` do not appear in this list (use [`clear_notifications`](clear_notifications.md) to hide notifications)
 - Results are ordered by `created_at DESC` (latest first)
-- Returns `[]` (empty array) if the user has no notifications in that window — never `null`
+- Returns `[]` (empty array) if the user has no notifications — never `null`
 - **Profile context** — each notification includes the related profile's `profile_id`, `profile_name`, and `avatar` for easy identification of which profile the notification is about
 - **Collaborators** — for collaboration-related notifications (`data.type = 'collaborator_invite'`), the `collaborators` array includes all active (non-deleted) collaborators on the event with their profile info and current status. For non-collaboration notifications, `collaborators` is `null`.
 
