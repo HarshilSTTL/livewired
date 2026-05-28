@@ -1,9 +1,25 @@
-# SP: `search_profiles`
+# SP: `search_profiles` (v1, v2, v2.1)
 
-**Endpoint:** `POST /rpc/search_profiles`
+**Latest Endpoint:** `POST /rpc/search_profiles_v2_1`
+**Previous Endpoint:** `POST /rpc/search_profiles_v2`
+**Deprecated Endpoint:** `POST /rpc/search_profiles`
 **Group:** Search
 **Requires:** `pg_trgm` extension
 **Description:** Elastic/fuzzy search on creator profiles. Matches against `profile_name` and `bio` using both ILIKE partial matching and `word_similarity` fuzzy matching. Results ranked by match score. Uses `SECURITY DEFINER`.
+
+### Version Comparison
+
+| Version | Endpoint | Platform Ordering | Features |
+|---------|----------|-------------------|----------|
+| **v2.1** (Current) | `/rpc/search_profiles_v2_1` | User preferences + fallback to ID | Ordered platforms in search results |
+| **v2** | `/rpc/search_profiles_v2` | No specific order | Platforms only (1-4) |
+| **v1** (Deprecated) | `/rpc/search_profiles` | No specific order | All platforms |
+
+### What's New in v2.1?
+
+- **Respects user preferences:** Platforms are ordered by the `profile_link_preferences` table for each result
+- **Fallback ordering:** If no preferences set, falls back to platform ID ordering (1→2→3→4)
+- **Backward compatible:** Same response structure as v2, just with reordered platforms
 
 ---
 

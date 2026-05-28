@@ -1,6 +1,8 @@
-# SP: `search_collaborator_profiles`
+# SP: `search_collaborator_profiles` (v1, v2, v2.1)
 
-**Endpoint:** `POST /rpc/search_collaborator_profiles`
+**Latest Endpoint:** `POST /rpc/search_collaborator_profiles_v2_1`
+**Previous Endpoint:** `POST /rpc/search_collaborator_profiles_v2`
+**Deprecated Endpoint:** `POST /rpc/search_collaborator_profiles`
 **Group:** Search
 **SQL:** [`functions/search/search_collaborator_profiles.md`](../../../functions/search/search_collaborator_profiles.md)
 **Tables read:** `creator_profiles` · `creator_platform_accounts` · `platforms` · `event_collaborators`

@@ -1,9 +1,11 @@
-# SP: `get_profile_by_userid`
+# SP: `get_profile_by_userid` (v1, v2, v2.1)
 
-**Endpoint:** `POST /rpc/get_profile_by_userid`
+**Latest Endpoint:** `POST /rpc/get_profile_by_userid_v2_1`
+**Previous Endpoint:** `POST /rpc/get_profile_by_userid_v2`
+**Deprecated Endpoint:** `POST /rpc/get_profile_by_userid`
 **Group:** Profile
 **SQL:** [`functions/profiles/get_profile_by_userid.md`](../../../functions/profiles/get_profile_by_userid.md)
-**Tables read:** `creator_profiles` · `creator_platform_accounts` · `profile_tags` · `follows`
+**Tables read:** `creator_profiles` · `creator_platform_accounts` · `profile_tags` · `follows` · `profile_link_preferences`
 
 ---
 
@@ -12,6 +14,21 @@
 Returns **all profiles** belonging to a given `user_id`. Used for the **"Select Profile"
 dropdown** and profile switcher in the app. Returns all statuses (`active`, `suspended`,
 `deleted`) so the creator sees their complete list. Default profile is always first.
+
+### Version Comparison
+
+| Version | Endpoint | Platform Ordering | Features |
+|---------|----------|-------------------|----------|
+| **v2.1** (Current) | `/rpc/get_profile_by_userid_v2_1` | User preferences + group order | Custom drag-drop reordering, all 3 link groups ordered |
+| **v2** | `/rpc/get_profile_by_userid_v2` | ID-based (1→2→3→4) | Fixed platform order, platforms only |
+| **v1** (Deprecated) | `/rpc/get_profile_by_userid` | Database order | Unordered platforms |
+
+### What's New in v2.1?
+
+- **Respects user preferences:** Links are ordered by the `profile_link_preferences` table for each profile
+- **Three link groups:** Platforms (1-4) → Additional Links (5+) → Custom Links
+- **Per-profile ordering:** Each profile can have different link orders set independently
+- **Backward compatible:** Same response structure as v2, just with reordered platforms
 
 ---
 
