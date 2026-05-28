@@ -37,6 +37,7 @@
 - `bio` is wrapped in `coalesce(cp.bio, '')` to handle nulls safely
 - Results ranked by `GREATEST(word_similarity(keyword, profile_name), word_similarity(keyword, bio)) DESC`
 - Only active creator profiles (`cp.status = 'active'`) are searched
+- Only main streaming platforms are returned (IDs 1-4: YouTube, Twitch, Kick, Rumble) — custom links and additional links excluded
 
 ---
 
@@ -126,6 +127,9 @@
 - `match_score` is `0.0 – 1.0` — higher = better match
 - `avatar` and `bio` are nullable — handle in UI
 - `platforms` always an array (never null) via `coalesce(..., '[]'::json)`
+  - **Only includes main streaming platforms** (IDs 1-4: YouTube, Twitch, Kick, Rumble)
+  - Custom links and additional links are excluded from search results
+  - To fetch custom links, use `get_profile_custom_links` on the profile detail page
 - `followers` is `null` when the creator has `show_followers = false` — handle in UI
 - `pg_trgm` extension must be enabled: see `schema/extensions/pg_trgm.md`
 - Trigram indexes on `creator_profiles.profile_name`, `.bio` improve performance: see `schema/indexes/trigram_indexes.md`

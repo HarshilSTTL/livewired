@@ -66,6 +66,7 @@ BEGIN
                 JOIN platforms p ON p.plat_id = cpa.platform_id
                 WHERE cpa.profile_id = cp.id
                   AND cpa.is_deleted = false
+                  AND p.plat_id IN (1, 2, 3, 4)
             ),
             'match_score', GREATEST(
                 word_similarity(v_keyword, cp.profile_name),
