@@ -1,6 +1,8 @@
-# SP: `get_profiles`
+# SP: `get_profiles` (v1, v2, v2.1)
 
-**Endpoint:** `POST /rpc/get_profiles`
+**Latest Endpoint:** `POST /rpc/get_profiles_v2_1`
+**Previous Endpoint:** `POST /rpc/get_profiles_v2`
+**Deprecated Endpoint:** `POST /rpc/get_profiles`
 **Group:** Profile
 **Description:** Dashboard profile browser with optional search, fuzzy matching, and pagination. Returns all active creator profiles by default. When a keyword is provided, results are filtered by profile name using both ILIKE and `word_similarity` (fuzzy match), ordered by relevance. Designed for the dashboard search screen — distinct from `search_profiles` which requires a keyword.
 **Requires:** `pg_trgm` extension

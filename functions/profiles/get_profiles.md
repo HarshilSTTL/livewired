@@ -1,8 +1,13 @@
-# `get_profiles` (v1 & v2)
+# `get_profiles` (v1, v2 & v2.1)
 
 ## Version History
 
-### v2 (Current — 2026-05-28)
+### v2.1 (Current — 2026-05-28)
+- **Change:** Platforms ordered by user preferences from profile_link_preferences
+- **Reason:** Respects user's drag-drop reordering in profile listings
+- **Endpoint:** `POST /rpc/get_profiles_v2_1`
+
+### v2 (Previous — 2026-05-28)
 - **Change:** Platforms filtered to main streaming platforms only (IDs 1-4)
 - **Reason:** Consistent with other search APIs; cleaner results
 - **Endpoint:** `POST /rpc/get_profiles_v2`
@@ -13,7 +18,135 @@
 
 ---
 
-## V2 Function (Current)
+## V2.1 Function (Current)
+
+```sql
+-- Function: get_profiles_v2_1
+-- Group: Profile
+-- Endpoint: POST /rpc/get_profiles_v2_1
+-- Requires: pg_trgm extension
+-- Doc: docs/api/profiles/get_profiles.md
+-- Version: 2.1 (2026-05-28)
+-- Changes: Platforms ordered by user preferences (profile_link_preferences)
+
+CREATE OR REPLACE FUNCTION get_profiles_v2_1(
+    p_keyword text DEFAULT null,
+    p_limit   int  DEFAULT 20,
+    p_offset  int  DEFAULT 0
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_keyword text;
+    v_total   int;
+BEGIN
+
+    -- ── Normalise + clamp inputs ──────────────────────────────────────────────
+    v_keyword := CASE
+        WHEN p_keyword IS NULL OR trim(p_keyword) = '' THEN NULL
+        ELSE trim(p_keyword)
+    END;
+
+    IF p_limit IS NULL OR p_limit < 1   THEN p_limit  := 20;  END IF;
+    IF p_limit > 100                    THEN p_limit  := 100; END IF;
+    IF p_offset IS NULL OR p_offset < 0 THEN p_offset := 0;   END IF;
+
+    -- ── Total count (for pagination) ──────────────────────────────────────────
+    SELECT COUNT(*)
+    INTO   v_total
+    FROM   creator_profiles cp
+    WHERE  cp.status = 'active'
+      AND  (
+               v_keyword IS NULL
+               OR cp.profile_name ILIKE '%' || v_keyword || '%'
+               OR word_similarity(v_keyword, cp.profile_name) > 0.3
+           );
+
+    -- ── Result page ───────────────────────────────────────────────────────────
+    RETURN json_build_object(
+        'status', true,
+        'data', json_build_object(
+            'total',    v_total,
+            'limit',    p_limit,
+            'offset',   p_offset,
+            'profiles', COALESCE((
+                SELECT json_agg(row_to_json(t))
+                FROM (
+                    SELECT
+                        cp.id            AS profile_id,
+                        cp.profile_name,
+                        cp.avatar,
+                        CASE
+                            WHEN cp.show_followers = true THEN (
+                                SELECT COUNT(*)
+                                FROM follows f
+                                WHERE f.profile_id = cp.id
+                                  AND f.is_active = true
+                            )
+                            ELSE NULL
+                        END              AS followers,
+                        (
+                            -- Platforms ordered by user preferences
+                            SELECT COALESCE(
+                                json_agg(json_build_object(
+                                    'platform_id',   p.plat_id,
+                                    'logo_url',      p.logo_url
+                                ) ORDER BY sort_order),
+                                '[]'::json
+                            )
+                            FROM (
+                                SELECT
+                                    p.plat_id,
+                                    p.logo_url,
+                                    COALESCE(
+                                        (SELECT array_position(plp.platform_ids_order, p.plat_id)
+                                         FROM profile_link_preferences plp
+                                         WHERE plp.profile_id = cp.id),
+                                        p.plat_id + 100  -- fallback to ID order
+                                    ) as sort_order
+                                FROM creator_platform_accounts cpa
+                                JOIN platforms p ON p.plat_id = cpa.platform_id
+                                WHERE cpa.profile_id = cp.id
+                                  AND cpa.is_deleted = false
+                                  AND p.plat_id IN (1, 2, 3, 4)
+                            ) platform_list
+                        )                AS platforms
+                    FROM creator_profiles cp
+                    WHERE cp.status = 'active'
+                      AND (
+                              v_keyword IS NULL
+                              OR cp.profile_name ILIKE '%' || v_keyword || '%'
+                              OR word_similarity(v_keyword, cp.profile_name) > 0.3
+                          )
+                    ORDER BY
+                        CASE WHEN v_keyword IS NULL THEN 0
+                             ELSE word_similarity(v_keyword, cp.profile_name)
+                        END DESC,
+                        cp.created_at DESC
+                    LIMIT  p_limit
+                    OFFSET p_offset
+                ) t
+            ), '[]'::json)
+        )
+    );
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object(
+            'status',  false,
+            'message', 'Something went wrong',
+            'error',   SQLERRM
+        );
+END;
+$$;
+```
+
+---
+
+## V2 Function (Previous)
 
 ```sql
 -- Function: get_profiles_v2
