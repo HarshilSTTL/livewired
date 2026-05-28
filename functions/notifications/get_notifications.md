@@ -1,10 +1,12 @@
 # `get_notifications`
 
 ```sql
--- Function: get_notifications
+-- Function: get_notifications (V2 - Current)
 -- Group: Notifications
 -- Endpoint: POST /rpc/get_notifications
 -- Doc: docs/api/notifications/get_notifications.md
+-- Version: 2.0 (2026-05-28)
+-- Changes: Removed 2-day time limit. Now returns ALL notifications (both read and unread)
 -- Returns all of the user's notifications, latest first.
 -- Includes related profile info and, for collaboration notifications, a list of all collaborators.
 

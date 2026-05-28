@@ -1,10 +1,12 @@
 # `get_unread_notification_count`
 
 ```sql
--- Function: get_unread_notification_count
+-- Function: get_unread_notification_count (V2 - Current)
 -- Group: Notifications
 -- Endpoint: POST /rpc/get_unread_notification_count
 -- Doc: docs/api/notifications/get_unread_notification_count.md
+-- Version: 2.0 (2026-05-28)
+-- Changes: Synced with get_notifications_v2 for consistency (no 2-day limit)
 -- Returns the count of unread notifications for the authenticated user.
 
 CREATE OR REPLACE FUNCTION get_unread_notification_count(
