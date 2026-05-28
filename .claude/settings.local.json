@@ -3,7 +3,9 @@
     "allow": [
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(Get-ChildItem -Path C:\\\\Users\\\\stadmin\\\\Desktop\\\\STTL\\\\Projects\\\\Livewired -Depth 1)",
+      "Bash(Select-Object Name, PSIsContainer)"
     ]
   }
 }
