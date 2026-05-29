@@ -5,7 +5,7 @@
 **Deprecated Endpoint:** `POST /rpc/search_collaborator_profiles`
 **Group:** Search
 **SQL:** [`functions/search/search_collaborator_profiles.md`](../../../functions/search/search_collaborator_profiles.md)
-**Tables read:** `creator_profiles` · `creator_platform_accounts` · `platforms` · `event_collaborators`
+**Tables read:** `creator_profiles` · `creator_platform_accounts` · `profile_custom_links` · `platforms` · `event_collaborators` · `profile_link_preferences`
 
 ---
 
@@ -17,6 +17,23 @@ Searches active creator profiles for use in the collaborator picker during event
 - If `p_event_id` is provided, also excludes profiles that already have a pending or accepted (non-deleted) invite for that event, so already-invited profiles do not appear in results.
 
 Use `search_profiles` for general profile search. Use this SP only for the collaborator picker.
+
+---
+
+## Version Comparison
+
+| Version | Endpoint | Ordering | Features |
+|---------|----------|----------|----------|
+| **v2.1** (Current) | `/rpc/search_collaborator_profiles_v2_1` | User preferences | All 3 groups, preference ordering, type field |
+| **v2** | `/rpc/search_collaborator_profiles_v2` | ID-based (1-4) | Main platforms only (1-4) |
+| **v1** (Deprecated) | `/rpc/search_collaborator_profiles` | Database order | All platforms |
+
+### What's New in v2.1?
+
+- **All 3 link groups:** Returns platforms (1-4) → additional links (5+) → custom links separately
+- **Type identifier:** Each link has `type` field: "platform", "additional_link", or "custom_link"
+- **Respects user preferences:** Links ordered by `profile_link_preferences` table for each result
+- **Separate fields:** Easier for UI to handle each group differently
 
 ---
 
@@ -54,7 +71,7 @@ Use `search_profiles` for general profile search. Use this SP only for the colla
 
 ## Response
 
-### Success — profiles found
+### Success — profiles found (v2.1)
 ```json
 {
   "status":  true,
@@ -66,7 +83,13 @@ Use `search_profiles` for general profile search. Use this SP only for the colla
       "avatar":       "https://...",
       "bio":          "Gaming creator",
       "platforms": [
-        { "platform_id": 1, "platform_name": "YouTube", "logo_url": "https://..." }
+        { "platform_id": 1, "type": "platform", "platform_name": "YouTube", "logo_url": "https://..." }
+      ],
+      "additional_links": [
+        { "platform_id": 5, "type": "additional_link", "platform_name": "Patreon", "logo_url": "https://..." }
+      ],
+      "custom_links": [
+        { "platform_id": null, "type": "custom_link", "platform_name": "My Website", "logo_url": null }
       ],
       "match_score": 0.85
     }
@@ -104,6 +127,16 @@ Use `search_profiles` for general profile search. Use this SP only for the colla
 
 ---
 
+## Link Type Field Values
+
+| Type Value | Description | Source |
+|---|---|---|
+| `"platform"` | Main streaming platforms (YouTube, Twitch, Kick, Rumble) | Platform IDs 1-4 |
+| `"additional_link"` | Additional platform links (Patreon, Discord, etc.) | Platform IDs 5+ |
+| `"custom_link"` | Creator-defined custom links | profile_custom_links table |
+
+---
+
 ## Logic Flow
 
 ```
@@ -115,8 +148,12 @@ Use `search_profiles` for general profile search. Use this SP only for the colla
    ├── If p_event_id provided:
    │   └── id NOT IN (pending/accepted non-deleted invites for that event)
    └── profile_name or bio matches keyword (ILIKE or word_similarity > 0.3)
-4. Order by match_score DESC, LIMIT p_limit
-5. Return profiles with platform list
+4. For each profile:
+   ├── platforms (IDs 1-4) ordered by preferences, type="platform"
+   ├── additional_links (IDs 5+) ordered by preferences, type="additional_link"
+   └── custom_links ordered by preferences, type="custom_link"
+5. Order by match_score DESC, LIMIT p_limit
+6. Return profiles with all 3 link groups
 ```
 
 ---

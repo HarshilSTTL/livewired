@@ -5,7 +5,7 @@
 **Deprecated Endpoint:** `POST /rpc/get_profile_by_userid`
 **Group:** Profile
 **SQL:** [`functions/profiles/get_profile_by_userid.md`](../../../functions/profiles/get_profile_by_userid.md)
-**Tables read:** `creator_profiles` · `creator_platform_accounts` · `profile_tags` · `follows` · `profile_link_preferences`
+**Tables read:** `creator_profiles` · `creator_platform_accounts` · `profile_custom_links` · `profile_tags` · `follows` · `profile_link_preferences`
 
 ---
 
@@ -17,18 +17,19 @@ dropdown** and profile switcher in the app. Returns all statuses (`active`, `sus
 
 ### Version Comparison
 
-| Version | Endpoint | Platform Ordering | Features |
-|---------|----------|-------------------|----------|
-| **v2.1** (Current) | `/rpc/get_profile_by_userid_v2_1` | User preferences + group order | Custom drag-drop reordering, all 3 link groups ordered |
+| Version | Endpoint | Ordering | Features |
+|---------|----------|----------|----------|
+| **v2.1** (Current) | `/rpc/get_profile_by_userid_v2_1` | User preferences | All 3 groups, preference ordering, type field |
 | **v2** | `/rpc/get_profile_by_userid_v2` | ID-based (1→2→3→4) | Fixed platform order, platforms only |
 | **v1** (Deprecated) | `/rpc/get_profile_by_userid` | Database order | Unordered platforms |
 
 ### What's New in v2.1?
 
-- **Respects user preferences:** Links are ordered by the `profile_link_preferences` table for each profile
-- **Three link groups:** Platforms (1-4) → Additional Links (5+) → Custom Links
+- **All 3 link groups:** Returns platforms (1-4) → additional links (5+) → custom links separately
+- **Type identifier:** Each link has `type` field: "platform", "additional_link", or "custom_link"
+- **Respects user preferences:** Links ordered by `profile_link_preferences` table for each profile
 - **Per-profile ordering:** Each profile can have different link orders set independently
-- **Backward compatible:** Same response structure as v2, just with reordered platforms
+- **Separate fields:** Easier for UI to handle each group differently
 
 ---
 
@@ -52,7 +53,7 @@ dropdown** and profile switcher in the app. Returns all statuses (`active`, `sus
 
 ## Response
 
-### Success
+### Success (v2.1)
 ```json
 {
   "status":  true,
@@ -69,14 +70,38 @@ dropdown** and profile switcher in the app. Returns all statuses (`active`, `sus
         "show_followers":      true,
         "twitch_by_default":   false,
         "kick_by_default":     false,
-        "followers":           142,    // null if show_followers = false
+        "followers":           142,
         "platforms": [
           {
-            "platform_id":   1,
-            "platform_name": "YouTube",
-            "logo_url":      "https://cdn.example.com/yt.png",
-            "channel_url":   "https://youtube.com/@handle123",
-            "is_default":    true
+            "id":             "cpa-uuid-1",
+            "platform_id":    1,
+            "type":           "platform",
+            "platform_name":  "YouTube",
+            "logo_url":       "https://cdn.example.com/yt.png",
+            "channel_url":    "https://youtube.com/@handle123",
+            "is_default":     true
+          }
+        ],
+        "additional_links": [
+          {
+            "id":             "cpa-uuid-5",
+            "platform_id":    5,
+            "type":           "additional_link",
+            "platform_name":  "Patreon",
+            "logo_url":       "https://cdn.example.com/patreon.png",
+            "channel_url":    "https://patreon.com/handle123",
+            "is_default":     false
+          }
+        ],
+        "custom_links": [
+          {
+            "id":             "pcl-uuid-1",
+            "platform_id":    null,
+            "type":           "custom_link",
+            "platform_name":  "My Website",
+            "logo_url":       null,
+            "channel_url":    "https://mywebsite.com",
+            "is_default":     false
           }
         ],
         "tags": [
@@ -111,10 +136,22 @@ dropdown** and profile switcher in the app. Returns all statuses (`active`, `sus
 | `profiles` | Always array, `[]` if user has no profiles |
 | `is_default` | Included — default profile sorted first |
 | `followers` | `null` if `show_followers = false` · count if `true` |
-| `platforms` | Always array, `[]` if none |
+| `platforms` | Array of main streaming platforms (IDs 1-4) with type="platform" |
+| `additional_links` | Array of additional platform links (IDs 5+) with type="additional_link" |
+| `custom_links` | Array of creator-defined custom links with type="custom_link" |
 | `tags` | Always array, `[]` if none |
 | `avatar` | Nullable |
 | `bio` | Nullable |
+
+---
+
+## Link Type Field Values
+
+| Type Value | Description | Source |
+|---|---|---|
+| `"platform"` | Main streaming platforms (YouTube, Twitch, Kick, Rumble) | Platform IDs 1-4 |
+| `"additional_link"` | Additional platform links (Patreon, Discord, etc.) | Platform IDs 5+ |
+| `"custom_link"` | Creator-defined custom links | profile_custom_links table |
 
 ---
 
@@ -135,7 +172,9 @@ dropdown** and profile switcher in the app. Returns all statuses (`active`, `sus
 2. Check user exists in users table
 3. SELECT all profiles WHERE user_id = p_user_id
    ├── For each: followers = CASE WHEN show_followers = true → COUNT(is_active=true) ELSE null END
-   ├── For each: subquery platforms from creator_platform_accounts + platforms
+   ├── For each: platforms (IDs 1-4) ordered by preferences, type="platform"
+   ├── For each: additional_links (IDs 5+) ordered by preferences, type="additional_link"
+   ├── For each: custom_links ordered by preferences, type="custom_link"
    └── For each: subquery tags from profile_tags + tags
 4. ORDER BY is_default DESC, created_at ASC
 5. RETURN profiles array (empty [] if none)
@@ -147,4 +186,5 @@ dropdown** and profile switcher in the app. Returns all statuses (`active`, `sus
 
 - [`create_profile`](create_profile.md) — creates a profile
 - [`update_profile`](update_profile.md) — updates a profile
+- [`reorder_social_links_v2`](reorder_social_links.md) — save link reordering
 - [`creator_profiles` table](../../database/tables/05_creator_profiles.md)

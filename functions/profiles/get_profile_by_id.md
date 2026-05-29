@@ -3,9 +3,10 @@
 ## Version History
 
 ### v2.1 (Current — 2026-05-28)
-- **Change:** Platforms, additional links, and custom links ordered by user drag-drop preferences
-- **Uses:** `profile_link_preferences` table for custom ordering
-- **Order:** Platforms → Additional Links → Custom Links (each in preference order)
+- **Change:** Returns all 3 link groups (platforms, additional_links, custom_links) in separate response fields
+- **Ordering:** Each group ordered by user drag-drop preferences from profile_link_preferences table
+- **Type Field:** Each link includes type identifier ("platform", "additional_link", or "custom_link")
+- **Order:** Platforms (1-4) → Additional Links (5+) → Custom Links (each in preference order)
 - **Endpoint:** `POST /rpc/get_profile_by_id_v2_1`
 
 ### v2 (Previous — 2026-05-28)
@@ -28,8 +29,9 @@
 -- Tables:   creator_profiles, creator_platform_accounts, profile_custom_links, profile_tags, follows, profile_link_preferences
 -- Doc:      docs/api/profiles/get_profile_by_id.md
 -- Version:  2.1 (2026-05-28)
--- Changes:  Uses profile_link_preferences for custom ordering of platforms, additional links, and custom links
---           Display order: platforms (reordered) → additional links (reordered) → custom links (reordered)
+-- Changes:  Returns all 3 link groups (platforms, additional_links, custom_links) in separate fields
+--           Each group ordered by profile_link_preferences with fallback to default order
+--           Each link includes type field for client-side classification
 --
 -- Purpose:  Returns full detail of a single profile by profile_id with links ordered by user preferences.
 
@@ -79,78 +81,104 @@ BEGIN
                                ELSE null
                            END,
         'platforms', (
-            -- Returns platforms, additional links, and custom links in preference order
-            -- Order: platforms (1-4) → additional links (5+) → custom links
-            SELECT coalesce(json_agg(link_obj ORDER BY sort_order), '[]'::json)
+            -- Main streaming platforms (IDs 1-4) ordered by profile_link_preferences
+            SELECT coalesce(json_agg(
+                json_build_object(
+                    'id',             cpa.id,
+                    'platform_id',    cpa.platform_id,
+                    'type',           'platform',
+                    'platform_name',  p.plat_name,
+                    'logo_url',       p.logo_url,
+                    'channel_url',    cpa.channel_url,
+                    'is_default',     cpa.is_default
+                )
+                ORDER BY sort_order ASC
+            ), '[]'::json)
             FROM (
-                -- Platforms (IDs 1-4) ordered by profile_link_preferences.platform_ids_order
                 SELECT
-                    json_build_object(
-                        'platform_id',   cpa.platform_id,
-                        'platform_name', p.plat_name,
-                        'logo_url',      p.logo_url,
-                        'channel_url',   cpa.channel_url,
-                        'is_default',    cpa.is_default
-                    ) as link_obj,
+                    cpa.id,
+                    cpa.platform_id,
+                    p.plat_name,
+                    p.logo_url,
+                    cpa.channel_url,
+                    cpa.is_default,
                     COALESCE(
                         (SELECT array_position(plp.platform_ids_order, cpa.platform_id)
                          FROM profile_link_preferences plp
                          WHERE plp.profile_id = cp.id),
-                        9999
-                    ) as sort_order,
-                    1 as group_priority
+                        cpa.platform_id + 100
+                    ) as sort_order
                 FROM creator_platform_accounts cpa
                 LEFT JOIN platforms p ON p.plat_id = cpa.platform_id
                 WHERE cpa.profile_id = cp.id
                   AND cpa.is_deleted = false
                   AND cpa.platform_id IN (1, 2, 3, 4)
-                
-                UNION ALL
-                
-                -- Additional links (IDs 5+) ordered by profile_link_preferences.additional_ids_order
+            ) platform_list
+        ),
+        'additional_links', (
+            -- Additional platform links (IDs 5+) ordered by profile_link_preferences
+            SELECT coalesce(json_agg(
+                json_build_object(
+                    'id',             cpa.id,
+                    'platform_id',    cpa.platform_id,
+                    'type',           'additional_link',
+                    'platform_name',  p.plat_name,
+                    'logo_url',       p.logo_url,
+                    'channel_url',    cpa.channel_url,
+                    'is_default',     cpa.is_default
+                )
+                ORDER BY sort_order ASC
+            ), '[]'::json)
+            FROM (
                 SELECT
-                    json_build_object(
-                        'platform_id',   cpa.platform_id,
-                        'platform_name', p.plat_name,
-                        'logo_url',      p.logo_url,
-                        'channel_url',   cpa.channel_url,
-                        'is_default',    cpa.is_default
-                    ) as link_obj,
+                    cpa.id,
+                    cpa.platform_id,
+                    p.plat_name,
+                    p.logo_url,
+                    cpa.channel_url,
+                    cpa.is_default,
                     COALESCE(
                         (SELECT array_position(plp.additional_ids_order, cpa.platform_id)
                          FROM profile_link_preferences plp
                          WHERE plp.profile_id = cp.id),
-                        9999
-                    ) as sort_order,
-                    2 as group_priority
+                        cpa.platform_id + 100
+                    ) as sort_order
                 FROM creator_platform_accounts cpa
                 LEFT JOIN platforms p ON p.plat_id = cpa.platform_id
                 WHERE cpa.profile_id = cp.id
                   AND cpa.is_deleted = false
                   AND cpa.platform_id >= 5
-                
-                UNION ALL
-                
-                -- Custom links ordered by profile_link_preferences.custom_ids_order
+            ) additional_list
+        ),
+        'custom_links', (
+            -- Custom creator-defined links ordered by profile_link_preferences
+            SELECT coalesce(json_agg(
+                json_build_object(
+                    'id',             pcl.id,
+                    'platform_id',    NULL,
+                    'type',           'custom_link',
+                    'platform_name',  pcl.platform_name,
+                    'logo_url',       NULL,
+                    'channel_url',    pcl.platform_url,
+                    'is_default',     false
+                )
+                ORDER BY sort_order ASC
+            ), '[]'::json)
+            FROM (
                 SELECT
-                    json_build_object(
-                        'platform_id',   NULL,
-                        'platform_name', pcl.platform_name,
-                        'logo_url',      NULL,
-                        'channel_url',   pcl.platform_url,
-                        'is_default',    false
-                    ) as link_obj,
+                    pcl.id,
+                    pcl.platform_name,
+                    pcl.platform_url,
                     COALESCE(
                         (SELECT array_position(plp.custom_ids_order, pcl.id)
                          FROM profile_link_preferences plp
                          WHERE plp.profile_id = cp.id),
                         9999
-                    ) as sort_order,
-                    3 as group_priority
+                    ) as sort_order
                 FROM profile_custom_links pcl
                 WHERE pcl.profile_id = cp.id
                   AND pcl.is_deleted = false
-            ) all_links
+            ) custom_list
         ),
         'tags', (
             SELECT coalesce(

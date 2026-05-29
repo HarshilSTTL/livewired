@@ -9,17 +9,19 @@
 
 ### Version Comparison
 
-| Version | Endpoint | Platform Ordering | Features |
-|---------|----------|-------------------|----------|
-| **v2.1** (Current) | `/rpc/search_profiles_v2_1` | User preferences + fallback to ID | Ordered platforms in search results |
-| **v2** | `/rpc/search_profiles_v2` | No specific order | Platforms only (1-4) |
-| **v1** (Deprecated) | `/rpc/search_profiles` | No specific order | All platforms |
+| Version | Endpoint | Ordering | Features |
+|---------|----------|----------|----------|
+| **v2.1** (Current) | `/rpc/search_profiles_v2_1` | User preferences | All 3 groups, preference ordering, type field |
+| **v2** | `/rpc/search_profiles_v2` | ID-based (1-4) | Main platforms only (1-4) |
+| **v1** (Deprecated) | `/rpc/search_profiles` | Database order | All platforms |
 
 ### What's New in v2.1?
 
-- **Respects user preferences:** Platforms are ordered by the `profile_link_preferences` table for each result
-- **Fallback ordering:** If no preferences set, falls back to platform ID ordering (1→2→3→4)
-- **Backward compatible:** Same response structure as v2, just with reordered platforms
+- **All 3 link groups:** Returns platforms (1-4) → additional links (5+) → custom links separately
+- **Type identifier:** Each link has `type` field: "platform", "additional_link", or "custom_link"
+- **Respects user preferences:** Links ordered by `profile_link_preferences` table for each result
+- **Separate fields:** Easier for UI to handle each group differently
+- **Fallback ordering:** If no preferences set, falls back to platform ID ordering
 
 ---
 
@@ -53,13 +55,13 @@
 - `bio` is wrapped in `coalesce(cp.bio, '')` to handle nulls safely
 - Results ranked by `GREATEST(word_similarity(keyword, profile_name), word_similarity(keyword, bio)) DESC`
 - Only active creator profiles (`cp.status = 'active'`) are searched
-- Only main streaming platforms are returned (IDs 1-4: YouTube, Twitch, Kick, Rumble) — custom links and additional links excluded
+- All 3 link groups are returned (platforms 1-4, additional links 5+, custom links)
 
 ---
 
 ## Response
 
-### Success
+### Success (v2.1)
 ```json
 {
   "status": true,
@@ -70,9 +72,16 @@
       "profile_name": "Radhe Gaming",
       "avatar": null,
       "bio": "I stream daily",
-      "followers": 320,   // null if show_followers = false
+      "followers": 320,
       "platforms": [
-        { "platform_id": 1, "platform_name": "YouTube", "logo_url": "url or null" }
+        { "platform_id": 1, "type": "platform", "platform_name": "YouTube", "logo_url": "url or null" },
+        { "platform_id": 2, "type": "platform", "platform_name": "Twitch", "logo_url": "url or null" }
+      ],
+      "additional_links": [
+        { "platform_id": 5, "type": "additional_link", "platform_name": "Patreon", "logo_url": "url or null" }
+      ],
+      "custom_links": [
+        { "platform_id": null, "type": "custom_link", "platform_name": "My Website", "logo_url": null }
       ],
       "match_score": 0.9
     }
@@ -120,10 +129,22 @@
 3. `v_keyword := trim(p_keyword)`
 4. SELECT with scoring: `GREATEST(word_similarity(keyword, profile_name), word_similarity(keyword, bio))`
 5. WHERE: ILIKE OR word_similarity > 0.3 on profile_name and bio
-6. Subquery for `followers`: CASE WHEN show_followers = true → COUNT(is_active=true) ELSE null END + `platforms` array per profile
-7. ORDER BY score DESC — LIMIT p_limit
-8. If NULL → return empty array
-9. Return results
+6. Subquery for `followers`: CASE WHEN show_followers = true → COUNT(is_active=true) ELSE null END
+7. Subqueries for `platforms`, `additional_links`, `custom_links` — each group ordered by preferences with fallback to ID order
+8. Add `type` field to each link: "platform", "additional_link", or "custom_link"
+9. ORDER BY score DESC — LIMIT p_limit
+10. If NULL → return empty array
+11. Return results
+
+---
+
+## Link Type Field Values
+
+| Type Value | Description | Source |
+|---|---|---|
+| `"platform"` | Main streaming platforms (YouTube, Twitch, Kick, Rumble) | Platform IDs 1-4 |
+| `"additional_link"` | Additional platform links (Patreon, Discord, etc.) | Platform IDs 5+ |
+| `"custom_link"` | Creator-defined custom links | profile_custom_links table |
 
 ---
 
@@ -132,7 +153,7 @@
 | Feature | `search_profiles` | `search_events` |
 |---------|------------------|----------------|
 | Searches on | profile_name, bio | title, description |
-| Platforms format | `{platform_id, platform_name, logo_url}` objects | Same |
+| Link groups | platforms, additional_links, custom_links | n/a |
 | Secondary sort | score DESC only | score DESC, event_date ASC |
 | `bio` null handling | `coalesce(bio, '')` | n/a |
 
@@ -143,9 +164,14 @@
 - `match_score` is `0.0 – 1.0` — higher = better match
 - `avatar` and `bio` are nullable — handle in UI
 - `platforms` always an array (never null) via `coalesce(..., '[]'::json)`
-  - **Only includes main streaming platforms** (IDs 1-4: YouTube, Twitch, Kick, Rumble)
-  - Custom links and additional links are excluded from search results
-  - To fetch custom links, use `get_profile_custom_links` on the profile detail page
+  - Returns main streaming platforms (IDs 1-4: YouTube, Twitch, Kick, Rumble) ordered by user preferences
+  - Type field = "platform"
+- `additional_links` always an array (never null)
+  - Returns additional platform links (IDs 5+: Patreon, Discord, etc.) ordered by user preferences
+  - Type field = "additional_link"
+- `custom_links` always an array (never null)
+  - Returns creator-defined custom links ordered by user preferences
+  - Type field = "custom_link"
 - `followers` is `null` when the creator has `show_followers = false` — handle in UI
 - `pg_trgm` extension must be enabled: see `schema/extensions/pg_trgm.md`
 - Trigram indexes on `creator_profiles.profile_name`, `.bio` improve performance: see `schema/indexes/trigram_indexes.md`

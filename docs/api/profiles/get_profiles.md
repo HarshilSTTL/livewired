@@ -9,6 +9,16 @@
 
 ---
 
+## Version Comparison
+
+| Version | Endpoint | Ordering | Features |
+|---------|----------|----------|----------|
+| **v2.1** (Current) | `/rpc/get_profiles_v2_1` | User preferences | All 3 groups, preference ordering, type field |
+| **v2** | `/rpc/get_profiles_v2` | ID-based (1-4) | Main platforms only (1-4) |
+| **v1** (Deprecated) | `/rpc/get_profiles` | Database order | All platforms |
+
+---
+
 ## Parameters
 
 | Param | Type | Required | Default | Notes |
@@ -54,7 +64,7 @@
 
 ## Response
 
-### Success
+### Success (v2.1)
 ```json
 {
   "status": true,
@@ -65,17 +75,33 @@
     "profiles": [
       {
         "profile_id": "uuid...",
-        "user_id": "uuid...",
         "profile_name": "Harshil Gaming",
         "avatar": "base64...",
-        "bio": "I stream games daily",
-        "status": "active",
-        "show_followers": true,
         "followers": 1240,
         "platforms": [
           {
             "platform_id": 1,
+            "type": "platform",
             "logo_url": "https://..."
+          },
+          {
+            "platform_id": 2,
+            "type": "platform",
+            "logo_url": "https://..."
+          }
+        ],
+        "additional_links": [
+          {
+            "platform_id": 5,
+            "type": "additional_link",
+            "logo_url": "https://..."
+          }
+        ],
+        "custom_links": [
+          {
+            "platform_id": null,
+            "type": "custom_link",
+            "logo_url": null
           }
         ],
         "tags": [
@@ -145,6 +171,16 @@ has_next     = offset + limit < total
 
 ---
 
+## Link Type Field Values
+
+| Type Value | Description | Source |
+|---|---|---|
+| `"platform"` | Main streaming platforms (YouTube, Twitch, Kick, Rumble) | Platform IDs 1-4 |
+| `"additional_link"` | Additional platform links (Patreon, Discord, etc.) | Platform IDs 5+ |
+| `"custom_link"` | Creator-defined custom links | profile_custom_links table |
+
+---
+
 ## Behaviour Notes
 
 | Rule | Detail |
@@ -154,7 +190,9 @@ has_next     = offset + limit < total
 | Keyword ordering | Results ordered by best fuzzy match score DESC, then `created_at DESC` |
 | Typo tolerance | `word_similarity` threshold 0.3 — catches partial matches and common typos |
 | `followers` | Respects `show_followers` flag — returns count if `true`, `null` if `false` |
-| `platforms` | Always an array — `[]` if no platforms linked |
+| `platforms` | Array of main streaming platforms (IDs 1-4) ordered by user preferences, always `[]` minimum |
+| `additional_links` | Array of additional platform links (IDs 5+) ordered by user preferences, always `[]` minimum |
+| `custom_links` | Array of creator-defined custom links ordered by user preferences, always `[]` minimum |
 | `p_limit` max | Clamped to 100 — requests above 100 automatically use 100 |
 
 ---
@@ -169,7 +207,8 @@ has_next     = offset + limit < total
 | Fuzzy matching | Yes — `word_similarity` (pg_trgm) | Yes — `word_similarity` (pg_trgm) |
 | `match_score` | Not returned | Returned |
 | Search scope | `profile_name` | `profile_name`, `bio` |
-| Fields returned | profile_id, profile_name, avatar, followers, platforms | profile_id, profile_name, avatar, bio, followers, platforms, match_score |
+| Link groups | platforms, additional_links, custom_links | Same |
+| Fields returned | profile_id, profile_name, avatar, followers, platforms, additional_links, custom_links, tags | profile_id, profile_name, avatar, bio, followers, platforms, additional_links, custom_links, match_score |
 | Use case | Dashboard browse + search | Dedicated search screen |
 
 ---
@@ -180,8 +219,14 @@ has_next     = offset + limit < total
 2. Clamp `p_limit` to 1–100; default 20
 3. Clamp `p_offset` to ≥ 0; default 0
 4. COUNT matching active profiles → `v_total`
-5. SELECT matching profiles with platforms + tags subqueries, ordered by `created_at DESC`, with LIMIT/OFFSET
-6. Return `total`, `limit`, `offset`, `profiles[]`
+5. SELECT matching profiles with:
+   - `platforms` (IDs 1-4) ordered by preferences, type="platform"
+   - `additional_links` (IDs 5+) ordered by preferences, type="additional_link"
+   - `custom_links` ordered by preferences, type="custom_link"
+   - `tags` subquery
+6. Order by fuzzy match score DESC (if keyword provided), then `created_at DESC`
+7. Apply LIMIT/OFFSET for pagination
+8. Return `total`, `limit`, `offset`, `profiles[]`
 
 ---
 
@@ -192,12 +237,10 @@ has_next     = offset + limit < total
 | `creator_profiles` | Main SELECT + COUNT |
 | `follows` | COUNT for followers (when show_followers = true) |
 | `creator_platform_accounts` | Subquery per profile |
-| `platforms` | JOIN for platform_name + logo_url |
+| `profile_custom_links` | Subquery per profile |
+| `platforms` | JOIN for platform logos |
 | `profile_tags` | Subquery per profile |
-| `tags` | JOIN for tag_name |
+| `tags` | JOIN for tag names |
+| `profile_link_preferences` | Subquery for ordering |
 
 ---
-
-## SQL Reference
-
-See [`functions/profiles/get_profiles.md`](../../../functions/profiles/get_profiles.md)
