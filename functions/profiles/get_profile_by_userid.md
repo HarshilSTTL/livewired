@@ -76,7 +76,7 @@ BEGIN
                                END,
             'platforms', (
                 -- Main streaming platforms (IDs 1-4) ordered by profile_link_preferences
-                SELECT coalesce(json_agg(
+                SELECT COALESCE(json_agg(
                     json_build_object(
                         'id',             cpa.id,
                         'platform_id',    cpa.platform_id,
@@ -111,7 +111,7 @@ BEGIN
             ),
             'additional_links', (
                 -- Additional platform links (IDs 5+) ordered by profile_link_preferences
-                SELECT coalesce(json_agg(
+                SELECT COALESCE(json_agg(
                     json_build_object(
                         'id',             cpa.id,
                         'platform_id',    cpa.platform_id,
@@ -146,7 +146,7 @@ BEGIN
             ),
             'custom_links', (
                 -- Custom creator-defined links ordered by profile_link_preferences
-                SELECT coalesce(json_agg(
+                SELECT COALESCE(json_agg(
                     json_build_object(
                         'id',             pcl.id,
                         'platform_id',    NULL,
