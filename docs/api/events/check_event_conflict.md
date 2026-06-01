@@ -24,7 +24,7 @@ Authorization: Bearer YOUR_ANON_KEY
 ### Body
 ```json
 {
-  "p_profile_id": 1,
+  "p_profile_id": "e84d4d2e-2474-4e30-a031-ca411e4c391e",
   "p_start_time": "2026-06-01T14:00:00Z",
   "p_end_time": "2026-06-01T15:00:00Z",
   "p_event_id": null
@@ -35,10 +35,10 @@ Authorization: Bearer YOUR_ANON_KEY
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `p_profile_id` | bigint | Yes | User's profile ID |
+| `p_profile_id` | uuid | Yes | User's profile ID |
 | `p_start_time` | timestamp | Yes | Event start time (ISO 8601) |
 | `p_end_time` | timestamp | Yes | Event end time (ISO 8601) |
-| `p_event_id` | bigint | No | Event ID to exclude (for editing) |
+| `p_event_id` | uuid | No | Event ID to exclude (for editing) |
 
 ---
 
@@ -91,7 +91,7 @@ const response = await fetch('/rest/v1/rpc/check_event_conflict', {
     'Authorization': 'Bearer token'
   },
   body: JSON.stringify({
-    p_profile_id: 1,
+    p_profile_id: 'e84d4d2e-2474-4e30-a031-ca411e4c391e',
     p_start_time: '2026-06-01T14:00:00Z',
     p_end_time: '2026-06-01T15:00:00Z'
   })
@@ -115,10 +115,10 @@ const response = await fetch('/rest/v1/rpc/check_event_conflict', {
     'Authorization': 'Bearer token'
   },
   body: JSON.stringify({
-    p_profile_id: 1,
+    p_profile_id: 'e84d4d2e-2474-4e30-a031-ca411e4c391e',
     p_start_time: '2026-06-01T14:30:00Z',
     p_end_time: '2026-06-01T15:30:00Z',
-    p_event_id: 123  // Exclude this event from check
+    p_event_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'  // Exclude this event from check
   })
 });
 
@@ -189,7 +189,7 @@ The function automatically excludes:
 | `Profile ID is required` | p_profile_id is null | Ensure profile ID is provided |
 | `Start time and end time are required` | Missing time parameters | Provide both start and end times |
 | `Start time must be before end time` | start_time >= end_time | Validate time order |
-| `operator does not exist: bigint = uuid` | Type mismatch in table | Verify table schema matches function types |
+| `Could not choose the best candidate function` | Multiple function overloads | Ensure parameters match uuid types exactly |
 
 ---
 

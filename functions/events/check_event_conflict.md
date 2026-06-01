@@ -6,6 +6,7 @@
 - **Purpose:** Detects event time conflicts for a profile
 - **Usage:** Real-time validation in date/time picker
 - **Message:** "You already have an event scheduled at this time."
+- **Parameters:** p_profile_id (uuid), p_start_time, p_end_time, p_event_id (uuid, optional)
 - **Endpoint:** `POST /rpc/check_event_conflict`
 
 ---
@@ -23,10 +24,10 @@
 --           for a profile. Returns conflict details if overlap detected.
 --
 -- Parameters:
---   p_profile_id (bigint) - Profile ID to check conflicts for
+--   p_profile_id (uuid) - Profile ID to check conflicts for
 --   p_start_time (timestamp with time zone) - Event start time (ISO 8601)
 --   p_end_time (timestamp with time zone) - Event end time (ISO 8601)
---   p_event_id (bigint, optional) - Event ID to exclude when editing
+--   p_event_id (uuid, optional) - Event ID to exclude when editing
 --
 -- Returns JSON with:
 --   - status (boolean) - Success/failure
@@ -35,10 +36,10 @@
 --   - conflicting_event details if conflict exists
 
 CREATE OR REPLACE FUNCTION check_event_conflict(
-    p_profile_id bigint,
+    p_profile_id uuid,
     p_start_time timestamp with time zone,
     p_end_time timestamp with time zone,
-    p_event_id bigint DEFAULT NULL
+    p_event_id uuid DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
