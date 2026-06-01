@@ -181,7 +181,7 @@ BEGIN
             ) custom_list
         ),
         'tags', (
-            SELECT coalesce(
+            SELECT COALESCE(
                 json_agg(
                     json_build_object(
                         'tag_id',   t.tag_id,
@@ -281,7 +281,7 @@ BEGIN
                                ELSE null
                            END,
         'platforms', (
-            SELECT coalesce(
+            SELECT COALESCE(
                 json_agg(
                     json_build_object(
                         'platform_id',   cpa.platform_id,
@@ -300,7 +300,7 @@ BEGIN
               AND cpa.is_deleted = false
         ),
         'tags', (
-            SELECT coalesce(
+            SELECT COALESCE(
                 json_agg(
                     json_build_object(
                         'tag_id',   t.tag_id,
@@ -391,7 +391,7 @@ BEGIN
                                ELSE null
                            END,
         'platforms', (
-            SELECT coalesce(
+            SELECT COALESCE(
                 json_agg(
                     json_build_object(
                         'platform_id',   cpa.platform_id,
@@ -409,7 +409,7 @@ BEGIN
               AND cpa.is_deleted = false
         ),
         'tags', (
-            SELECT coalesce(
+            SELECT COALESCE(
                 json_agg(
                     json_build_object(
                         'tag_id',   t.tag_id,
