@@ -105,12 +105,12 @@ BEGIN
                     COALESCE(
                         (SELECT array_position(plp.platform_ids_order, cpa.platform_id)
                          FROM profile_link_preferences plp
-                         WHERE plp.profile_id = cp.id),
+                         WHERE plp.profile_id = v_profile_id),
                         cpa.platform_id + 100
                     ) as sort_order
                 FROM creator_platform_accounts cpa
                 LEFT JOIN platforms p ON p.plat_id = cpa.platform_id
-                WHERE cpa.profile_id = cp.id
+                WHERE cpa.profile_id = v_profile_id
                   AND cpa.is_deleted = false
                   AND cpa.platform_id IN (1, 2, 3, 4)
             ) platform_list
@@ -140,12 +140,12 @@ BEGIN
                     COALESCE(
                         (SELECT array_position(plp.additional_ids_order, cpa.platform_id)
                          FROM profile_link_preferences plp
-                         WHERE plp.profile_id = cp.id),
+                         WHERE plp.profile_id = v_profile_id),
                         cpa.platform_id + 100
                     ) as sort_order
                 FROM creator_platform_accounts cpa
                 LEFT JOIN platforms p ON p.plat_id = cpa.platform_id
-                WHERE cpa.profile_id = cp.id
+                WHERE cpa.profile_id = v_profile_id
                   AND cpa.is_deleted = false
                   AND cpa.platform_id >= 5
             ) additional_list
@@ -172,11 +172,11 @@ BEGIN
                     COALESCE(
                         (SELECT array_position(plp.custom_ids_order, pcl.id)
                          FROM profile_link_preferences plp
-                         WHERE plp.profile_id = cp.id),
+                         WHERE plp.profile_id = v_profile_id),
                         9999
                     ) as sort_order
                 FROM profile_custom_links pcl
-                WHERE pcl.profile_id = cp.id
+                WHERE pcl.profile_id = v_profile_id
                   AND pcl.is_deleted = false
             ) custom_list
         ),
