@@ -4,10 +4,12 @@
 
 ### v1.0 (Current — 2026-06-01)
 - **Purpose:** Detects event time conflicts for a profile
-- **Usage:** Real-time validation in date/time picker (when user provides end time)
+- **Usage:** Real-time validation in date/time picker (works with or without end time)
 - **Message:** "You already have an event scheduled at this time."
 - **Parameters:** p_profile_id (uuid), p_event_date (date), p_event_time (time), p_event_end_time (time, optional), p_event_id (uuid, optional)
-- **Behavior:** If p_event_end_time is NULL, conflict check is skipped (returns no conflict)
+- **Behavior:** 
+  - With end_time: Full overlap check (existing_start < new_end AND existing_end > new_start)
+  - Without end_time: Point-in-time check (treats start_time as both start and end)
 - **Check Scope:** Only checks conflicts with events that have event_end_time IS NOT NULL
 - **Table:** `event_mst` (stores separate date + time columns)
 - **Endpoint:** `POST /rpc/check_event_conflict`
@@ -37,8 +39,12 @@
 -- Returns JSON with:
 --   - status (boolean) - Success/failure
 --   - has_conflict (boolean) - Whether conflict detected
---   - message (string) - Conflict message if found
---   - conflicting_event details if conflict exists
+--   - message (string) - Conflict message or status message
+--   - conflicting_event details if conflict exists (event_id, title, date, time, end_time)
+--
+-- Conflict Logic:
+--   - If p_event_end_time IS NULL: Check if p_event_time falls within existing event duration
+--   - If p_event_end_time IS NOT NULL: Check full overlap (new_start < existing_end AND new_end > existing_start)
 
 CREATE OR REPLACE FUNCTION check_event_conflict(
     p_profile_id uuid,
@@ -67,23 +73,18 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'Event date and start time are required');
     END IF;
 
-    -- If end time not provided, skip conflict check
-    IF p_event_end_time IS NULL THEN
-        RETURN json_build_object(
-            'status', true,
-            'has_conflict', false,
-            'message', 'No end time provided - conflict check skipped.'
-        );
-    END IF;
-
-    IF p_event_time >= p_event_end_time THEN
+    -- Validate times
+    IF p_event_end_time IS NOT NULL AND p_event_time >= p_event_end_time THEN
         RETURN json_build_object('status', false, 'message', 'Event start time must be before end time');
     END IF;
 
     -- Build timestamps for comparison
-    -- Assuming events are stored in creator's timezone, convert to UTC for comparison
+    -- If no end_time provided, use start_time as end_time (point-in-time check)
     v_new_start := (p_event_date || ' ' || p_event_time)::timestamp AT TIME ZONE 'UTC';
-    v_new_end := (p_event_date || ' ' || p_event_end_time)::timestamp AT TIME ZONE 'UTC';
+    v_new_end := CASE 
+                    WHEN p_event_end_time IS NULL THEN v_new_start
+                    ELSE (p_event_date || ' ' || p_event_end_time)::timestamp AT TIME ZONE 'UTC'
+                 END;
 
     -- Check for overlapping events in event_mst
     -- Exclude: deleted events (is_deleted = true)

@@ -39,7 +39,7 @@ Authorization: Bearer YOUR_ANON_KEY
 | `p_profile_id` | uuid | Yes | User's profile ID |
 | `p_event_date` | date | Yes | Event date (YYYY-MM-DD) |
 | `p_event_time` | time | Yes | Event start time (HH:MM:SS) |
-| `p_event_end_time` | time | No | Event end time (HH:MM:SS). If omitted, conflict check is skipped |
+| `p_event_end_time` | time | No | Event end time (HH:MM:SS). If omitted, treats start time as point-in-time |
 | `p_event_id` | uuid | No | Event ID to exclude (for editing) |
 
 ---
@@ -55,12 +55,29 @@ Authorization: Bearer YOUR_ANON_KEY
 }
 ```
 
-### 200 OK - No End Time Provided (Conflict Check Skipped)
+### 200 OK - No End Time Provided (Point-In-Time Check)
+Treats start time as point-in-time and checks if it falls within existing events:
+
+**Example 1: Conflict detected (start time falls within existing event)**
+```json
+{
+  "status": true,
+  "has_conflict": true,
+  "message": "You already have an event scheduled at this time.",
+  "conflicting_event_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "conflicting_event_title": "Team Meeting",
+  "conflicting_event_date": "2026-06-01",
+  "conflicting_event_time": "13:00:00",
+  "conflicting_event_end_time": "18:00:00"
+}
+```
+
+**Example 2: No conflict (start time outside existing event duration)**
 ```json
 {
   "status": true,
   "has_conflict": false,
-  "message": "No end time provided - conflict check skipped."
+  "message": "No conflicts found."
 }
 ```
 
@@ -142,8 +159,8 @@ if (result.has_conflict) {
 }
 ```
 
-### 3. Request Without End Time (Conflict Check Skipped)
-When end time is not provided, conflict check is automatically skipped:
+### 3. Request Without End Time (Point-In-Time Check)
+When end time is not provided, checks if start time conflicts with any existing event:
 
 ```javascript
 const response = await fetch('/rest/v1/rpc/check_event_conflict', {
@@ -156,11 +173,15 @@ const response = await fetch('/rest/v1/rpc/check_event_conflict', {
     p_profile_id: 'e84d4d2e-2474-4e30-a031-ca411e4c391e',
     p_event_date: '2026-06-01',
     p_event_time: '14:00:00'
-    // p_event_end_time: omitted
+    // p_event_end_time: omitted (treats 14:00:00 as point-in-time)
   })
 });
 
-// Response: { status: true, has_conflict: false, message: "No end time provided..." }
+// If existing event is 13:00:00 - 18:00:00:
+// Response: { status: true, has_conflict: true, message: "You already have an event...", ... }
+
+// If no event at 14:00:00:
+// Response: { status: true, has_conflict: false, message: "No conflicts found." }
 ```
 
 ### 4. Real-Time Validation in Date Picker
