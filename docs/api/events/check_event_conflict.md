@@ -25,8 +25,9 @@ Authorization: Bearer YOUR_ANON_KEY
 ```json
 {
   "p_profile_id": "e84d4d2e-2474-4e30-a031-ca411e4c391e",
-  "p_start_time": "2026-06-01T14:00:00Z",
-  "p_end_time": "2026-06-01T15:00:00Z",
+  "p_event_date": "2026-06-01",
+  "p_event_time": "14:00:00",
+  "p_event_end_time": "15:00:00",
   "p_event_id": null
 }
 ```
@@ -36,8 +37,9 @@ Authorization: Bearer YOUR_ANON_KEY
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `p_profile_id` | uuid | Yes | User's profile ID |
-| `p_start_time` | timestamp | Yes | Event start time (ISO 8601) |
-| `p_end_time` | timestamp | Yes | Event end time (ISO 8601) |
+| `p_event_date` | date | Yes | Event date (YYYY-MM-DD) |
+| `p_event_time` | time | Yes | Event start time (HH:MM:SS) |
+| `p_event_end_time` | time | Yes | Event end time (HH:MM:SS) |
 | `p_event_id` | uuid | No | Event ID to exclude (for editing) |
 
 ---
@@ -59,10 +61,11 @@ Authorization: Bearer YOUR_ANON_KEY
   "status": true,
   "has_conflict": true,
   "message": "You already have an event scheduled at this time.",
-  "conflicting_event_id": 123,
-  "conflicting_event_name": "Team Meeting",
-  "conflicting_event_start": "2026-06-01T14:00:00+00",
-  "conflicting_event_end": "2026-06-01T15:00:00+00"
+  "conflicting_event_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "conflicting_event_title": "Team Meeting",
+  "conflicting_event_date": "2026-06-01",
+  "conflicting_event_time": "14:00:00",
+  "conflicting_event_end_time": "15:00:00"
 }
 ```
 
@@ -92,8 +95,9 @@ const response = await fetch('/rest/v1/rpc/check_event_conflict', {
   },
   body: JSON.stringify({
     p_profile_id: 'e84d4d2e-2474-4e30-a031-ca411e4c391e',
-    p_start_time: '2026-06-01T14:00:00Z',
-    p_end_time: '2026-06-01T15:00:00Z'
+    p_event_date: '2026-06-01',
+    p_event_time: '14:00:00',
+    p_event_end_time: '15:00:00'
   })
 });
 
@@ -116,8 +120,9 @@ const response = await fetch('/rest/v1/rpc/check_event_conflict', {
   },
   body: JSON.stringify({
     p_profile_id: 'e84d4d2e-2474-4e30-a031-ca411e4c391e',
-    p_start_time: '2026-06-01T14:30:00Z',
-    p_end_time: '2026-06-01T15:30:00Z',
+    p_event_date: '2026-06-01',
+    p_event_time: '14:30:00',
+    p_event_end_time: '15:30:00',
     p_event_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'  // Exclude this event from check
   })
 });
@@ -200,7 +205,7 @@ const EventDatePicker = () => {
   const [showWarning, setShowWarning] = useState(false);
   const [warningMessage, setWarningMessage] = useState('');
 
-  const handleTimeChange = async (startTime, endTime) => {
+  const handleTimeChange = async (eventDate, eventTime, eventEndTime) => {
     // Call conflict check API
     const response = await fetch('/rest/v1/rpc/check_event_conflict', {
       method: 'POST',
@@ -210,8 +215,9 @@ const EventDatePicker = () => {
       },
       body: JSON.stringify({
         p_profile_id: currentProfileId,
-        p_start_time: startTime,
-        p_end_time: endTime
+        p_event_date: eventDate,
+        p_event_time: eventTime,
+        p_event_end_time: eventEndTime
       })
     });
 

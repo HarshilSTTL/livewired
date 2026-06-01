@@ -6,7 +6,8 @@
 - **Purpose:** Detects event time conflicts for a profile
 - **Usage:** Real-time validation in date/time picker
 - **Message:** "You already have an event scheduled at this time."
-- **Parameters:** p_profile_id (uuid), p_start_time, p_end_time, p_event_id (uuid, optional)
+- **Parameters:** p_profile_id (uuid), p_event_date (date), p_event_time (time), p_event_end_time (time), p_event_id (uuid, optional)
+- **Table:** `event_mst` (stores separate date + time columns)
 - **Endpoint:** `POST /rpc/check_event_conflict`
 
 ---
@@ -17,16 +18,18 @@
 -- Function: check_event_conflict
 -- Group:    events
 -- Endpoint: POST /rpc/check_event_conflict
--- Tables:   events
+-- Tables:   event_mst, creator_profiles
 -- Doc:      docs/api/events/check_event_conflict.md
 -- Version:  1.0 (2026-06-01)
 -- Purpose:  Checks if a proposed event time conflicts with existing scheduled events
 --           for a profile. Returns conflict details if overlap detected.
+--           Handles date + time comparison (event_mst stores separate date and time)
 --
 -- Parameters:
 --   p_profile_id (uuid) - Profile ID to check conflicts for
---   p_start_time (timestamp with time zone) - Event start time (ISO 8601)
---   p_end_time (timestamp with time zone) - Event end time (ISO 8601)
+--   p_event_date (date) - Event date (YYYY-MM-DD)
+--   p_event_time (time) - Event start time (HH:MM:SS)
+--   p_event_end_time (time) - Event end time (HH:MM:SS)
 --   p_event_id (uuid, optional) - Event ID to exclude when editing
 --
 -- Returns JSON with:
@@ -37,8 +40,9 @@
 
 CREATE OR REPLACE FUNCTION check_event_conflict(
     p_profile_id uuid,
-    p_start_time timestamp with time zone,
-    p_end_time timestamp with time zone,
+    p_event_date date,
+    p_event_time time,
+    p_event_end_time time,
     p_event_id uuid DEFAULT NULL
 )
 RETURNS JSON
@@ -49,49 +53,65 @@ AS $$
 DECLARE
     v_conflict_count int;
     v_conflicting_event record;
+    v_new_start timestamptz;
+    v_new_end timestamptz;
 BEGIN
     -- Validate inputs
     IF p_profile_id IS NULL THEN
         RETURN json_build_object('status', false, 'message', 'Profile ID is required');
     END IF;
 
-    IF p_start_time IS NULL OR p_end_time IS NULL THEN
-        RETURN json_build_object('status', false, 'message', 'Start time and end time are required');
+    IF p_event_date IS NULL OR p_event_time IS NULL OR p_event_end_time IS NULL THEN
+        RETURN json_build_object('status', false, 'message', 'Event date and times are required');
     END IF;
 
-    IF p_start_time >= p_end_time THEN
-        RETURN json_build_object('status', false, 'message', 'Start time must be before end time');
+    IF p_event_time >= p_event_end_time THEN
+        RETURN json_build_object('status', false, 'message', 'Event start time must be before end time');
     END IF;
 
-    -- Check for overlapping events
+    -- Build timestamps for comparison
+    -- Assuming events are stored in creator's timezone, convert to UTC for comparison
+    v_new_start := (p_event_date || ' ' || p_event_time)::timestamp AT TIME ZONE 'UTC';
+    v_new_end := (p_event_date || ' ' || p_event_end_time)::timestamp AT TIME ZONE 'UTC';
+
+    -- Check for overlapping events in event_mst
+    -- Exclude: deleted events (is_deleted = true)
     -- Logic: existing_start < new_end AND existing_end > new_start
     SELECT COUNT(*) INTO v_conflict_count
-    FROM events
+    FROM event_mst
     WHERE profile_id = p_profile_id
-      AND status NOT IN ('deleted', 'cancelled')
-      AND (p_event_id IS NULL OR id != p_event_id)
-      AND event_start < p_end_time
-      AND event_end > p_start_time;
+      AND is_deleted = false
+      AND (p_event_id IS NULL OR event_id != p_event_id)
+      AND (event_date || ' ' || event_time)::timestamp < v_new_end
+      AND (event_date || ' ' || COALESCE(event_end_time, event_time))::timestamp > v_new_start;
 
     -- If conflict found, return conflict details
     IF v_conflict_count > 0 THEN
-        SELECT * INTO v_conflicting_event
-        FROM events
+        SELECT 
+            event_id,
+            title,
+            event_date,
+            event_time,
+            event_end_time
+        INTO v_conflicting_event
+        FROM event_mst
         WHERE profile_id = p_profile_id
-          AND status NOT IN ('deleted', 'cancelled')
-          AND (p_event_id IS NULL OR id != p_event_id)
-          AND event_start < p_end_time
-          AND event_end > p_start_time
+          AND is_deleted = false
+          AND (p_event_id IS NULL OR event_id != p_event_id)
+          AND (event_date || ' ' || event_time)::timestamp < v_new_end
+          AND (event_date || ' ' || COALESCE(event_end_time, event_time))::timestamp > v_new_start
+        ORDER BY event_date, event_time
         LIMIT 1;
 
         RETURN json_build_object(
             'status', true,
             'has_conflict', true,
             'message', 'You already have an event scheduled at this time.',
-            'conflicting_event_id', v_conflicting_event.id,
-            'conflicting_event_name', v_conflicting_event.event_name,
-            'conflicting_event_start', v_conflicting_event.event_start,
-            'conflicting_event_end', v_conflicting_event.event_end
+            'conflicting_event_id', v_conflicting_event.event_id,
+            'conflicting_event_title', v_conflicting_event.title,
+            'conflicting_event_date', v_conflicting_event.event_date,
+            'conflicting_event_time', v_conflicting_event.event_time,
+            'conflicting_event_end_time', v_conflicting_event.event_end_time
         );
     ELSE
         RETURN json_build_object(
