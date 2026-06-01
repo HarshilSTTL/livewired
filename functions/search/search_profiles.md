@@ -88,7 +88,7 @@ BEGIN
                     )
                     ORDER BY sort_order ASC
                 ), '[]'::json)
-                FROM (
+                FROM LATERAL (
                     SELECT
                         p.plat_id,
                         p.plat_name,
@@ -117,7 +117,7 @@ BEGIN
                     )
                     ORDER BY sort_order ASC
                 ), '[]'::json)
-                FROM (
+                FROM LATERAL (
                     SELECT
                         p.plat_id,
                         p.plat_name,
@@ -146,7 +146,7 @@ BEGIN
                     )
                     ORDER BY sort_order ASC
                 ), '[]'::json)
-                FROM (
+                FROM LATERAL (
                     SELECT
                         pcl.platform_name,
                         COALESCE(

@@ -101,7 +101,7 @@ BEGIN
                                 ) ORDER BY sort_order),
                                 '[]'::json
                             )
-                            FROM (
+                            FROM LATERAL (
                                 SELECT
                                     p.plat_id,
                                     p.logo_url,
@@ -128,7 +128,7 @@ BEGIN
                                 ) ORDER BY sort_order),
                                 '[]'::json
                             )
-                            FROM (
+                            FROM LATERAL (
                                 SELECT
                                     p.plat_id,
                                     p.logo_url,
@@ -155,7 +155,7 @@ BEGIN
                                 ) ORDER BY sort_order),
                                 '[]'::json
                             )
-                            FROM (
+                            FROM LATERAL (
                                 SELECT
                                     COALESCE(
                                         (SELECT array_position(plp.custom_ids_order, pcl.id)

@@ -88,7 +88,7 @@ BEGIN
                     )
                     ORDER BY sort_order ASC
                 ), '[]'::json)
-                FROM (
+                FROM LATERAL (
                     SELECT
                         cpa.id,
                         cpa.platform_id,
@@ -123,7 +123,7 @@ BEGIN
                     )
                     ORDER BY sort_order ASC
                 ), '[]'::json)
-                FROM (
+                FROM LATERAL (
                     SELECT
                         cpa.id,
                         cpa.platform_id,
@@ -158,7 +158,7 @@ BEGIN
                     )
                     ORDER BY sort_order ASC
                 ), '[]'::json)
-                FROM (
+                FROM LATERAL (
                     SELECT
                         pcl.id,
                         pcl.platform_name,
