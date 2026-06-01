@@ -82,7 +82,7 @@ BEGIN
                            END,
         'platforms', (
             -- Main streaming platforms (IDs 1-4) ordered by profile_link_preferences
-            SELECT coalesce(json_agg(
+            SELECT COALESCE(json_agg(
                 json_build_object(
                     'id',             cpa.id,
                     'platform_id',    cpa.platform_id,
@@ -94,7 +94,7 @@ BEGIN
                 )
                 ORDER BY sort_order ASC
             ), '[]'::json)
-            FROM (
+            FROM LATERAL (
                 SELECT
                     cpa.id,
                     cpa.platform_id,
@@ -117,7 +117,7 @@ BEGIN
         ),
         'additional_links', (
             -- Additional platform links (IDs 5+) ordered by profile_link_preferences
-            SELECT coalesce(json_agg(
+            SELECT COALESCE(json_agg(
                 json_build_object(
                     'id',             cpa.id,
                     'platform_id',    cpa.platform_id,
@@ -129,7 +129,7 @@ BEGIN
                 )
                 ORDER BY sort_order ASC
             ), '[]'::json)
-            FROM (
+            FROM LATERAL (
                 SELECT
                     cpa.id,
                     cpa.platform_id,
@@ -152,7 +152,7 @@ BEGIN
         ),
         'custom_links', (
             -- Custom creator-defined links ordered by profile_link_preferences
-            SELECT coalesce(json_agg(
+            SELECT COALESCE(json_agg(
                 json_build_object(
                     'id',             pcl.id,
                     'platform_id',    NULL,
@@ -164,7 +164,7 @@ BEGIN
                 )
                 ORDER BY sort_order ASC
             ), '[]'::json)
-            FROM (
+            FROM LATERAL (
                 SELECT
                     pcl.id,
                     pcl.platform_name,
@@ -192,7 +192,7 @@ BEGIN
             )
             FROM profile_tags pt
             LEFT JOIN tags t ON t.tag_id = pt.tag_id
-            WHERE pt.profile_id = cp.id
+            WHERE pt.profile_id = v_profile_id
         ),
         'created_at',  cp.created_at,
         'updated_at',  cp.updated_at
@@ -311,7 +311,7 @@ BEGIN
             )
             FROM profile_tags pt
             LEFT JOIN tags t ON t.tag_id = pt.tag_id
-            WHERE pt.profile_id = cp.id
+            WHERE pt.profile_id = v_profile_id
         ),
         'created_at',  cp.created_at,
         'updated_at',  cp.updated_at
@@ -420,7 +420,7 @@ BEGIN
             )
             FROM profile_tags pt
             LEFT JOIN tags t ON t.tag_id = pt.tag_id
-            WHERE pt.profile_id = cp.id
+            WHERE pt.profile_id = v_profile_id
         ),
         'created_at',  cp.created_at,
         'updated_at',  cp.updated_at
