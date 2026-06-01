@@ -39,7 +39,7 @@ Authorization: Bearer YOUR_ANON_KEY
 | `p_profile_id` | uuid | Yes | User's profile ID |
 | `p_event_date` | date | Yes | Event date (YYYY-MM-DD) |
 | `p_event_time` | time | Yes | Event start time (HH:MM:SS) |
-| `p_event_end_time` | time | Yes | Event end time (HH:MM:SS) |
+| `p_event_end_time` | time | No | Event end time (HH:MM:SS). If omitted, conflict check is skipped |
 | `p_event_id` | uuid | No | Event ID to exclude (for editing) |
 
 ---
@@ -52,6 +52,15 @@ Authorization: Bearer YOUR_ANON_KEY
   "status": true,
   "has_conflict": false,
   "message": "No conflicts found."
+}
+```
+
+### 200 OK - No End Time Provided (Conflict Check Skipped)
+```json
+{
+  "status": true,
+  "has_conflict": false,
+  "message": "No end time provided - conflict check skipped."
 }
 ```
 
@@ -133,22 +142,49 @@ if (result.has_conflict) {
 }
 ```
 
-### 3. Real-Time Validation in Date Picker
-Validate as user selects times:
+### 3. Request Without End Time (Conflict Check Skipped)
+When end time is not provided, conflict check is automatically skipped:
 
 ```javascript
-// On start time change
-document.getElementById('start-time').addEventListener('change', async (e) => {
-  const startTime = e.target.value;
-  const endTime = document.getElementById('end-time').value;
+const response = await fetch('/rest/v1/rpc/check_event_conflict', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer token'
+  },
+  body: JSON.stringify({
+    p_profile_id: 'e84d4d2e-2474-4e30-a031-ca411e4c391e',
+    p_event_date: '2026-06-01',
+    p_event_time: '14:00:00'
+    // p_event_end_time: omitted
+  })
+});
+
+// Response: { status: true, has_conflict: false, message: "No end time provided..." }
+```
+
+### 4. Real-Time Validation in Date Picker
+Validate as user selects times (only checks if end time is provided):
+
+```javascript
+// On start/end time change
+async function validateEventTimes(startTime, endTime) {
+  // Only check if both times provided
+  if (!startTime || !endTime) return;
   
-  if (!endTime) return;
-  
-  const result = await checkEventConflict(
-    currentProfileId,
-    startTime,
-    endTime
-  );
+  const result = await fetch('/rest/v1/rpc/check_event_conflict', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${sessionToken}`
+    },
+    body: JSON.stringify({
+      p_profile_id: currentProfileId,
+      p_event_date: eventDate,
+      p_event_time: startTime,
+      p_event_end_time: endTime  // Required for conflict check
+    })
+  }).then(r => r.json());
   
   if (result.has_conflict) {
     showConflictWarning(result.message);
@@ -156,7 +192,7 @@ document.getElementById('start-time').addEventListener('change', async (e) => {
   } else {
     document.getElementById('conflict-warning').style.display = 'none';
   }
-});
+}
 ```
 
 ---

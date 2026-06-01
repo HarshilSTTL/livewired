@@ -4,9 +4,11 @@
 
 ### v1.0 (Current — 2026-06-01)
 - **Purpose:** Detects event time conflicts for a profile
-- **Usage:** Real-time validation in date/time picker
+- **Usage:** Real-time validation in date/time picker (when user provides end time)
 - **Message:** "You already have an event scheduled at this time."
-- **Parameters:** p_profile_id (uuid), p_event_date (date), p_event_time (time), p_event_end_time (time), p_event_id (uuid, optional)
+- **Parameters:** p_profile_id (uuid), p_event_date (date), p_event_time (time), p_event_end_time (time, optional), p_event_id (uuid, optional)
+- **Behavior:** If p_event_end_time is NULL, conflict check is skipped (returns no conflict)
+- **Check Scope:** Only checks conflicts with events that have event_end_time IS NOT NULL
 - **Table:** `event_mst` (stores separate date + time columns)
 - **Endpoint:** `POST /rpc/check_event_conflict`
 
@@ -29,7 +31,7 @@
 --   p_profile_id (uuid) - Profile ID to check conflicts for
 --   p_event_date (date) - Event date (YYYY-MM-DD)
 --   p_event_time (time) - Event start time (HH:MM:SS)
---   p_event_end_time (time) - Event end time (HH:MM:SS)
+--   p_event_end_time (time, optional) - Event end time (HH:MM:SS). If NULL, skip conflict check
 --   p_event_id (uuid, optional) - Event ID to exclude when editing
 --
 -- Returns JSON with:
@@ -42,7 +44,7 @@ CREATE OR REPLACE FUNCTION check_event_conflict(
     p_profile_id uuid,
     p_event_date date,
     p_event_time time,
-    p_event_end_time time,
+    p_event_end_time time DEFAULT NULL,
     p_event_id uuid DEFAULT NULL
 )
 RETURNS JSON
@@ -61,8 +63,17 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'Profile ID is required');
     END IF;
 
-    IF p_event_date IS NULL OR p_event_time IS NULL OR p_event_end_time IS NULL THEN
-        RETURN json_build_object('status', false, 'message', 'Event date and times are required');
+    IF p_event_date IS NULL OR p_event_time IS NULL THEN
+        RETURN json_build_object('status', false, 'message', 'Event date and start time are required');
+    END IF;
+
+    -- If end time not provided, skip conflict check
+    IF p_event_end_time IS NULL THEN
+        RETURN json_build_object(
+            'status', true,
+            'has_conflict', false,
+            'message', 'No end time provided - conflict check skipped.'
+        );
     END IF;
 
     IF p_event_time >= p_event_end_time THEN
@@ -76,14 +87,16 @@ BEGIN
 
     -- Check for overlapping events in event_mst
     -- Exclude: deleted events (is_deleted = true)
+    -- Only check: events that have an end time (event_end_time IS NOT NULL)
     -- Logic: existing_start < new_end AND existing_end > new_start
     SELECT COUNT(*) INTO v_conflict_count
     FROM event_mst
     WHERE profile_id = p_profile_id
       AND is_deleted = false
+      AND event_end_time IS NOT NULL
       AND (p_event_id IS NULL OR event_id != p_event_id)
       AND (event_date || ' ' || event_time)::timestamp < v_new_end
-      AND (event_date || ' ' || COALESCE(event_end_time, event_time))::timestamp > v_new_start;
+      AND (event_date || ' ' || event_end_time)::timestamp > v_new_start;
 
     -- If conflict found, return conflict details
     IF v_conflict_count > 0 THEN
@@ -97,9 +110,10 @@ BEGIN
         FROM event_mst
         WHERE profile_id = p_profile_id
           AND is_deleted = false
+          AND event_end_time IS NOT NULL
           AND (p_event_id IS NULL OR event_id != p_event_id)
           AND (event_date || ' ' || event_time)::timestamp < v_new_end
-          AND (event_date || ' ' || COALESCE(event_end_time, event_time))::timestamp > v_new_start
+          AND (event_date || ' ' || event_end_time)::timestamp > v_new_start
         ORDER BY event_date, event_time
         LIMIT 1;
 
