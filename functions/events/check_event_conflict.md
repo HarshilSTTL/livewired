@@ -8,9 +8,10 @@
 - **Message:** "You already have an event scheduled at this time."
 - **Parameters:** p_profile_id (uuid), p_event_date (date), p_event_time (time), p_event_end_time (time, optional), p_event_id (uuid, optional)
 - **Behavior:** 
-  - With end_time: Full overlap check (existing_start < new_end AND existing_end > new_start)
-  - Without end_time: Point-in-time check (treats start_time as both start and end)
+  - With end_time: Full overlap check (exclusive, allows adjacent events: existing_start < new_end AND existing_end > new_start)
+  - Without end_time: Point-in-time check (inclusive: existing_start <= point AND existing_end >= point)
 - **Check Scope:** Only checks conflicts with events that have event_end_time IS NOT NULL
+- **Adjacency:** Events that touch but don't overlap (6:00 PM vs 1:00-6:00 PM) are NOT considered conflicts
 - **Table:** `event_mst` (stores separate date + time columns)
 - **Endpoint:** `POST /rpc/check_event_conflict`
 
@@ -43,9 +44,15 @@
 --   - conflicting_event details if conflict exists (event_id, title, date, time, end_time)
 --
 -- Conflict Logic:
---   - If p_event_end_time IS NULL: Check if p_event_time falls within existing event duration
---   - If p_event_end_time IS NOT NULL: Check full overlap (existing_start <= new_end AND existing_end >= new_start)
---     Uses <= and >= (inclusive) to catch boundary cases (same start/end times)
+--   - If p_event_end_time IS NULL (point-in-time):
+--     Check if start_time is DURING existing event (inclusive of boundaries)
+--     existing_start <= point AND existing_end >= point
+--     Examples: 1:00 PM vs 1:00-6:00 PM = CONFLICT, 6:00 PM vs 1:00-6:00 PM = CONFLICT
+--   
+--   - If p_event_end_time IS NOT NULL (range):
+--     Check if ranges overlap (exclusive of boundaries = allows adjacency)
+--     existing_start < new_end AND existing_end > new_start
+--     Examples: 2:00-3:00 PM vs 1:00-6:00 PM = CONFLICT, 6:00-7:00 PM vs 1:00-6:00 PM = NO CONFLICT
 
 CREATE OR REPLACE FUNCTION check_event_conflict(
     p_profile_id uuid,
@@ -90,15 +97,26 @@ BEGIN
     -- Check for overlapping events in event_mst
     -- Exclude: deleted events (is_deleted = true)
     -- Only check: events that have an end time (event_end_time IS NOT NULL)
-    -- Logic: existing_start <= new_end AND existing_end >= new_start (inclusive to catch boundary cases)
+    -- Logic:
+    --   Point-in-time (no end_time): existing_start <= point AND existing_end >= point
+    --   Range (has end_time): existing_start < new_end AND existing_end > new_start
+    --   (Excludes adjacent events - 6:00 PM vs 1:00-6:00 PM = no conflict)
     SELECT COUNT(*) INTO v_conflict_count
     FROM event_mst
     WHERE profile_id = p_profile_id
       AND is_deleted = false
       AND event_end_time IS NOT NULL
       AND (p_event_id IS NULL OR event_id != p_event_id)
-      AND (event_date || ' ' || event_time)::timestamp <= v_new_end
-      AND (event_date || ' ' || event_end_time)::timestamp >= v_new_start;
+      AND CASE 
+            WHEN p_event_end_time IS NULL THEN
+                -- Point-in-time: check if start_time is during existing event (inclusive)
+                (event_date || ' ' || event_time)::timestamp <= v_new_start
+                AND (event_date || ' ' || event_end_time)::timestamp >= v_new_start
+            ELSE
+                -- Range: check if ranges overlap (exclusive - allows adjacency)
+                (event_date || ' ' || event_time)::timestamp < v_new_end
+                AND (event_date || ' ' || event_end_time)::timestamp > v_new_start
+          END;
 
     -- If conflict found, return conflict details
     IF v_conflict_count > 0 THEN
@@ -114,8 +132,16 @@ BEGIN
           AND is_deleted = false
           AND event_end_time IS NOT NULL
           AND (p_event_id IS NULL OR event_id != p_event_id)
-          AND (event_date || ' ' || event_time)::timestamp <= v_new_end
-          AND (event_date || ' ' || event_end_time)::timestamp >= v_new_start
+          AND CASE 
+                WHEN p_event_end_time IS NULL THEN
+                    -- Point-in-time: check if start_time is during existing event (inclusive)
+                    (event_date || ' ' || event_time)::timestamp <= v_new_start
+                    AND (event_date || ' ' || event_end_time)::timestamp >= v_new_start
+                ELSE
+                    -- Range: check if ranges overlap (exclusive - allows adjacency)
+                    (event_date || ' ' || event_time)::timestamp < v_new_end
+                    AND (event_date || ' ' || event_end_time)::timestamp > v_new_start
+              END
         ORDER BY event_date, event_time
         LIMIT 1;
 
