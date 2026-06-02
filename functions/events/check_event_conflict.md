@@ -44,7 +44,8 @@
 --
 -- Conflict Logic:
 --   - If p_event_end_time IS NULL: Check if p_event_time falls within existing event duration
---   - If p_event_end_time IS NOT NULL: Check full overlap (new_start < existing_end AND new_end > existing_start)
+--   - If p_event_end_time IS NOT NULL: Check full overlap (existing_start <= new_end AND existing_end >= new_start)
+--     Uses <= and >= (inclusive) to catch boundary cases (same start/end times)
 
 CREATE OR REPLACE FUNCTION check_event_conflict(
     p_profile_id uuid,
@@ -89,15 +90,15 @@ BEGIN
     -- Check for overlapping events in event_mst
     -- Exclude: deleted events (is_deleted = true)
     -- Only check: events that have an end time (event_end_time IS NOT NULL)
-    -- Logic: existing_start < new_end AND existing_end > new_start
+    -- Logic: existing_start <= new_end AND existing_end >= new_start (inclusive to catch boundary cases)
     SELECT COUNT(*) INTO v_conflict_count
     FROM event_mst
     WHERE profile_id = p_profile_id
       AND is_deleted = false
       AND event_end_time IS NOT NULL
       AND (p_event_id IS NULL OR event_id != p_event_id)
-      AND (event_date || ' ' || event_time)::timestamp < v_new_end
-      AND (event_date || ' ' || event_end_time)::timestamp > v_new_start;
+      AND (event_date || ' ' || event_time)::timestamp <= v_new_end
+      AND (event_date || ' ' || event_end_time)::timestamp >= v_new_start;
 
     -- If conflict found, return conflict details
     IF v_conflict_count > 0 THEN
@@ -113,8 +114,8 @@ BEGIN
           AND is_deleted = false
           AND event_end_time IS NOT NULL
           AND (p_event_id IS NULL OR event_id != p_event_id)
-          AND (event_date || ' ' || event_time)::timestamp < v_new_end
-          AND (event_date || ' ' || event_end_time)::timestamp > v_new_start
+          AND (event_date || ' ' || event_time)::timestamp <= v_new_end
+          AND (event_date || ' ' || event_end_time)::timestamp >= v_new_start
         ORDER BY event_date, event_time
         LIMIT 1;
 
