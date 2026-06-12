@@ -109,17 +109,16 @@ BEGIN
                 -- Main streaming platforms (IDs 1-4) ordered by user preferences
                 SELECT COALESCE(json_agg(
                     json_build_object(
-                        'platform_id',   p.plat_id,
+                        'platform_id',   plat_id,
                         'type',          'platform',
-                        'platform_name', p.plat_name,
-                        'logo_url',      p.logo_url,
-                        'stream_url',    ep.stream_url
+                        'platform_name', plat_name,
+                        'logo_url',      logo_url,
+                        'stream_url',    stream_url
                     )
                     ORDER BY sort_order ASC
                 ), '[]'::json)
                 FROM LATERAL (
                     SELECT
-                        ep.platform_id,
                         p.plat_id,
                         p.plat_name,
                         p.logo_url,
@@ -144,17 +143,16 @@ BEGIN
                 -- Additional platforms (IDs 5+) ordered by user preferences
                 SELECT COALESCE(json_agg(
                     json_build_object(
-                        'platform_id',   p.plat_id,
+                        'platform_id',   plat_id,
                         'type',          'additional_link',
-                        'platform_name', p.plat_name,
-                        'logo_url',      p.logo_url,
-                        'stream_url',    ep.stream_url
+                        'platform_name', plat_name,
+                        'logo_url',      logo_url,
+                        'stream_url',    stream_url
                     )
                     ORDER BY sort_order ASC
                 ), '[]'::json)
                 FROM LATERAL (
                     SELECT
-                        ep.platform_id,
                         p.plat_id,
                         p.plat_name,
                         p.logo_url,
