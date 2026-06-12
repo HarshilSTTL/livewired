@@ -1,6 +1,9 @@
-# SP: `get_profile_events`
+# SP: `get_profile_events` (v1 & v2)
 
-**Endpoint:** `POST /rpc/get_profile_events`
+**Endpoints:** 
+- **v1:** `POST /rpc/get_profile_events` (previous, unordered)
+- **v2:** `POST /rpc/get_profile_events_v2` (current, preference-ordered) ✅ **RECOMMENDED**
+
 **Group:** Events
 **SQL:** [`functions/events/get_profile_events.md`](../../../functions/events/get_profile_events.md)
 
@@ -58,9 +61,66 @@ parent/template row (which holds the definition but has no meaningful display da
 
 ---
 
-## Response
+## Response (v2 — Current ✅)
 
-### Success
+### Success (v2)
+```json
+{
+  "status":  true,
+  "message": "Events fetched successfully",
+  "data": {
+    "week_start": "2026-04-05",
+    "week_end":   "2026-04-11",
+    "events": [
+      {
+        "event_id":        "child-occurrence-uuid",
+        "parent_event_id": "parent-template-uuid",
+        "title":           "Metroid Monday!",
+        "description":     null,
+        "event_date":      "2026-04-06",
+        "event_time":      "03:00:00",
+        "event_end_time":  "05:00:00",
+        "livestream":      true,
+        "video":           false,
+        "is_collaborative": false,
+        "is_recurring":    true,
+        "collaborators":   null,
+        "platforms": [
+          {
+            "platform_id":   2,
+            "type":          "platform",
+            "platform_name": "Twitch",
+            "logo_url":      "https://cdn.example.com/twitch.png",
+            "stream_url":    "https://twitch.tv/user/live"
+          },
+          {
+            "platform_id":   1,
+            "type":          "platform",
+            "platform_name": "YouTube",
+            "logo_url":      "https://cdn.example.com/yt.png",
+            "stream_url":    "https://youtube.com/live/abc"
+          }
+        ],
+        "additional_links": [
+          {
+            "platform_id":   5,
+            "type":          "additional_link",
+            "platform_name": "Discord",
+            "logo_url":      "https://cdn.example.com/discord.png",
+            "stream_url":    "https://discord.com/invite/abc"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Response (v1 — Previous)
+
+### Success (v1)
 ```json
 {
   "status":  true,
@@ -95,6 +155,20 @@ parent/template row (which holds the definition but has no meaningful display da
   }
 }
 ```
+
+---
+
+## Key Differences: v1 vs v2
+
+| Feature | v1 | v2 |
+|---------|----|----|
+| **Platform Ordering** | By name alphabetically | By user drag-drop preferences |
+| **Type Field** | ❌ No | ✅ Yes (`platform`, `additional_link`) |
+| **Platform Grouping** | Single array | `platforms` (1-4) + `additional_links` (5+) |
+| **Preference Support** | ❌ No | ✅ Uses `profile_link_preferences` table |
+| **Endpoint** | `/rpc/get_profile_events` | `/rpc/get_profile_events_v2` |
+
+**Recommendation:** Use v2 for new implementations. v1 maintained for backwards compatibility.
 
 ### No events this week
 ```json
