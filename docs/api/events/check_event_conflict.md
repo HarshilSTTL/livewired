@@ -1,9 +1,16 @@
 # Event Conflict Check API
 
 ## Overview
-The `check_event_conflict` endpoint validates whether a proposed event time overlaps with existing scheduled events for a user's profile.
+The `check_event_conflict_v2` endpoint validates whether a proposed event time overlaps with existing scheduled events for a user's profile.
 
 ## Endpoint
+
+### v2.0 (Current) ✅
+```
+POST /rest/v1/rpc/check_event_conflict_v2
+```
+
+### v1.0 (Deprecated)
 ```
 POST /rest/v1/rpc/check_event_conflict
 ```
