@@ -34,8 +34,11 @@
 --   p_profile_id (uuid) - Profile ID to check conflicts for
 --   p_event_date (date) - Event date (YYYY-MM-DD)
 --   p_event_time (time) - Event start time (HH:MM:SS)
---   p_event_end_time (time, optional) - Event end time (HH:MM:SS). If NULL, skip conflict check
---   p_event_id (uuid, optional) - Event ID to exclude when editing
+--   p_event_end_time (time, optional) - Event end time (HH:MM:SS). If NULL, point-in-time check
+--   p_event_id (uuid, optional) - Event ID being edited (to exclude from conflict check)
+--   p_parent_event_id (uuid, optional) - Parent recurring series ID (excludes all occurrences)
+--                                        WHEN EDITING: Pass both p_event_id (child) and p_parent_event_id (parent)
+--                                        to exclude entire recurring series from conflict check
 --
 -- Returns JSON with:
 --   - status (boolean) - Success/failure
@@ -59,7 +62,8 @@ CREATE OR REPLACE FUNCTION check_event_conflict(
     p_event_date date,
     p_event_time time,
     p_event_end_time time DEFAULT NULL,
-    p_event_id uuid DEFAULT NULL
+    p_event_id uuid DEFAULT NULL,
+    p_parent_event_id uuid DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -107,6 +111,7 @@ BEGIN
       AND is_deleted = false
       AND event_end_time IS NOT NULL
       AND (p_event_id IS NULL OR event_id != p_event_id)
+      AND (p_parent_event_id IS NULL OR parent_event_id != p_parent_event_id)
       AND CASE 
             WHEN p_event_end_time IS NULL THEN
                 -- Point-in-time: check if start_time is during existing event (inclusive)
@@ -132,6 +137,7 @@ BEGIN
           AND is_deleted = false
           AND event_end_time IS NOT NULL
           AND (p_event_id IS NULL OR event_id != p_event_id)
+          AND (p_parent_event_id IS NULL OR parent_event_id != p_parent_event_id)
           AND CASE 
                 WHEN p_event_end_time IS NULL THEN
                     -- Point-in-time: check if start_time is during existing event (inclusive)

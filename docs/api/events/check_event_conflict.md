@@ -21,14 +21,36 @@ Content-Type: application/json
 Authorization: Bearer YOUR_ANON_KEY
 ```
 
-### Body
+### Body — Editing Non-Recurring Event
 ```json
 {
   "p_profile_id": "e84d4d2e-2474-4e30-a031-ca411e4c391e",
   "p_event_date": "2026-06-01",
   "p_event_time": "14:00:00",
   "p_event_end_time": "15:00:00",
-  "p_event_id": null
+  "p_event_id": "abc-123-event-id"
+}
+```
+
+### Body — Editing Recurring Event Occurrence
+```json
+{
+  "p_profile_id": "e84d4d2e-2474-4e30-a031-ca411e4c391e",
+  "p_event_date": "2026-06-01",
+  "p_event_time": "14:00:00",
+  "p_event_end_time": "15:00:00",
+  "p_event_id": "abc-123-mon-occurrence",
+  "p_parent_event_id": "abc-123-parent"
+}
+```
+
+### Body — Creating New Event (No exclusion)
+```json
+{
+  "p_profile_id": "e84d4d2e-2474-4e30-a031-ca411e4c391e",
+  "p_event_date": "2026-06-01",
+  "p_event_time": "14:00:00",
+  "p_event_end_time": "15:00:00"
 }
 ```
 
@@ -40,7 +62,8 @@ Authorization: Bearer YOUR_ANON_KEY
 | `p_event_date` | date | Yes | Event date (YYYY-MM-DD) |
 | `p_event_time` | time | Yes | Event start time (HH:MM:SS) |
 | `p_event_end_time` | time | No | Event end time (HH:MM:SS). If omitted, treats start time as point-in-time |
-| `p_event_id` | uuid | No | Event ID to exclude (for editing) |
+| `p_event_id` | uuid | No | Event ID being edited — exclude this specific occurrence from conflict check |
+| `p_parent_event_id` | uuid | No | **For recurring events only** — Parent series ID. Exclude entire recurring series (all occurrences) from conflict check. Use when editing any occurrence of a recurring event |
 
 ---
 
