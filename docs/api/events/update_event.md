@@ -1,13 +1,140 @@
 # SP: `update_event`
 
-**Endpoint:** `POST /rpc/update_event`
-**Group:** Events
-**SQL:** [`functions/events/update_event.md`](../../../functions/events/update_event.md)
-**Tables written:** `event_mst` · `event_platforms` · `event_recurring` · `event_collaborators` (INSERT/UPDATE if collaborative) · `notifications` (INSERT if collaborative)
+## Versions
+
+| Version | Function | Endpoint | Status |
+|---------|----------|----------|--------|
+| v2.0 | `update_event_v2` | `POST /rpc/update_event_v2` | ✅ Current |
+| v1.0 | `update_event` | `POST /rpc/update_event` | ❌ Deprecated |
+
+> **Use `update_event_v2`** — v1 is deprecated. Only difference is collaborator behavior (see below).
 
 ---
 
-## Overview
+## ⚠️ Common Error — PGRST202
+
+```json
+{
+  "code": "PGRST202",
+  "message": "Could not find the function public.update_event_v2(...) in the schema cache"
+}
+```
+
+**Two causes:**
+1. **Function not deployed** — copy the SQL from [`functions/events/update_event.md`](../../../functions/events/update_event.md) and run in Supabase SQL Editor
+2. **Wrong parameter names** — all params require `p_` prefix. Common mistakes:
+
+| ❌ Wrong | ✅ Correct |
+|---------|-----------|
+| `event_id` | `p_event_id` |
+| `user_id` | `p_user_id` |
+| `collaborator_ids` | `p_collaborator_ids` |
+| `scope` | `p_scope` |
+| `type` | *(not a parameter — use `p_scope`)* |
+| `invited_by_profile_id` | *(not a parameter — use `p_user_id`)* |
+| `invited_profile_id` | *(not a parameter — use `p_collaborator_ids`)* |
+
+---
+
+**SQL:** [`functions/events/update_event.md`](../../../functions/events/update_event.md)
+**Tables written:** `event_mst` · `event_platforms` · `event_recurring` · `event_collaborators` · `notifications`
+
+---
+
+## v2.0 — Collaborator Sync (Current)
+
+**Endpoint:** `POST /rpc/update_event_v2`
+
+### Collaborator sync behavior
+
+The passed `p_collaborator_ids` list becomes the **desired final state**:
+
+| Current collaborators | Payload | Result |
+|----------------------|---------|--------|
+| (1, 2, 3) | `null` | No change — don't touch |
+| (1, 2, 3) | `[]` | Remove all (1, 2, 3) |
+| (1, 2, 3) | `[1,2,3]` | No change |
+| (1, 2, 3) | `[1,2]` | Remove 3 |
+| (1, 2, 3) | `[1,2,3,4]` | Add 4 |
+| (1, 2, 3) | `[2,3,4]` | Remove 1, add 4 |
+
+### v2 Request Examples
+
+#### Basic update — title only
+```json
+{
+  "p_event_id": "ace2c42d-d493-4513-bea5-78858654d5ee",
+  "p_user_id":  "be7bb571-1811-49f7-9bd5-a7db98c47815",
+  "p_title":    "Updated Event Title"
+}
+```
+
+#### Add collaborator 4 (existing: 1, 2, 3)
+```json
+{
+  "p_event_id":         "ace2c42d-d493-4513-bea5-78858654d5ee",
+  "p_user_id":          "be7bb571-1811-49f7-9bd5-a7db98c47815",
+  "p_is_collaborative": true,
+  "p_collaborator_ids": [
+    "collab-uuid-1",
+    "collab-uuid-2",
+    "collab-uuid-3",
+    "collab-uuid-4"
+  ]
+}
+```
+
+#### Remove collaborator 3 (keep 1, 2)
+```json
+{
+  "p_event_id":         "ace2c42d-d493-4513-bea5-78858654d5ee",
+  "p_user_id":          "be7bb571-1811-49f7-9bd5-a7db98c47815",
+  "p_collaborator_ids": [
+    "collab-uuid-1",
+    "collab-uuid-2"
+  ]
+}
+```
+
+#### Remove all collaborators
+```json
+{
+  "p_event_id":         "ace2c42d-d493-4513-bea5-78858654d5ee",
+  "p_user_id":          "be7bb571-1811-49f7-9bd5-a7db98c47815",
+  "p_collaborator_ids": []
+}
+```
+
+#### Swap collaborator — remove 1, add 4 (pass 2, 3, 4)
+```json
+{
+  "p_event_id":         "ace2c42d-d493-4513-bea5-78858654d5ee",
+  "p_user_id":          "be7bb571-1811-49f7-9bd5-a7db98c47815",
+  "p_collaborator_ids": [
+    "collab-uuid-2",
+    "collab-uuid-3",
+    "collab-uuid-4"
+  ]
+}
+```
+
+#### Update time + sync collaborators in one call
+```json
+{
+  "p_event_id":         "ace2c42d-d493-4513-bea5-78858654d5ee",
+  "p_user_id":          "be7bb571-1811-49f7-9bd5-a7db98c47815",
+  "p_event_time":       "20:00:00",
+  "p_event_end_time":   "22:00:00",
+  "p_collaborator_ids": [
+    "collab-uuid-1",
+    "collab-uuid-2"
+  ]
+}
+```
+
+---
+
+## v1.0 — Overview (Deprecated)
 
 Updates a single event. All fields except `p_event_id` and `p_user_id` are optional — only passed (non-null) fields are applied (COALESCE pattern). Only the event **owner** can update — collaborators do not have update permission.
 
