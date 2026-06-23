@@ -1,6 +1,14 @@
 # SP: `create_event`
 
-**Endpoint:** `POST /rpc/create_event`
+## Versions
+
+| Version | Function | Endpoint | Status |
+|---------|----------|----------|--------|
+| v2.0 | `create_event_v2` | `POST /rpc/create_event_v2` | ✅ Current |
+| v1.0 | `create_event` | `POST /rpc/create_event` | ❌ Deprecated |
+
+> **Use `create_event_v2`** — v1 is deprecated. Only difference is default end time behavior (see below).
+
 **Group:** Events
 **SQL:** [`functions/events/create_event.md`](../../../functions/events/create_event.md)
 **Tables written:** `event_mst` (INSERT) · `event_platforms` (INSERT) · `event_recurring` (INSERT if recurring) · `event_collaborators` (INSERT if collaborative) · `notifications` (INSERT if collaborative)
@@ -17,9 +25,19 @@ querying events for any specific date will find them directly — no runtime exp
 
 ---
 
+## v2.0 vs v1.0 — Default End Time
+
+| | v2.0 (`create_event_v2`) | v1.0 (`create_event`) |
+|---|---|---|
+| `p_event_end_time` omitted | Defaults to `p_event_time + 2 hours` | Stored as `NULL` |
+| `p_event_end_time` provided | Used as-is | Used as-is |
+| Cross-midnight wrap (e.g. 23:00 → 01:00) | ✅ Handled | ✅ Handled |
+
+---
+
 ## Recurring Event Pre-generation
 
-When `p_is_recurring = true`, `create_event` inserts:
+When `p_is_recurring = true`, `create_event_v2` inserts:
 
 | What | `parent_event_id` | Purpose |
 |---|---|---|
