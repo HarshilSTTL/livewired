@@ -151,11 +151,11 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'Event end time cannot be the same as event start time');
     END IF;
 
-    -- Default end time to 2 hours after start time if not provided.
+    -- Default end time to config-specified hours after start time if not provided.
     -- TIME + INTERVAL wraps correctly past midnight (e.g. 23:00 → 01:00),
     -- which is already handled as cross-midnight by get_profile_events / get_event_list.
     IF p_event_end_time IS NULL THEN
-        p_event_end_time := p_event_time + INTERVAL '2 hours';
+        p_event_end_time := p_event_time + (get_config('default_event_duration_hours', '2') || ' hours')::INTERVAL;
     END IF;
 
     IF p_platforms IS NOT NULL AND jsonb_array_length(p_platforms) > 0 THEN
@@ -397,8 +397,8 @@ BEGIN
                 CONTINUE;
             END IF;
 
-            -- Hard cap: max 5 collaborators
-            IF v_collab_count >= 5 THEN
+            -- Hard cap: max collaborators (from system_config)
+            IF v_collab_count >= (get_config('max_collaborators_per_event', '5'))::int THEN
                 v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
                 CONTINUE;
             END IF;
@@ -835,8 +835,8 @@ BEGIN
                 CONTINUE;
             END IF;
 
-            -- Hard cap: max 5 collaborators
-            IF v_collab_count >= 5 THEN
+            -- Hard cap: max collaborators (from system_config)
+            IF v_collab_count >= (get_config('max_collaborators_per_event', '5'))::int THEN
                 v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
                 CONTINUE;
             END IF;
