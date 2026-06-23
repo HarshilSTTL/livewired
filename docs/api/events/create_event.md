@@ -70,7 +70,7 @@ Rows inserted into `event_mst`:
 | `p_title` | text | ✅ | — | Event title |
 | `p_event_date` | date | ✅ | — | Date of the event in creator's local timezone (`YYYY-MM-DD`) |
 | `p_event_time` | time | ✅ | — | Time of the event in creator's local timezone (`HH:MM:SS`) |
-| `p_event_end_time` | time | ❌ | null | Optional end time in creator's local timezone (`HH:MM:SS`). If less than `p_event_time`, treated as next-day (cross-midnight). Cannot equal `p_event_time`. |
+| `p_event_end_time` | time | ❌ | `start + 2h` | Optional end time in creator's local timezone (`HH:MM:SS`). If omitted, defaults to 2 hours after `p_event_time`. If less than `p_event_time`, treated as next-day (cross-midnight). Cannot equal `p_event_time`. |
 | `p_timezone` | text | ❌ | `'UTC'` | Creator's IANA timezone — e.g. `'America/New_York'`, `'Asia/Kolkata'` |
 | `p_description` | text | ❌ | null | Event description |
 | `p_livestream` | boolean | ❌ | false | Is this a live stream? |

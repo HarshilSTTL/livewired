@@ -129,6 +129,13 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'Event end time cannot be the same as event start time');
     END IF;
 
+    -- Default end time to 2 hours after start time if not provided.
+    -- TIME + INTERVAL wraps correctly past midnight (e.g. 23:00 → 01:00),
+    -- which is already handled as cross-midnight by get_profile_events / get_event_list.
+    IF p_event_end_time IS NULL THEN
+        p_event_end_time := p_event_time + INTERVAL '2 hours';
+    END IF;
+
     IF p_platforms IS NOT NULL AND jsonb_array_length(p_platforms) > 0 THEN
 
         IF EXISTS (
