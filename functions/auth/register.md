@@ -1,5 +1,12 @@
 # `register`
 
+> ⚠️ **DEPRECATED — not used.** Auth is handled entirely by Supabase Auth
+> (`supabase.auth.signUp()`), which creates the `auth.users` row, hashes the
+> password, and sends the verification email natively. This RPC bypasses
+> Supabase Auth entirely (raw insert into `public.users`, plain-text password,
+> no verification) and is not called from the mobile app or anywhere else.
+> Kept only for historical reference — do not wire this up.
+
 ```sql
 -- Function: register
 -- Group: Auth

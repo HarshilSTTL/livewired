@@ -2,7 +2,15 @@
 
 ## Version History
 
-### v2.0 (Current — 2026-06-23) ✅
+### v3.0 (Current — 2026-06-30) ✅
+- **Function name:** `create_event_v3`
+- **Change from v2:** `p_event_end_time` is now **required**
+  - Removed `DEFAULT null` — callers must always supply an end time
+  - Removed auto-fill logic (`event_time + 2 hours`)
+  - Returns an error if `p_event_end_time` is not provided
+- **Endpoint:** `POST /rpc/create_event_v3`
+
+### v2.0 (Deprecated — 2026-06-23)
 - **Function name:** `create_event_v2`
 - **Change from v1:** Default end time behavior
   - If `p_event_end_time` is not provided, defaults to `p_event_time + 2 hours`
@@ -16,18 +24,17 @@
 
 ---
 
-## V2.0 Function (Current) ✅
+## V3.0 Function (Current) ✅
 
 ```sql
--- Function: create_event_v2
+-- Function: create_event_v3
 -- Group:    events
--- Endpoint: POST /rpc/create_event_v2
+-- Endpoint: POST /rpc/create_event_v3
 -- Tables:   event_mst (INSERT), event_platforms (INSERT), event_recurring (INSERT if recurring)
 -- Doc:      docs/api/events/create_event.md
--- Version:  2.0 (2026-06-23)
--- Change:   If p_event_end_time is NULL, defaults to p_event_time + INTERVAL '2 hours'.
---           TIME + INTERVAL wraps past midnight (23:00 → 01:00), which is handled
---           as cross-midnight by get_profile_events / get_event_list.
+-- Version:  3.0 (2026-06-30)
+-- Change:   p_event_end_time is now required (no DEFAULT null, no auto-fill).
+--           Returns an error if end time is not provided by the caller.
 --
 -- Notes:
 --   • event_platforms.platform_id is int4 — cast (pl->>'platform_id')::int4 on INSERT.
@@ -36,7 +43,7 @@
 --   • p_platforms null/[] → no event_platforms rows created.
 --
 -- Recurring event pre-generation:
---   When p_is_recurring = true, create_event_v2 inserts:
+--   When p_is_recurring = true, create_event_v3 inserts:
 --     1. ONE parent row in event_mst (parent_event_id = NULL) — stores the definition
 --     2. event_platforms rows on the parent only — children inherit
 --     3. ONE row in event_recurring — stores the recurrence rule
@@ -55,13 +62,13 @@
 --            in each calendar month between start_date and end_date
 --   last   → same but last occurrence of the weekday in each calendar month
 
-CREATE OR REPLACE FUNCTION create_event_v2(
+CREATE OR REPLACE FUNCTION create_event_v3(
     p_profile_id             uuid,
     p_user_id                uuid,
     p_title                  text,
     p_event_date             date,
     p_event_time             time,
-    p_event_end_time         time     DEFAULT null,
+    p_event_end_time         time,
     p_timezone               text     DEFAULT 'UTC',
     p_description            text     DEFAULT null,
     p_livestream             boolean  DEFAULT false,
@@ -144,18 +151,15 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'Event time is required');
     END IF;
 
+    IF p_event_end_time IS NULL THEN
+        RETURN json_build_object('status', false, 'message', 'Event end time is required');
+    END IF;
+
     -- ── End time validation ───────────────────────────────────────────────────
     -- end_time < start_time is valid (cross-midnight, treated as next day).
     -- Only reject if end_time = start_time (zero-duration event).
-    IF p_event_end_time IS NOT NULL AND p_event_end_time = p_event_time THEN
+    IF p_event_end_time = p_event_time THEN
         RETURN json_build_object('status', false, 'message', 'Event end time cannot be the same as event start time');
-    END IF;
-
-    -- Default end time to config-specified hours after start time if not provided.
-    -- TIME + INTERVAL wraps correctly past midnight (e.g. 23:00 → 01:00),
-    -- which is already handled as cross-midnight by get_profile_events / get_event_list.
-    IF p_event_end_time IS NULL THEN
-        p_event_end_time := p_event_time + (get_config('default_event_duration_hours', '2') || ' hours')::INTERVAL;
     END IF;
 
     IF p_platforms IS NOT NULL AND jsonb_array_length(p_platforms) > 0 THEN

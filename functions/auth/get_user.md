@@ -24,7 +24,7 @@ BEGIN
     END IF;
 
     -- ── Fetch user ────────────────────────────────────────────────────────────
-    SELECT id, email, username
+    SELECT id, email, username, is_email_verified
     INTO v_user
     FROM users
     WHERE id         = p_user_id
@@ -41,9 +41,10 @@ BEGIN
         'status',  true,
         'message', 'User fetched successfully',
         'data', json_build_object(
-            'user_id',  v_user.id,
-            'username', v_user.username,
-            'email',    v_user.email
+            'user_id',           v_user.id,
+            'username',          v_user.username,
+            'email',             v_user.email,
+            'is_email_verified', v_user.is_email_verified
         )
     );
 

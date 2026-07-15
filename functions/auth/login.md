@@ -1,5 +1,11 @@
 # `login`
 
+> ⚠️ **DEPRECATED — not used.** Auth is handled entirely by Supabase Auth
+> (`supabase.auth.signInWithPassword()`). This RPC compares plain-text
+> passwords against `public.users.password` — a column Supabase Auth doesn't
+> populate or maintain — and is not called from the mobile app or anywhere
+> else. Kept only for historical reference — do not wire this up.
+
 ```sql
 -- Function: login
 -- Group: Auth

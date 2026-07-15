@@ -7,11 +7,12 @@
 -- Tables:   event_reminders (SELECT)
 -- Doc: docs/api/events/get_event_reminder.md
 --
--- Retrieves the reminder configuration for a specific event that a user has set.
--- Returns whether a reminder exists and at what interval (in minutes before event).
+-- Retrieves ALL active reminders a user has set for a specific event.
+-- A user may have multiple reminders on the same event (e.g. 1 day before,
+-- 1 hour before, 10 minutes before) — this returns every one of them.
 --
--- If no active reminder exists for this user+event combination,
--- returns status: true with has_reminder: false.
+-- If no active reminders exist for this user+event combination,
+-- returns status: true with has_reminder: false and an empty reminders array.
 
 CREATE OR REPLACE FUNCTION get_event_reminder(
     p_user_id  uuid,
@@ -23,8 +24,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-    v_reminder_minutes int;
-    v_reminder_exists  boolean;
+    v_reminders json;
 BEGIN
 
     -- ── Required params ──────────────────────────────────────────────────────
@@ -32,32 +32,25 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'p_user_id and p_event_id are required');
     END IF;
 
-    -- ── Check if user has an active reminder for this event ───────────────────
-    SELECT reminder_minutes
-    INTO v_reminder_minutes
-    FROM event_reminders
-    WHERE user_id  = p_user_id
-      AND event_id = p_event_id
-      AND is_deleted = false
-    LIMIT 1;
+    -- ── Collect all active reminders for this user+event ─────────────────────
+    SELECT json_agg(
+               json_build_object(
+                   'reminder_id',      er.id,
+                   'reminder_minutes', er.reminder_minutes
+               )
+               ORDER BY er.reminder_minutes
+           )
+    INTO v_reminders
+    FROM event_reminders er
+    WHERE er.user_id  = p_user_id
+      AND er.event_id = p_event_id
+      AND er.is_deleted = false;
 
-    -- ── Reminder doesn't exist or is deleted ─────────────────────────────────
-    IF v_reminder_minutes IS NULL THEN
-        RETURN json_build_object(
-            'status', true,
-            'data', json_build_object(
-                'has_reminder',    false,
-                'reminder_minutes', NULL
-            )
-        );
-    END IF;
-
-    -- ── Return reminder details ──────────────────────────────────────────────
     RETURN json_build_object(
         'status', true,
         'data', json_build_object(
-            'has_reminder',    true,
-            'reminder_minutes', v_reminder_minutes
+            'has_reminder', v_reminders IS NOT NULL,
+            'reminders',    COALESCE(v_reminders, '[]'::json)
         )
     );
 
@@ -90,33 +83,37 @@ $$;
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `p_user_id` | `uuid` | ✅ | The user checking their reminder |
+| `p_user_id` | `uuid` | ✅ | The user checking their reminders |
 | `p_event_id` | `uuid` | ✅ | The event UUID to check |
 
 ---
 
-## Response (Success - Reminder exists)
+## Response (Success - Reminders exist)
 
 ```json
 {
     "status": true,
     "data": {
         "has_reminder": true,
-        "reminder_minutes": 15
+        "reminders": [
+            { "reminder_id": "b1e7...", "reminder_minutes": 10 },
+            { "reminder_id": "9ac2...", "reminder_minutes": 60 },
+            { "reminder_id": "44d0...", "reminder_minutes": 1440 }
+        ]
     }
 }
 ```
 
 ---
 
-## Response (Success - No reminder)
+## Response (Success - No reminders)
 
 ```json
 {
     "status": true,
     "data": {
         "has_reminder": false,
-        "reminder_minutes": null
+        "reminders": []
     }
 }
 ```
@@ -136,7 +133,16 @@ $$;
 
 ## Business Rules
 
-1. Only checks **active** reminders (`is_deleted = false`)
-2. Returns `has_reminder: false` if no reminder exists or reminder is deleted
-3. When a reminder exists, `reminder_minutes` contains the notification lead time (1–1440 minutes)
-4. Does NOT validate if the event exists — returns `has_reminder: false` if no reminder found
+1. Only returns **active** reminders (`is_deleted = false`)
+2. Returns `has_reminder: false` and `reminders: []` if none exist
+3. `reminders` is sorted ascending by `reminder_minutes`
+4. Does NOT validate if the event exists — returns an empty list if no reminders found
+
+---
+
+## Breaking Change (v2 shape)
+
+Prior versions of this function returned a single `reminder_minutes` field
+(`{ "has_reminder": true, "reminder_minutes": 15 }`). Callers must migrate to
+reading the `reminders` array instead — a single event may now have more than
+one reminder for the same user.

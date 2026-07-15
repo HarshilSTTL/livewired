@@ -10,12 +10,15 @@
 --         follow_event_subscription_dispatches (INSERT), notifications (INSERT)
 --
 -- Three reminder sources:
---   1. event_reminders   — manual, per-(user, event), set explicitly by the follower
+--   1. event_reminders   — manual, per-(user, event, reminder_minutes), set explicitly by the
+--                          follower. A user may have MULTIPLE manual reminders on the same event
+--                          (e.g. 1 day before + 1 hour before) — each row fires independently.
 --   2. follows.reminder_enabled   — event-specific follow-level reminders (YouTube-style bell-icon)
 --   3. follows.event_notification_enabled — profile-level event subscriptions (notify on new events)
 --
 -- Precedence: Manual > Follow-level event subscriptions > Profile subscriptions
--- Manual reminders suppress both follow-level reminders AND profile subscriptions for same event.
+-- Manual reminders suppress both follow-level reminders AND profile subscriptions for same event —
+-- suppression uses EXISTS(...) so it triggers correctly regardless of how many manual reminders exist.
 
 CREATE OR REPLACE FUNCTION process_event_reminders()
 RETURNS void
