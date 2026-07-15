@@ -62,6 +62,11 @@ BEGIN
     INSERT INTO public.user_interests (user_id, tag_id)
     SELECT p_user_id, UNNEST(p_tag_ids);
 
+    -- ── Mark onboarding complete ─────────────────────────────────
+    -- Onboarding is considered complete once the user submits tags,
+    -- regardless of whether they also submit platforms.
+    UPDATE public.users SET onboarding_completed = true WHERE id = p_user_id;
+
     -- ── Success response ───────────────────────────────────────
     RETURN json_build_object(
         'resultFlag', true,

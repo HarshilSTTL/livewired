@@ -28,7 +28,26 @@ BEGIN
         COALESCE(NEW.raw_app_meta_data->>'provider', 'email'),
         now(), now()
     )
-    ON CONFLICT (id) DO NOTHING;
+    -- Bare ON CONFLICT DO NOTHING (no column list) absorbs a violation on
+    -- EITHER unique constraint on this table — id (re-fired trigger) or
+    -- email (a public.users row with this email already exists under a
+    -- different id, e.g. leftover data from the deprecated register/signup/
+    -- google_auth RPCs). Without this, an email collision throws an
+    -- unhandled exception, rolls back the whole auth.users INSERT, and
+    -- signup fails with a 500 even though Supabase Auth itself is fine.
+    ON CONFLICT DO NOTHING;
+
+    -- FOUND reflects whether the INSERT above actually inserted a row.
+    -- If it's false, ON CONFLICT DO NOTHING absorbed a collision (most likely
+    -- the email already exists under a different id) and this auth.users
+    -- account now has NO matching public.users row — is_email_verified will
+    -- never sync for it via handle_email_verified. Surface this so it gets
+    -- reconciled manually instead of failing silently.
+    IF NOT FOUND THEN
+        RAISE WARNING 'handle_new_auth_user: skipped insert for auth.users.id=% (email=%) — id or email already exists on a different public.users row. Needs manual reconciliation.',
+            NEW.id, NEW.email;
+    END IF;
+
     RETURN NEW;
 END;
 $$;

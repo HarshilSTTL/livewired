@@ -50,6 +50,11 @@ begin
     delete from user_preferred_platforms where user_id = p_user_id;
     insert into user_preferred_platforms (user_id, platform_id)
     select p_user_id, unnest(p_platformid);
+
+    -- Onboarding is considered complete once the user submits their platforms,
+    -- regardless of whether they also submit tags.
+    update users set onboarding_completed = true where id = p_user_id;
+
     return json_build_object(
         'status',  true,
         'message', 'Platforms saved successfully'
