@@ -8,7 +8,8 @@
       "Bash(Select-Object Name, PSIsContainer)",
       "Bash(awk '{print $NF}')",
       "Bash(ls -la \"C:\\\\Users\\\\stadmin\\\\Desktop\\\\STTL\\\\Projects\\\\Livewired\\\\\" | head -20)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(grep -E \"\\\\.\\(md|sql\\)$\")"
     ]
   }
 }

@@ -8,20 +8,35 @@
         "type": "tabs",
         "children": [
           {
-            "id": "1c6157d9e3778e81",
+            "id": "85b6989912a3a12b",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "updates/2026-05-28.md",
-                "mode": "preview",
+                "file": "updates/2026-06-30.md",
+                "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "2026-05-28"
+              "title": "2026-06-30"
+            }
+          },
+          {
+            "id": "00181cc83efc4ba0",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "updates/2026-07-13.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "2026-07-13"
             }
           }
         ],
+        "currentTab": 1,
         "stacked": true
       }
     ],
@@ -95,6 +110,7 @@
             "state": {
               "type": "backlink",
               "state": {
+                "file": "functions/events/respond_collaborator_invite.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +120,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks"
+              "title": "Backlinks for respond_collaborator_invite"
             }
           },
           {
@@ -163,7 +179,8 @@
               "title": "Outline"
             }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",
@@ -181,43 +198,45 @@
       "bases:Create new base": false
     }
   },
-  "active": "1c6157d9e3778e81",
+  "active": "8951fd9c7d74b44e",
   "lastOpenFiles": [
-    "docs/api/profiles/get_profile_platforms.md",
-    "functions/search/search_collaborator_profiles.md.tmp.15452.aef6a5c83ed7",
-    "functions/search/search_profiles.md.tmp.15452.a9ba2f4ffa85",
-    "functions/profiles/get_profile_by_id.md.tmp.15452.e05e178c7803",
-    "docs/api/profiles/get_profile_platforms.md.tmp.15452.4a5b5ff3fb84",
-    "functions/profiles/get_profile_platforms.md.tmp.15452.a1740cc0261c",
-    "functions/profiles/add_profile_platform.md",
-    "docs/api/profiles/delete_profile_platform.md",
+    "updates/2026-07-13.md.tmp.23008.50426293ad4e",
+    "functions/events/set_event_reminder.md.tmp.23008.c00fe52d4770",
+    "functions/events/set_event_reminder.md",
+    "updates/2026-07-13.md.tmp.30180.95d63346eeb2",
+    "functions/notifications/process_event_reminders.md.tmp.25540.609773b36f09",
+    "functions/events/delete_event_reminder.md",
+    "functions/events/delete_event_reminder.md.tmp.25540.11b16bac6eeb",
+    "functions/events/add_event_reminder.md",
+    "functions/events/add_event_reminder.md.tmp.25540.58d9fc42364f",
+    "functions/events/get_event_reminder.md.tmp.25540.8ef692e8c2b9",
+    "updates/2026-06-30.md",
+    "updates/2026-07-13.md",
+    "Untitled",
+    "schema/tables/02_users.md",
+    "functions/events/create_event.md",
+    "updates/2026-06-30.md.tmp.3172.127ad595cd18",
+    "Untitled 1.base",
+    "2026-06-23.md",
+    "functions/events/respond_collaborator_invite.md",
+    "updates/2026-06-23.md.tmp.35492.1372887204ae",
+    "Untitled 1.canvas",
+    "functions/auth/login.md",
+    "docs/API_INDEX.md",
+    "Untitled.canvas",
+    "schema/tables/16_system_config.md",
+    "updates/2026-06-23.md",
+    "docs/api/admin/system_config.md",
+    "functions/admin/init_system_config.md",
+    "functions/admin/update_config.md",
+    "functions/admin/list_config_categories.md",
+    "functions/admin/get_all_configs.md",
+    "functions/admin/get_config.md",
+    "updates/2026-06-16.md",
+    "updates/2026-06-15.md",
     "updates/2026-05-28.md",
-    "functions/search/search_collaborator_profiles.md",
-    "updates/2026-05-28.md.tmp.26700.d68cc6727d60",
-    "functions/profiles/get_profiles.md.tmp.26700.138b1d5c7186",
-    "functions/search/search_collaborator_profiles.md.tmp.26700.342f1826202e",
-    "functions/profiles/get_profile_by_userid.md.tmp.26700.487d234ebdc4",
-    "docs/api/profiles/get_profile_by_id.md.tmp.26700.a5257c6d397c",
-    "docs/api/profiles/reorder_social_links.md",
-    "functions/profiles/reorder_social_links.md",
-    "schema/migrations/create_profile_link_preferences.md",
-    "docs/api/notifications/get_unread_notification_count.md",
-    "functions/profiles/get_profiles.md",
-    "search_profiles_v2.md",
-    "get_profiles_v2.md",
-    "functions/profiles/create_profile.md",
-    "CONTEXT.md",
-    "docs/api/search/search_collaborator_profiles.md",
-    "docs/api/notifications/get_notifications.md",
-    "functions/search/search_profiles.md",
-    "docs/api/search/search_events.md",
-    "docs/api/follow/follow_creator.md",
-    "functions/follow/get_profile_reminder.md",
-    "docs/api/follow/get_profile_reminder.md",
-    "updates/2026-05-15.md",
-    "schema/tables/10_follows.md",
-    "functions/events/get_event_reminder.md",
-    "docs/api/events/get_event_reminder.md",
-    "docs/api/follow/update_follow_event_subscription.md"
+    "updates/2026-05-12.md",
+    "updates/2026-05-07.md",
+    "updates/2026-05-01.md"
   ]
 }
