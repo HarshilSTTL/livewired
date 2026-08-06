@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS public.event_mst (
     created_at        timestamptz DEFAULT now(),
     updated_at        timestamptz NULL,    -- nullable
     is_overridden     boolean     NOT NULL DEFAULT false, -- true = child occurrence has its own overridden fields (set via p_scope='this')
+    collaborators_overridden boolean NOT NULL DEFAULT false, -- true = child occurrence has its own overridden collaborator list (set via p_scope='this')
     is_deleted        boolean     NOT NULL DEFAULT false, -- soft delete flag
     deleted_at        timestamptz NULL                    -- timestamp of soft delete
 );
@@ -33,6 +34,7 @@ CREATE TABLE IF NOT EXISTS public.event_mst (
 --   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS event_end_time time NULL;
 --   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS is_collaborative boolean NOT NULL DEFAULT false;
 --   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS is_overridden boolean NOT NULL DEFAULT false;
+--   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS collaborators_overridden boolean NOT NULL DEFAULT false;
 --   Note: event_date + event_time store UTC values. event_timezone stores the creator's original IANA timezone.
 --   Existing rows default to 'UTC' which is safe — they had no timezone context.
 
@@ -55,4 +57,14 @@ CREATE TABLE IF NOT EXISTS public.event_mst (
 --   false (default) → child inherits parent's data for platforms/fields (p_scope='all' path)
 --   true            → child has its own overridden data (set via p_scope='this' update)
 --                     Read SPs use child's own event_platforms rows when is_overridden = true
+--
+-- collaborators_overridden usage:
+--   false (default) → child inherits the parent series' collaborator list
+--   true            → child has its own overridden collaborator list (set via p_scope='this'
+--                     update_event_v2 call with p_collaborator_ids). event_collaborators rows
+--                     for this child are keyed to the CHILD's own event_id, not the parent's.
+--                     Read SPs (get_event_by_id, get_profile_events, get_event_list) use the
+--                     child's own event_collaborators rows when collaborators_overridden = true.
+--                     Reset to false whenever scope='all' collaborator sync runs, so any prior
+--                     per-occurrence override is discarded and the child reverts to the series list.
 ```
