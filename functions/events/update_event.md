@@ -1,8 +1,47 @@
-# `update_event`
+﻿# `update_event`
 
 ## Version History
 
-### v2.1 (Current — 2026-08-06) ✅
+### v2.3 (Current — 2026-08-11) ✅
+- **Function name:** `update_event_v2_3`
+- **Endpoint:** `POST /rpc/update_event_v2_3`
+- **Change from v2.2:** Fixes converting a non-recurring event into a recurring one
+  (`p_scope='this'`/`'all'` + `p_recurring_days` on an event whose `parent_event_id`
+  was `NULL` and `is_recurring` was `false`):
+  - The event being edited (`p_event_id`) is now converted into the first child
+    occurrence of the new series instead of being left as the series' hidden
+    parent/template row while a brand-new duplicate row gets generated for the
+    same date. A fresh hidden template row is created to hold the recurrence
+    rule, and `p_event_id` is re-pointed at it (`parent_event_id`) — the caller's
+    event id keeps working and no longer disappears from `get_profile_events`
+    (which excludes `is_recurring = true AND parent_event_id IS NULL` rows).
+  - `event_recurring` is now upserted (`UPDATE`, then `INSERT` if no row existed)
+    instead of only `UPDATE`d. Previously, converting a non-recurring event left
+    `event_recurring` with zero rows for that series (the `UPDATE` silently
+    affected 0 rows), so every occurrence read back `"recurring": null` even
+    though `is_recurring` was `true`.
+  - The new hidden template inherits the edited event's platforms and
+    already-active collaborators (copied, not moved) so sibling occurrences —
+    which fall back to `COALESCE(parent_event_id, event_id)` for both — see the
+    same data the user had already set, instead of it vanishing once
+    `p_event_id` stops being its own parent.
+  - Does not change behavior for events that were already part of a recurring
+    series — regenerating an established series' occurrences is unaffected.
+
+### v2.2 (Previous — 2026-08-10)
+- **Function name:** `update_event_v2_2`
+- **Endpoint:** `POST /rpc/update_event_v2_2`
+- **Change from v2.1:** `p_is_collaborative` is now scope-aware
+  - `p_scope='this'` → updates `is_collaborative` only on the occurrence itself (`p_event_id`).
+  - `p_scope='all'` → updates the parent + all children, same as before.
+  - Fixes: passing `p_is_collaborative=false` alongside a `p_scope='this'` collaborator
+    removal (e.g. clearing the last collaborator on one occurrence) was turning off
+    `is_collaborative` for the WHOLE recurring series, not just that occurrence.
+  - No schema or read-path change needed — `is_collaborative` already exists per-row on
+    every occurrence and every read SP already reads it directly (no parent fallback);
+    only the write path was wrongly forcing it onto every row regardless of scope.
+
+### v2.1 (Previous — 2026-08-06)
 - **Function name:** `update_event_v2_1`
 - **Endpoint:** `POST /rpc/update_event_v2_1`
 - **Change from v2.0:** Collaborator sync is now scope-aware
@@ -32,7 +71,1455 @@
 
 ---
 
-## V2.1 Function (Current) ✅
+## V2.3 Function (Current) ✅
+
+```sql
+-- Function: update_event_v2_3
+-- Group: Events
+-- Endpoint: POST /rpc/update_event_v2_3
+-- Tables:   event_mst (UPDATE/INSERT), event_platforms (DELETE+INSERT), event_recurring (UPDATE or INSERT)
+--           event_collaborators (INSERT/UPDATE/soft-delete), notifications (INSERT if collaborative)
+-- Doc: docs/api/events/update_event.md
+-- Version: 2.3 (2026-08-11)
+--
+-- Change from v2.2: Fixes converting a non-recurring event into a recurring one.
+--
+--   Bug 1 — duplicate instead of reuse: when p_event_id had parent_event_id IS NULL
+--   and was_recurring = false (i.e. a plain single event being made recurring for
+--   the first time), v2.2 treated p_event_id itself as the series' parent/template
+--   row and regenerated occurrences from scratch — including a brand-new row for
+--   the same date as p_event_id. Since get_profile_events excludes
+--   (is_recurring = true AND parent_event_id IS NULL) rows, p_event_id effectively
+--   vanished from listings and was replaced by the freshly generated duplicate.
+--   Fix: on first conversion, create a new hidden template row (parent_event_id = NULL)
+--   to own the recurrence rule, re-point p_event_id at it (parent_event_id = new
+--   template id, is_recurring = true) so p_event_id stays visible as the series'
+--   first occurrence, and skip generating a duplicate for that same date.
+--
+--   Bug 2 — recurring always null: event_recurring was only ever UPDATEd, never
+--   INSERTed, so first-time conversions left zero event_recurring rows for the
+--   series — every occurrence read back "recurring": null. Fix: UPDATE, then
+--   INSERT if no row was found (upsert).
+--
+--   The new hidden template also inherits p_event_id's platforms and already-active
+--   collaborators (copied, not moved) since sibling occurrences with
+--   is_overridden/collaborators_overridden = false fall back to
+--   COALESCE(parent_event_id, event_id) for both.
+--
+--   Editing an already-established recurring series (parent_event_id already set,
+--   or is_recurring already true) is unchanged from v2.2.
+--
+-- Change from v2.1: p_is_collaborative is now scope-aware
+--   p_scope='this' → updates is_collaborative only on the occurrence itself (p_event_id).
+--   p_scope='all' → updates the parent + all children, same as before.
+--
+-- Change from v2.0: Collaborator sync behavior
+--   p_collaborator_ids: null        = don't touch existing collaborators
+--   p_collaborator_ids: []          = remove ALL collaborators (soft delete)
+--   p_collaborator_ids: [id1,id2]   = SYNC — keep id1/id2, remove anyone not in list, add new ones
+--
+-- p_scope: 'all' (default) = update parent + all occurrences
+--          'this'          = per-occurrence scalar/platform/collaborator overrides
+-- p_platforms:        null = don't touch | [] = clear all | [...] = replace
+-- p_recurring_days:   null or [] = no rule change | [...] = update + regen ('all' scope only)
+-- p_is_collaborative: always parent-level (applied to parent + all children when set)
+-- p_collaborator_ids: 'all' scope = series-level (parent) | 'this' scope = occurrence-level
+--                     (see collaborators_overridden on event_mst)
+--
+-- DEPLOYMENT — this is a NEW function name (update_event_v2_3), no overload to drop.
+-- Old callers on update_event_v2_2 keep working unchanged (see "V2.2 Function (Previous)" below).
+-- Point the client at /rpc/update_event_v2_3 once deployed, then:
+--   NOTIFY pgrst, 'reload schema';
+
+CREATE OR REPLACE FUNCTION update_event_v2_3(
+    p_event_id             uuid,
+    p_user_id              uuid,
+    p_scope                text     DEFAULT 'all',
+    -- Core event fields
+    p_title                text     DEFAULT NULL,
+    p_description          text     DEFAULT NULL,
+    p_event_date           date     DEFAULT NULL,
+    p_event_time           time     DEFAULT NULL,
+    p_event_end_time       time     DEFAULT NULL,
+    p_timezone             text     DEFAULT NULL,
+    p_livestream           boolean  DEFAULT NULL,
+    p_video                boolean  DEFAULT NULL,
+    p_is_collaborative     boolean  DEFAULT NULL,
+    p_collaborator_ids     uuid[]   DEFAULT NULL,
+    p_platforms            jsonb    DEFAULT NULL,
+    -- Recurring fields
+    p_recurring_days       text[]   DEFAULT NULL,
+    p_recurring_type       text     DEFAULT NULL,
+    p_recurring_interval   int      DEFAULT NULL,
+    p_recurring_start_date date     DEFAULT NULL,
+    p_recurring_end_date   date     DEFAULT NULL
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    -- Intent flags
+    v_scope             text;
+    v_update_recurring  boolean;
+    v_sync_collabs      boolean;   -- true when p_collaborator_ids IS NOT NULL (including [])
+    v_has_scalar        boolean;
+    v_has_platforms     boolean;
+    v_occurrence_change boolean;
+
+    v_platform          jsonb;
+
+    -- Parent resolution
+    v_parent_event_id    uuid;
+    v_target_parent_id   uuid;
+
+    -- First-time recurring conversion (v2.3)
+    v_was_recurring       boolean;
+    v_is_first_conversion boolean;
+    v_new_parent_id       uuid;
+    v_first_occ_date      date;
+
+    -- End-time validation
+    v_existing_event_time     time;
+    v_existing_event_end_time time;
+    v_final_event_time        time;
+    v_final_event_end_time    time;
+
+    -- Recurring rule build-up
+    v_rec_days      text[];
+    v_rec_type      text;
+    v_rec_interval  int;
+    v_rec_start     date;
+    v_rec_end       date;
+    v_safe_end      date;
+
+    -- Child generation
+    v_profile_id         uuid;
+    v_title              text;
+    v_description        text;
+    v_event_time         time;
+    v_event_end_time     time;
+    v_event_tz           text;
+    v_livestream         boolean;
+    v_video              boolean;
+    v_is_collaborative   boolean;
+    v_day_name           text;
+    v_dow_target         int;
+    v_dow_start          int;
+    v_days_ahead         int;
+    v_first_occ          date;
+    v_occ_date           date;
+    v_month_start        date;
+    v_month_end          date;
+    v_dow_month_end      int;
+
+    -- Collaborator sync
+    v_owner_profile_id   uuid;
+    v_owner_name         text;
+    v_event_title        text;
+    v_collab_id          uuid;
+    v_invitee_user_id    uuid;
+    v_skipped_ids        uuid[];
+    v_collab_count       int;
+    v_existing_collab_id uuid;
+    v_existing_deleted   boolean;
+    v_effective_is_collab boolean;
+    v_collab_target_id   uuid;   -- event_id collaborator rows are keyed to (occurrence when scope='this', parent when scope='all')
+
+    v_success_message    text;
+BEGIN
+
+    -- ── 1. Required params ────────────────────────────────────────────────────
+    IF p_event_id IS NULL OR p_user_id IS NULL THEN
+        RETURN json_build_object('status', false, 'message', 'p_event_id and p_user_id are required');
+    END IF;
+
+    -- ── 2. Normalise scope ────────────────────────────────────────────────────
+    v_scope := COALESCE(NULLIF(trim(p_scope), ''), 'all');
+    IF v_scope NOT IN ('all', 'this') THEN
+        RETURN json_build_object('status', false, 'message', 'p_scope must be ''all'' or ''this''');
+    END IF;
+
+    -- ── 3. Intent flags ───────────────────────────────────────────────────────
+    v_update_recurring := p_recurring_days IS NOT NULL
+                          AND COALESCE(array_length(p_recurring_days, 1), 0) > 0;
+
+    -- v2 change: sync triggers on ANY non-null value, including empty array
+    v_sync_collabs := p_collaborator_ids IS NOT NULL;
+
+    -- v2.1: 'this' scope syncs the occurrence's OWN collaborator rows (event_id = p_event_id);
+    -- 'all' scope syncs the series' collaborator rows (event_id = v_target_parent_id), same as v2.0.
+    -- Resolved after v_scope is demoted below (step 6), so recompute isn't needed until then.
+
+    v_has_scalar := p_title          IS NOT NULL OR p_description   IS NOT NULL
+                 OR p_event_date     IS NOT NULL OR p_event_time    IS NOT NULL
+                 OR p_event_end_time IS NOT NULL OR p_timezone      IS NOT NULL
+                 OR p_livestream     IS NOT NULL OR p_video         IS NOT NULL;
+    v_has_platforms     := p_platforms IS NOT NULL;
+    v_occurrence_change := v_has_scalar OR v_has_platforms;
+
+    -- ── 4. Ownership check ───────────────────────────────────────────────────
+    IF NOT EXISTS (
+        SELECT 1
+        FROM event_mst e
+        JOIN creator_profiles cp ON cp.id = e.profile_id
+        WHERE e.event_id = p_event_id
+          AND cp.user_id = p_user_id
+          AND cp.status  = 'active'
+    ) THEN
+        RETURN json_build_object('status', false, 'message', 'Event not found or access denied');
+    END IF;
+
+    -- ── 5. Resolve parent event ──────────────────────────────────────────────
+    SELECT parent_event_id, is_recurring INTO v_parent_event_id, v_was_recurring
+    FROM event_mst WHERE event_id = p_event_id;
+
+    v_target_parent_id := COALESCE(v_parent_event_id, p_event_id);
+
+    -- v2.3: true only when p_event_id is not, and was never, part of any recurring
+    -- series — i.e. this call is the one converting it into one for the first time.
+    v_is_first_conversion := v_parent_event_id IS NULL AND COALESCE(v_was_recurring, false) = false;
+
+    -- ── 6. Demote 'this' to 'all' for non-recurring events ───────────────────
+    IF v_scope = 'this' AND v_parent_event_id IS NULL THEN
+        v_scope := 'all';
+    END IF;
+
+    -- ── 6b. Resolve collaborator sync target ─────────────────────────────────
+    v_collab_target_id := CASE WHEN v_scope = 'this' THEN p_event_id ELSE v_target_parent_id END;
+
+    -- ══════════════════════════════════════════════════════════════════════════
+    -- BRANCH A: scope = 'this'
+    -- ══════════════════════════════════════════════════════════════════════════
+    IF v_scope = 'this' THEN
+
+        IF v_update_recurring THEN
+            RETURN json_build_object('status', false, 'message',
+                'Recurring schedule cannot be changed for a single occurrence — use scope ''all''');
+        END IF;
+
+        IF v_has_scalar THEN
+            SELECT event_time, event_end_time
+            INTO v_existing_event_time, v_existing_event_end_time
+            FROM event_mst WHERE event_id = p_event_id;
+
+            v_final_event_time     := COALESCE(p_event_time,     v_existing_event_time);
+            v_final_event_end_time := COALESCE(p_event_end_time, v_existing_event_end_time);
+
+            IF v_final_event_end_time IS NOT NULL AND v_final_event_end_time = v_final_event_time THEN
+                RETURN json_build_object('status', false, 'message', 'Event end time cannot be the same as event start time');
+            END IF;
+        END IF;
+
+        IF p_platforms IS NOT NULL AND jsonb_array_length(p_platforms) > 0 THEN
+            IF EXISTS (
+                SELECT 1 FROM jsonb_array_elements(p_platforms) AS pl
+                WHERE NOT EXISTS (SELECT 1 FROM platforms p WHERE p.plat_id = (pl->>'platform_id')::bigint)
+            ) THEN
+                RETURN json_build_object('status', false, 'message', 'One or more platform IDs are invalid');
+            END IF;
+            IF EXISTS (
+                SELECT 1 FROM jsonb_array_elements(p_platforms) AS pl
+                WHERE pl->>'stream_url' IS NULL OR trim(pl->>'stream_url') = ''
+            ) THEN
+                RETURN json_build_object('status', false, 'message', 'Stream URL is required for each platform');
+            END IF;
+        END IF;
+
+        IF v_occurrence_change THEN
+            UPDATE event_mst
+            SET title          = COALESCE(p_title,          title),
+                description    = COALESCE(p_description,    description),
+                event_date     = COALESCE(p_event_date,     event_date),
+                event_time     = COALESCE(p_event_time,     event_time),
+                event_end_time = COALESCE(p_event_end_time, event_end_time),
+                event_timezone = COALESCE(p_timezone,       event_timezone),
+                livestream     = COALESCE(p_livestream,     livestream),
+                video          = COALESCE(p_video,          video),
+                is_overridden  = true,
+                updated_at     = now()
+            WHERE event_id = p_event_id;
+        END IF;
+
+        IF p_platforms IS NOT NULL THEN
+            DELETE FROM event_platforms WHERE event_id = p_event_id;
+            IF jsonb_array_length(p_platforms) > 0 THEN
+                FOR v_platform IN SELECT * FROM jsonb_array_elements(p_platforms)
+                LOOP
+                    INSERT INTO event_platforms (id, event_id, platform_id, stream_url, created_at)
+                    VALUES (gen_random_uuid(), p_event_id, (v_platform->>'platform_id')::int4, v_platform->>'stream_url', now());
+                END LOOP;
+            END IF;
+        END IF;
+
+        v_success_message := 'Event occurrence updated successfully';
+
+    ELSE
+    -- ══════════════════════════════════════════════════════════════════════════
+    -- BRANCH B: scope = 'all'
+    -- ══════════════════════════════════════════════════════════════════════════
+
+        SELECT event_time, event_end_time
+        INTO v_existing_event_time, v_existing_event_end_time
+        FROM event_mst WHERE event_id = v_target_parent_id;
+
+        v_final_event_time     := COALESCE(p_event_time,     v_existing_event_time);
+        v_final_event_end_time := COALESCE(p_event_end_time, v_existing_event_end_time);
+
+        IF v_final_event_end_time IS NOT NULL AND v_final_event_end_time = v_final_event_time THEN
+            RETURN json_build_object('status', false, 'message', 'Event end time cannot be the same as event start time');
+        END IF;
+
+        IF p_platforms IS NOT NULL AND jsonb_array_length(p_platforms) > 0 THEN
+            IF EXISTS (
+                SELECT 1 FROM jsonb_array_elements(p_platforms) AS pl
+                WHERE NOT EXISTS (SELECT 1 FROM platforms p WHERE p.plat_id = (pl->>'platform_id')::bigint)
+            ) THEN
+                RETURN json_build_object('status', false, 'message', 'One or more platform IDs are invalid');
+            END IF;
+            IF EXISTS (
+                SELECT 1 FROM jsonb_array_elements(p_platforms) AS pl
+                WHERE pl->>'stream_url' IS NULL OR trim(pl->>'stream_url') = ''
+            ) THEN
+                RETURN json_build_object('status', false, 'message', 'Stream URL is required for each platform');
+            END IF;
+        END IF;
+
+        IF v_update_recurring THEN
+
+            IF EXISTS (
+                SELECT 1 FROM unnest(p_recurring_days) AS d(day)
+                WHERE d.day NOT IN ('Mon','Tue','Wed','Thu','Fri','Sat','Sun')
+            ) THEN
+                RETURN json_build_object('status', false, 'message', 'Invalid recurring day — must be Mon, Tue, Wed, Thu, Fri, Sat, or Sun');
+            END IF;
+
+            SELECT recurring_type, recurring_interval, recurring_start_date, recurring_end_date
+            INTO v_rec_type, v_rec_interval, v_rec_start, v_rec_end
+            FROM event_recurring WHERE event_id = v_target_parent_id;
+
+            v_rec_days     := p_recurring_days;
+            v_rec_type     := COALESCE(p_recurring_type,       v_rec_type);
+            v_rec_start    := COALESCE(p_recurring_start_date, v_rec_start);
+            v_rec_end      := COALESCE(p_recurring_end_date,   v_rec_end);
+
+            IF v_rec_type IS NULL OR v_rec_type NOT IN ('weekly', 'first', 'last') THEN
+                RETURN json_build_object('status', false, 'message', 'recurring_type must be weekly, first, or last');
+            END IF;
+
+            IF v_rec_type IN ('first', 'last') THEN
+                v_rec_interval := NULL;
+            ELSE
+                v_rec_interval := COALESCE(p_recurring_interval, v_rec_interval);
+                IF v_rec_interval IS NULL THEN
+                    RETURN json_build_object('status', false, 'message', 'recurring_interval is required for weekly type');
+                END IF;
+                IF v_rec_interval < 1 OR v_rec_interval > 12 THEN
+                    RETURN json_build_object('status', false, 'message', 'recurring_interval must be between 1 and 12');
+                END IF;
+            END IF;
+
+            IF v_rec_start IS NULL THEN
+                RETURN json_build_object('status', false, 'message', 'Recurring start date is required');
+            END IF;
+
+            IF v_rec_end IS NOT NULL AND v_rec_end <= v_rec_start THEN
+                RETURN json_build_object('status', false, 'message', 'Recurring end date must be after start date');
+            END IF;
+
+        END IF;
+
+        UPDATE event_mst
+        SET title          = COALESCE(p_title,          title),
+            description    = COALESCE(p_description,    description),
+            event_date     = COALESCE(p_event_date,     event_date),
+            event_time     = COALESCE(p_event_time,     event_time),
+            event_end_time = COALESCE(p_event_end_time, event_end_time),
+            event_timezone = COALESCE(p_timezone,       event_timezone),
+            livestream     = COALESCE(p_livestream,     livestream),
+            video          = COALESCE(p_video,          video),
+            updated_at     = now()
+        WHERE event_id = v_target_parent_id;
+
+        UPDATE event_mst
+        SET title          = COALESCE(p_title,          title),
+            description    = COALESCE(p_description,    description),
+            event_time     = COALESCE(p_event_time,     event_time),
+            event_end_time = COALESCE(p_event_end_time, event_end_time),
+            event_timezone = COALESCE(p_timezone,       event_timezone),
+            livestream     = COALESCE(p_livestream,     livestream),
+            video          = COALESCE(p_video,          video),
+            is_overridden  = false,
+            updated_at     = now()
+        WHERE parent_event_id = v_target_parent_id;
+
+        IF p_platforms IS NOT NULL THEN
+            DELETE FROM event_platforms WHERE event_id = v_target_parent_id;
+            DELETE FROM event_platforms
+            WHERE event_id IN (SELECT event_id FROM event_mst WHERE parent_event_id = v_target_parent_id);
+            IF jsonb_array_length(p_platforms) > 0 THEN
+                FOR v_platform IN SELECT * FROM jsonb_array_elements(p_platforms)
+                LOOP
+                    INSERT INTO event_platforms (id, event_id, platform_id, stream_url, created_at)
+                    VALUES (gen_random_uuid(), v_target_parent_id, (v_platform->>'platform_id')::int4, v_platform->>'stream_url', now());
+                END LOOP;
+            END IF;
+        END IF;
+
+        v_success_message := 'Event updated successfully';
+
+    END IF;
+
+    -- ══════════════════════════════════════════════════════════════════════════
+    -- SHARED: is_collaborative (v2.2 — now scope-aware, was always parent-level in v2.1)
+    --
+    -- scope='this' → applies only to the occurrence itself (p_event_id); every row already
+    --                stores its own is_collaborative value and read SPs already read it
+    --                directly (no fallback/COALESCE), so no schema or read-path change needed.
+    -- scope='all'  → applies to the parent + all children, same as before.
+    -- ══════════════════════════════════════════════════════════════════════════
+    IF p_is_collaborative IS NOT NULL THEN
+        IF v_scope = 'this' THEN
+            UPDATE event_mst
+            SET is_collaborative = p_is_collaborative,
+                updated_at       = now()
+            WHERE event_id = p_event_id;
+        ELSE
+            UPDATE event_mst
+            SET is_collaborative = p_is_collaborative,
+                updated_at       = now()
+            WHERE event_id = v_target_parent_id
+               OR parent_event_id = v_target_parent_id;
+        END IF;
+    END IF;
+
+    -- ══════════════════════════════════════════════════════════════════════════
+    -- SHARED: recurring rule + regen (v2.3 — first-conversion reuses p_event_id
+    -- as the series' first occurrence instead of duplicating it; event_recurring
+    -- is upserted instead of only updated)
+    -- ══════════════════════════════════════════════════════════════════════════
+    IF v_scope = 'all' AND v_update_recurring THEN
+
+        v_safe_end := COALESCE(v_rec_end, v_rec_start + INTERVAL '3 months');
+        v_rec_end  := v_safe_end;
+
+        IF v_is_first_conversion THEN
+
+            -- Create a new hidden template row to own the recurrence rule, so
+            -- p_event_id can become a real (visible) occurrence instead of the
+            -- series' excluded parent/template row.
+            SELECT profile_id, title, description, event_time, event_end_time,
+                   event_timezone, livestream, video, is_collaborative
+            INTO v_profile_id, v_title, v_description, v_event_time, v_event_end_time,
+                 v_event_tz, v_livestream, v_video, v_is_collaborative
+            FROM event_mst WHERE event_id = v_target_parent_id;
+
+            INSERT INTO event_mst (
+                event_id, profile_id, parent_event_id, title, description,
+                event_date, event_time, event_end_time, event_timezone,
+                livestream, video, is_collaborative, is_recurring, created_at, updated_at
+            )
+            VALUES (
+                gen_random_uuid(), v_profile_id, NULL, v_title, v_description,
+                v_rec_start, v_event_time, v_event_end_time, v_event_tz,
+                v_livestream, v_video, v_is_collaborative, true, now(), now()
+            )
+            RETURNING event_id INTO v_new_parent_id;
+
+            -- Seed the template's platforms/collaborators from p_event_id (copy, not
+            -- move) so siblings generated below — which fall back to
+            -- COALESCE(parent_event_id, event_id) when not individually overridden —
+            -- see what the user had already set, instead of it vanishing.
+            INSERT INTO event_platforms (id, event_id, platform_id, stream_url, created_at)
+            SELECT gen_random_uuid(), v_new_parent_id, platform_id, stream_url, now()
+            FROM event_platforms WHERE event_id = p_event_id;
+
+            INSERT INTO event_collaborators (id, event_id, profile_id, invited_by, status, invited_at, responded_at, updated_at)
+            SELECT gen_random_uuid(), v_new_parent_id, profile_id, invited_by, status, invited_at, responded_at, now()
+            FROM event_collaborators WHERE event_id = p_event_id AND is_deleted = false;
+
+            -- Re-point p_event_id at the new template — it becomes the first,
+            -- already-visible occurrence of the series instead of being replaced.
+            UPDATE event_mst
+            SET parent_event_id = v_new_parent_id,
+                is_recurring     = true,
+                updated_at       = now()
+            WHERE event_id = p_event_id;
+
+            v_target_parent_id := v_new_parent_id;
+
+            -- v_collab_target_id was resolved at step 6b against the OLD
+            -- v_target_parent_id (p_event_id); re-point it so the collaborator
+            -- sync section below (scope='all' only, since first conversion always
+            -- runs as scope='all') writes to the new template like every other
+            -- series-level field, instead of stranding invites on p_event_id where
+            -- collaborators_overridden = false would never surface them.
+            v_collab_target_id := v_new_parent_id;
+
+        END IF;
+
+        -- Upsert the recurrence rule — a plain UPDATE here silently no-ops on first
+        -- conversion (no event_recurring row exists yet), leaving every occurrence's
+        -- `recurring` field null.
+        UPDATE event_recurring
+        SET recurring_days       = v_rec_days,
+            recurring_type       = v_rec_type,
+            recurring_interval   = v_rec_interval,
+            recurring_start_date = v_rec_start,
+            recurring_end_date   = v_rec_end,
+            renewal_notified_at  = NULL
+        WHERE event_id = v_target_parent_id;
+
+        IF NOT FOUND THEN
+            INSERT INTO event_recurring (
+                id, event_id, recurring_days, recurring_type,
+                recurring_interval, recurring_start_date, recurring_end_date, created_at
+            )
+            VALUES (
+                gen_random_uuid(), v_target_parent_id, v_rec_days, v_rec_type,
+                v_rec_interval, v_rec_start, v_rec_end, now()
+            );
+        END IF;
+
+        -- On first conversion, p_event_id was just re-pointed at v_target_parent_id
+        -- above and must survive this regen (that's the whole fix) — everything else
+        -- under the template gets deleted and regenerated. For an already-established
+        -- series this is unchanged from v2.2: every child (including one referenced by
+        -- p_event_id, if it happened to be a child) is deleted and regenerated fresh.
+        IF v_is_first_conversion THEN
+            DELETE FROM event_mst WHERE parent_event_id = v_target_parent_id AND event_id != p_event_id;
+        ELSE
+            DELETE FROM event_mst WHERE parent_event_id = v_target_parent_id;
+        END IF;
+
+        SELECT profile_id, title, description, event_time, event_end_time,
+               event_timezone, livestream, video, is_collaborative
+        INTO v_profile_id, v_title, v_description, v_event_time, v_event_end_time,
+             v_event_tz, v_livestream, v_video, v_is_collaborative
+        FROM event_mst WHERE event_id = v_target_parent_id;
+
+        -- The exact date p_event_id itself now occupies — skip generating a
+        -- duplicate occurrence for it on first conversion.
+        v_first_occ_date := NULL;
+        IF v_is_first_conversion THEN
+            SELECT event_date INTO v_first_occ_date FROM event_mst WHERE event_id = p_event_id;
+        END IF;
+
+        IF v_rec_type = 'weekly' THEN
+
+            FOREACH v_day_name IN ARRAY v_rec_days LOOP
+                v_dow_target := CASE v_day_name
+                    WHEN 'Sun' THEN 0 WHEN 'Mon' THEN 1 WHEN 'Tue' THEN 2
+                    WHEN 'Wed' THEN 3 WHEN 'Thu' THEN 4 WHEN 'Fri' THEN 5
+                    WHEN 'Sat' THEN 6
+                END;
+                v_dow_start  := EXTRACT(DOW FROM v_rec_start)::int;
+                v_days_ahead := (7 + v_dow_target - v_dow_start) % 7;
+                v_first_occ  := v_rec_start + v_days_ahead;
+                v_occ_date   := v_first_occ;
+                WHILE v_occ_date <= v_safe_end LOOP
+                    IF v_first_occ_date IS NULL OR v_occ_date != v_first_occ_date THEN
+                        INSERT INTO event_mst (event_id, profile_id, parent_event_id, title, description,
+                            event_date, event_time, event_end_time, event_timezone,
+                            livestream, video, is_collaborative, is_recurring, created_at, updated_at)
+                        VALUES (gen_random_uuid(), v_profile_id, v_target_parent_id, v_title, v_description,
+                            v_occ_date, v_event_time, v_event_end_time, v_event_tz,
+                            v_livestream, v_video, v_is_collaborative, true, now(), now());
+                    END IF;
+                    v_occ_date := v_occ_date + (7 * v_rec_interval);
+                END LOOP;
+            END LOOP;
+
+        ELSIF v_rec_type IN ('first', 'last') THEN
+
+            FOREACH v_day_name IN ARRAY v_rec_days LOOP
+                v_dow_target  := CASE v_day_name
+                    WHEN 'Sun' THEN 0 WHEN 'Mon' THEN 1 WHEN 'Tue' THEN 2
+                    WHEN 'Wed' THEN 3 WHEN 'Thu' THEN 4 WHEN 'Fri' THEN 5
+                    WHEN 'Sat' THEN 6
+                END;
+                v_month_start := DATE_TRUNC('month', v_rec_start)::date;
+                WHILE v_month_start <= v_safe_end LOOP
+                    IF v_rec_type = 'first' THEN
+                        v_days_ahead := (7 + v_dow_target - EXTRACT(DOW FROM v_month_start)::int) % 7;
+                        v_occ_date   := v_month_start + v_days_ahead;
+                    ELSE
+                        v_month_end     := (DATE_TRUNC('month', v_month_start) + INTERVAL '1 month')::date - 1;
+                        v_dow_month_end := EXTRACT(DOW FROM v_month_end)::int;
+                        v_occ_date      := v_month_end - ((7 + v_dow_month_end - v_dow_target) % 7);
+                    END IF;
+                    IF v_occ_date >= v_rec_start AND v_occ_date <= v_safe_end
+                       AND (v_first_occ_date IS NULL OR v_occ_date != v_first_occ_date) THEN
+                        INSERT INTO event_mst (event_id, profile_id, parent_event_id, title, description,
+                            event_date, event_time, event_end_time, event_timezone,
+                            livestream, video, is_collaborative, is_recurring, created_at, updated_at)
+                        VALUES (gen_random_uuid(), v_profile_id, v_target_parent_id, v_title, v_description,
+                            v_occ_date, v_event_time, v_event_end_time, v_event_tz,
+                            v_livestream, v_video, v_is_collaborative, true, now(), now());
+                    END IF;
+                    v_month_start := (DATE_TRUNC('month', v_month_start) + INTERVAL '1 month')::date;
+                END LOOP;
+            END LOOP;
+
+        END IF;
+
+    END IF;
+
+    -- ══════════════════════════════════════════════════════════════════════════
+    -- SHARED: collaborator SYNC (v2.1 — scope-aware; v2.0 always synced the parent)
+    --
+    -- null            → skip entirely, don't touch collaborators
+    -- []              → soft-delete ALL existing collaborators (at the resolved target)
+    -- [id1, id2, ...] → soft-delete anyone NOT in list, invite anyone new (at the resolved target)
+    --
+    -- scope='this' → target is the occurrence itself (v_collab_target_id = p_event_id).
+    --                event_collaborators rows are written against the CHILD's own event_id
+    --                and event_mst.collaborators_overridden is flipped true on that child so
+    --                read SPs know to use its own rows instead of the parent's.
+    -- scope='all'  → target is the series parent (v_collab_target_id = v_target_parent_id,
+    --                which v2.3 may have re-pointed at a freshly-created template on first
+    --                conversion — see above), same as v2.0/v2.1/v2.2. Any prior
+    --                per-occurrence overrides are discarded first so children go back to
+    --                inheriting the series list.
+    -- ══════════════════════════════════════════════════════════════════════════
+    v_skipped_ids := ARRAY[]::uuid[];
+
+    IF v_sync_collabs THEN
+
+        -- Check is_collaborative before doing anything — read from whichever row collaborators
+        -- are being synced against (the occurrence for scope='this', the parent for scope='all'),
+        -- since is_collaborative is now scope-aware too (v2.2).
+        v_effective_is_collab := COALESCE(
+            p_is_collaborative,
+            (SELECT is_collaborative FROM event_mst WHERE event_id = v_collab_target_id)
+        );
+
+        -- If turning off collaboration and passing ids, reject
+        IF v_effective_is_collab = false
+           AND COALESCE(array_length(p_collaborator_ids, 1), 0) > 0 THEN
+            RETURN json_build_object('status', false, 'message', 'Cannot add collaborators when is_collaborative is false');
+        END IF;
+
+        -- scope='all' → discard any per-occurrence collaborator overrides so children
+        -- revert to inheriting the series list before the parent-level sync below.
+        -- Soft-delete (is_deleted/deleted_at), matching every other collaborator removal
+        -- in this function — event_collaborators has no hard-delete precedent anywhere.
+        IF v_scope = 'all' THEN
+            UPDATE event_collaborators
+            SET is_deleted = true,
+                deleted_at = now(),
+                updated_at = now()
+            WHERE event_id   IN (SELECT event_id FROM event_mst WHERE parent_event_id = v_target_parent_id)
+              AND is_deleted = false;
+
+            UPDATE event_mst
+            SET collaborators_overridden = false
+            WHERE parent_event_id = v_target_parent_id;
+        END IF;
+
+        -- ── Step 1: Soft-delete collaborators NOT in the new list ─────────────
+        -- Empty array = remove all; non-empty = remove only those absent from list
+        UPDATE event_collaborators
+        SET is_deleted = true,
+            deleted_at = now(),
+            updated_at = now()
+        WHERE event_id   = v_collab_target_id
+          AND is_deleted = false
+          AND (
+              COALESCE(array_length(p_collaborator_ids, 1), 0) = 0   -- [] → remove all
+              OR profile_id != ALL(p_collaborator_ids)                 -- not in new list
+          );
+
+        -- ── Step 2: Invite/re-invite collaborators in the new list ────────────
+        IF COALESCE(array_length(p_collaborator_ids, 1), 0) > 0 THEN
+
+            SELECT cp.id, cp.profile_name, e.title
+            INTO v_owner_profile_id, v_owner_name, v_event_title
+            FROM event_mst e
+            JOIN creator_profiles cp ON cp.id = e.profile_id
+            WHERE e.event_id = v_collab_target_id;
+
+            -- Count accepted collaborators AFTER the removals above
+            SELECT COUNT(*) INTO v_collab_count
+            FROM event_collaborators
+            WHERE event_id   = v_collab_target_id
+              AND status     = 'accepted'
+              AND is_deleted = false;
+
+            FOREACH v_collab_id IN ARRAY p_collaborator_ids LOOP
+
+                IF v_collab_id IS NULL THEN CONTINUE; END IF;
+
+                -- Skip the event owner
+                IF v_collab_id = v_owner_profile_id THEN
+                    v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
+                    CONTINUE;
+                END IF;
+
+                -- Find existing row (active or previously soft-deleted)
+                SELECT id, is_deleted
+                INTO v_existing_collab_id, v_existing_deleted
+                FROM event_collaborators
+                WHERE event_id   = v_collab_target_id
+                  AND profile_id = v_collab_id
+                LIMIT 1;
+
+                -- Already active → no change needed, skip
+                IF v_existing_collab_id IS NOT NULL AND v_existing_deleted = false THEN
+                    v_existing_collab_id := NULL;
+                    CONTINUE;
+                END IF;
+
+                -- Max 5 accepted collaborators
+                IF v_collab_count >= 5 THEN
+                    v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
+                    CONTINUE;
+                END IF;
+
+                -- Validate the profile exists and is active
+                SELECT user_id INTO v_invitee_user_id
+                FROM creator_profiles WHERE id = v_collab_id AND status = 'active';
+
+                IF v_invitee_user_id IS NULL THEN
+                    v_skipped_ids        := array_append(v_skipped_ids, v_collab_id);
+                    v_existing_collab_id := NULL;
+                    CONTINUE;
+                END IF;
+
+                -- Re-invite (previously soft-deleted row exists)
+                IF v_existing_collab_id IS NOT NULL THEN
+                    UPDATE event_collaborators
+                    SET status       = 'pending',
+                        invited_by   = v_owner_profile_id,
+                        invited_at   = now(),
+                        responded_at = NULL,
+                        updated_at   = now(),
+                        is_deleted   = false,
+                        deleted_at   = NULL
+                    WHERE id = v_existing_collab_id;
+                ELSE
+                    -- New collaborator
+                    INSERT INTO event_collaborators (id, event_id, profile_id, invited_by, status, invited_at, updated_at)
+                    VALUES (gen_random_uuid(), v_collab_target_id, v_collab_id, v_owner_profile_id, 'pending', now(), now());
+                END IF;
+
+                -- Send notification
+                INSERT INTO notifications (user_id, title, body, data)
+                VALUES (
+                    v_invitee_user_id,
+                    'Collaboration Invite',
+                    v_owner_name || ' invited you to collaborate on "' || v_event_title || '"',
+                    json_build_object(
+                        'type',                  'collaborator_invite',
+                        'event_id',              v_collab_target_id,
+                        'invited_profile_id',    v_collab_id,
+                        'invited_by_profile_id', v_owner_profile_id
+                    )
+                );
+
+                v_invitee_user_id    := NULL;
+                v_existing_collab_id := NULL;
+
+            END LOOP;
+
+        END IF;
+
+        -- scope='this' → mark this occurrence as having its own collaborator list
+        IF v_scope = 'this' THEN
+            UPDATE event_mst
+            SET collaborators_overridden = true,
+                updated_at               = now()
+            WHERE event_id = p_event_id;
+        END IF;
+
+    END IF;
+
+    RETURN json_build_object(
+        'status',  true,
+        'message', v_success_message,
+        'data', json_build_object(
+            'skipped_collaborator_ids', v_skipped_ids
+        )
+    );
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object(
+            'status',  false,
+            'message', 'Something went wrong',
+            'error',   SQLERRM
+        );
+END;
+$$;
+```
+
+---
+
+## V2.2 Function (Previous)
+
+```sql
+-- Function: update_event_v2_2
+-- Group: Events
+-- Endpoint: POST /rpc/update_event_v2_2
+-- Tables:   event_mst (UPDATE), event_platforms (DELETE+INSERT), event_recurring (UPDATE if recurring)
+--           event_collaborators (INSERT/UPDATE/soft-delete), notifications (INSERT if collaborative)
+-- Doc: docs/api/events/update_event.md
+-- Version: 2.2 (2026-08-10)
+--
+-- Change from v1: Collaborator sync behavior
+--   p_collaborator_ids: null        = don't touch existing collaborators
+--   p_collaborator_ids: []          = remove ALL collaborators (soft delete)
+--   p_collaborator_ids: [id1,id2]   = SYNC — keep id1/id2, remove anyone not in list, add new ones
+--
+-- Change from v2.0: Collaborator sync is scope-aware — p_scope='this' now syncs the
+--   occurrence's own collaborators (event_id = p_event_id, collaborators_overridden = true)
+--   instead of always writing to the series parent. p_scope='all' still syncs the parent,
+--   but first clears any per-occurrence overrides so children revert to the series list.
+--
+-- Example (current collaborators: 1,2,3):
+--   Pass (1,2,3) → no change
+--   Pass (1,2)   → remove 3
+--   Pass []      → remove 1,2,3
+--   Pass (1,2,4) → remove 3, add 4
+--
+-- p_scope: 'all' (default) = update parent + all occurrences
+--          'this'          = per-occurrence scalar/platform/collaborator overrides
+-- p_platforms:        null = don't touch | [] = clear all | [...] = replace
+-- p_recurring_days:   null or [] = no rule change | [...] = update + regen ('all' scope only)
+-- p_is_collaborative: always parent-level (applied to parent + all children when set)
+-- p_collaborator_ids: 'all' scope = series-level (parent) | 'this' scope = occurrence-level
+--                     (see collaborators_overridden on event_mst)
+--
+-- DEPLOYMENT — this is a NEW function name (update_event_v2_2), no overload to drop.
+-- Old callers on update_event_v2_1 keep working unchanged (see "V2.1 Function (Previous)" below).
+-- Point the client at /rpc/update_event_v2_2 once deployed, then:
+--   NOTIFY pgrst, 'reload schema';
+
+CREATE OR REPLACE FUNCTION update_event_v2_2(
+    p_event_id             uuid,
+    p_user_id              uuid,
+    p_scope                text     DEFAULT 'all',
+    -- Core event fields
+    p_title                text     DEFAULT NULL,
+    p_description          text     DEFAULT NULL,
+    p_event_date           date     DEFAULT NULL,
+    p_event_time           time     DEFAULT NULL,
+    p_event_end_time       time     DEFAULT NULL,
+    p_timezone             text     DEFAULT NULL,
+    p_livestream           boolean  DEFAULT NULL,
+    p_video                boolean  DEFAULT NULL,
+    p_is_collaborative     boolean  DEFAULT NULL,
+    p_collaborator_ids     uuid[]   DEFAULT NULL,
+    p_platforms            jsonb    DEFAULT NULL,
+    -- Recurring fields
+    p_recurring_days       text[]   DEFAULT NULL,
+    p_recurring_type       text     DEFAULT NULL,
+    p_recurring_interval   int      DEFAULT NULL,
+    p_recurring_start_date date     DEFAULT NULL,
+    p_recurring_end_date   date     DEFAULT NULL
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    -- Intent flags
+    v_scope             text;
+    v_update_recurring  boolean;
+    v_sync_collabs      boolean;   -- true when p_collaborator_ids IS NOT NULL (including [])
+    v_has_scalar        boolean;
+    v_has_platforms     boolean;
+    v_occurrence_change boolean;
+
+    v_platform          jsonb;
+
+    -- Parent resolution
+    v_parent_event_id    uuid;
+    v_target_parent_id   uuid;
+
+    -- End-time validation
+    v_existing_event_time     time;
+    v_existing_event_end_time time;
+    v_final_event_time        time;
+    v_final_event_end_time    time;
+
+    -- Recurring rule build-up
+    v_rec_days      text[];
+    v_rec_type      text;
+    v_rec_interval  int;
+    v_rec_start     date;
+    v_rec_end       date;
+    v_safe_end      date;
+
+    -- Child generation
+    v_profile_id         uuid;
+    v_title              text;
+    v_description        text;
+    v_event_time         time;
+    v_event_end_time     time;
+    v_event_tz           text;
+    v_livestream         boolean;
+    v_video              boolean;
+    v_is_collaborative   boolean;
+    v_day_name           text;
+    v_dow_target         int;
+    v_dow_start          int;
+    v_days_ahead         int;
+    v_first_occ          date;
+    v_occ_date           date;
+    v_month_start        date;
+    v_month_end          date;
+    v_dow_month_end      int;
+
+    -- Collaborator sync
+    v_owner_profile_id   uuid;
+    v_owner_name         text;
+    v_event_title        text;
+    v_collab_id          uuid;
+    v_invitee_user_id    uuid;
+    v_skipped_ids        uuid[];
+    v_collab_count       int;
+    v_existing_collab_id uuid;
+    v_existing_deleted   boolean;
+    v_effective_is_collab boolean;
+    v_collab_target_id   uuid;   -- event_id collaborator rows are keyed to (occurrence when scope='this', parent when scope='all')
+
+    v_success_message    text;
+BEGIN
+
+    -- ── 1. Required params ────────────────────────────────────────────────────
+    IF p_event_id IS NULL OR p_user_id IS NULL THEN
+        RETURN json_build_object('status', false, 'message', 'p_event_id and p_user_id are required');
+    END IF;
+
+    -- ── 2. Normalise scope ────────────────────────────────────────────────────
+    v_scope := COALESCE(NULLIF(trim(p_scope), ''), 'all');
+    IF v_scope NOT IN ('all', 'this') THEN
+        RETURN json_build_object('status', false, 'message', 'p_scope must be ''all'' or ''this''');
+    END IF;
+
+    -- ── 3. Intent flags ───────────────────────────────────────────────────────
+    v_update_recurring := p_recurring_days IS NOT NULL
+                          AND COALESCE(array_length(p_recurring_days, 1), 0) > 0;
+
+    -- v2 change: sync triggers on ANY non-null value, including empty array
+    v_sync_collabs := p_collaborator_ids IS NOT NULL;
+
+    -- v2.1: 'this' scope syncs the occurrence's OWN collaborator rows (event_id = p_event_id);
+    -- 'all' scope syncs the series' collaborator rows (event_id = v_target_parent_id), same as v2.0.
+    -- Resolved after v_scope is demoted below (step 6), so recompute isn't needed until then.
+
+    v_has_scalar := p_title          IS NOT NULL OR p_description   IS NOT NULL
+                 OR p_event_date     IS NOT NULL OR p_event_time    IS NOT NULL
+                 OR p_event_end_time IS NOT NULL OR p_timezone      IS NOT NULL
+                 OR p_livestream     IS NOT NULL OR p_video         IS NOT NULL;
+    v_has_platforms     := p_platforms IS NOT NULL;
+    v_occurrence_change := v_has_scalar OR v_has_platforms;
+
+    -- ── 4. Ownership check ───────────────────────────────────────────────────
+    IF NOT EXISTS (
+        SELECT 1
+        FROM event_mst e
+        JOIN creator_profiles cp ON cp.id = e.profile_id
+        WHERE e.event_id = p_event_id
+          AND cp.user_id = p_user_id
+          AND cp.status  = 'active'
+    ) THEN
+        RETURN json_build_object('status', false, 'message', 'Event not found or access denied');
+    END IF;
+
+    -- ── 5. Resolve parent event ──────────────────────────────────────────────
+    SELECT parent_event_id INTO v_parent_event_id
+    FROM event_mst WHERE event_id = p_event_id;
+
+    v_target_parent_id := COALESCE(v_parent_event_id, p_event_id);
+
+    -- ── 6. Demote 'this' to 'all' for non-recurring events ───────────────────
+    IF v_scope = 'this' AND v_parent_event_id IS NULL THEN
+        v_scope := 'all';
+    END IF;
+
+    -- ── 6b. Resolve collaborator sync target ─────────────────────────────────
+    v_collab_target_id := CASE WHEN v_scope = 'this' THEN p_event_id ELSE v_target_parent_id END;
+
+    -- ══════════════════════════════════════════════════════════════════════════
+    -- BRANCH A: scope = 'this'
+    -- ══════════════════════════════════════════════════════════════════════════
+    IF v_scope = 'this' THEN
+
+        IF v_update_recurring THEN
+            RETURN json_build_object('status', false, 'message',
+                'Recurring schedule cannot be changed for a single occurrence — use scope ''all''');
+        END IF;
+
+        IF v_has_scalar THEN
+            SELECT event_time, event_end_time
+            INTO v_existing_event_time, v_existing_event_end_time
+            FROM event_mst WHERE event_id = p_event_id;
+
+            v_final_event_time     := COALESCE(p_event_time,     v_existing_event_time);
+            v_final_event_end_time := COALESCE(p_event_end_time, v_existing_event_end_time);
+
+            IF v_final_event_end_time IS NOT NULL AND v_final_event_end_time = v_final_event_time THEN
+                RETURN json_build_object('status', false, 'message', 'Event end time cannot be the same as event start time');
+            END IF;
+        END IF;
+
+        IF p_platforms IS NOT NULL AND jsonb_array_length(p_platforms) > 0 THEN
+            IF EXISTS (
+                SELECT 1 FROM jsonb_array_elements(p_platforms) AS pl
+                WHERE NOT EXISTS (SELECT 1 FROM platforms p WHERE p.plat_id = (pl->>'platform_id')::bigint)
+            ) THEN
+                RETURN json_build_object('status', false, 'message', 'One or more platform IDs are invalid');
+            END IF;
+            IF EXISTS (
+                SELECT 1 FROM jsonb_array_elements(p_platforms) AS pl
+                WHERE pl->>'stream_url' IS NULL OR trim(pl->>'stream_url') = ''
+            ) THEN
+                RETURN json_build_object('status', false, 'message', 'Stream URL is required for each platform');
+            END IF;
+        END IF;
+
+        IF v_occurrence_change THEN
+            UPDATE event_mst
+            SET title          = COALESCE(p_title,          title),
+                description    = COALESCE(p_description,    description),
+                event_date     = COALESCE(p_event_date,     event_date),
+                event_time     = COALESCE(p_event_time,     event_time),
+                event_end_time = COALESCE(p_event_end_time, event_end_time),
+                event_timezone = COALESCE(p_timezone,       event_timezone),
+                livestream     = COALESCE(p_livestream,     livestream),
+                video          = COALESCE(p_video,          video),
+                is_overridden  = true,
+                updated_at     = now()
+            WHERE event_id = p_event_id;
+        END IF;
+
+        IF p_platforms IS NOT NULL THEN
+            DELETE FROM event_platforms WHERE event_id = p_event_id;
+            IF jsonb_array_length(p_platforms) > 0 THEN
+                FOR v_platform IN SELECT * FROM jsonb_array_elements(p_platforms)
+                LOOP
+                    INSERT INTO event_platforms (id, event_id, platform_id, stream_url, created_at)
+                    VALUES (gen_random_uuid(), p_event_id, (v_platform->>'platform_id')::int4, v_platform->>'stream_url', now());
+                END LOOP;
+            END IF;
+        END IF;
+
+        v_success_message := 'Event occurrence updated successfully';
+
+    ELSE
+    -- ══════════════════════════════════════════════════════════════════════════
+    -- BRANCH B: scope = 'all'
+    -- ══════════════════════════════════════════════════════════════════════════
+
+        SELECT event_time, event_end_time
+        INTO v_existing_event_time, v_existing_event_end_time
+        FROM event_mst WHERE event_id = v_target_parent_id;
+
+        v_final_event_time     := COALESCE(p_event_time,     v_existing_event_time);
+        v_final_event_end_time := COALESCE(p_event_end_time, v_existing_event_end_time);
+
+        IF v_final_event_end_time IS NOT NULL AND v_final_event_end_time = v_final_event_time THEN
+            RETURN json_build_object('status', false, 'message', 'Event end time cannot be the same as event start time');
+        END IF;
+
+        IF p_platforms IS NOT NULL AND jsonb_array_length(p_platforms) > 0 THEN
+            IF EXISTS (
+                SELECT 1 FROM jsonb_array_elements(p_platforms) AS pl
+                WHERE NOT EXISTS (SELECT 1 FROM platforms p WHERE p.plat_id = (pl->>'platform_id')::bigint)
+            ) THEN
+                RETURN json_build_object('status', false, 'message', 'One or more platform IDs are invalid');
+            END IF;
+            IF EXISTS (
+                SELECT 1 FROM jsonb_array_elements(p_platforms) AS pl
+                WHERE pl->>'stream_url' IS NULL OR trim(pl->>'stream_url') = ''
+            ) THEN
+                RETURN json_build_object('status', false, 'message', 'Stream URL is required for each platform');
+            END IF;
+        END IF;
+
+        IF v_update_recurring THEN
+
+            IF EXISTS (
+                SELECT 1 FROM unnest(p_recurring_days) AS d(day)
+                WHERE d.day NOT IN ('Mon','Tue','Wed','Thu','Fri','Sat','Sun')
+            ) THEN
+                RETURN json_build_object('status', false, 'message', 'Invalid recurring day — must be Mon, Tue, Wed, Thu, Fri, Sat, or Sun');
+            END IF;
+
+            SELECT recurring_type, recurring_interval, recurring_start_date, recurring_end_date
+            INTO v_rec_type, v_rec_interval, v_rec_start, v_rec_end
+            FROM event_recurring WHERE event_id = v_target_parent_id;
+
+            v_rec_days     := p_recurring_days;
+            v_rec_type     := COALESCE(p_recurring_type,       v_rec_type);
+            v_rec_start    := COALESCE(p_recurring_start_date, v_rec_start);
+            v_rec_end      := COALESCE(p_recurring_end_date,   v_rec_end);
+
+            IF v_rec_type IS NULL OR v_rec_type NOT IN ('weekly', 'first', 'last') THEN
+                RETURN json_build_object('status', false, 'message', 'recurring_type must be weekly, first, or last');
+            END IF;
+
+            IF v_rec_type IN ('first', 'last') THEN
+                v_rec_interval := NULL;
+            ELSE
+                v_rec_interval := COALESCE(p_recurring_interval, v_rec_interval);
+                IF v_rec_interval IS NULL THEN
+                    RETURN json_build_object('status', false, 'message', 'recurring_interval is required for weekly type');
+                END IF;
+                IF v_rec_interval < 1 OR v_rec_interval > 12 THEN
+                    RETURN json_build_object('status', false, 'message', 'recurring_interval must be between 1 and 12');
+                END IF;
+            END IF;
+
+            IF v_rec_start IS NULL THEN
+                RETURN json_build_object('status', false, 'message', 'Recurring start date is required');
+            END IF;
+
+            IF v_rec_end IS NOT NULL AND v_rec_end <= v_rec_start THEN
+                RETURN json_build_object('status', false, 'message', 'Recurring end date must be after start date');
+            END IF;
+
+        END IF;
+
+        UPDATE event_mst
+        SET title          = COALESCE(p_title,          title),
+            description    = COALESCE(p_description,    description),
+            event_date     = COALESCE(p_event_date,     event_date),
+            event_time     = COALESCE(p_event_time,     event_time),
+            event_end_time = COALESCE(p_event_end_time, event_end_time),
+            event_timezone = COALESCE(p_timezone,       event_timezone),
+            livestream     = COALESCE(p_livestream,     livestream),
+            video          = COALESCE(p_video,          video),
+            updated_at     = now()
+        WHERE event_id = v_target_parent_id;
+
+        UPDATE event_mst
+        SET title          = COALESCE(p_title,          title),
+            description    = COALESCE(p_description,    description),
+            event_time     = COALESCE(p_event_time,     event_time),
+            event_end_time = COALESCE(p_event_end_time, event_end_time),
+            event_timezone = COALESCE(p_timezone,       event_timezone),
+            livestream     = COALESCE(p_livestream,     livestream),
+            video          = COALESCE(p_video,          video),
+            is_overridden  = false,
+            updated_at     = now()
+        WHERE parent_event_id = v_target_parent_id;
+
+        IF p_platforms IS NOT NULL THEN
+            DELETE FROM event_platforms WHERE event_id = v_target_parent_id;
+            DELETE FROM event_platforms
+            WHERE event_id IN (SELECT event_id FROM event_mst WHERE parent_event_id = v_target_parent_id);
+            IF jsonb_array_length(p_platforms) > 0 THEN
+                FOR v_platform IN SELECT * FROM jsonb_array_elements(p_platforms)
+                LOOP
+                    INSERT INTO event_platforms (id, event_id, platform_id, stream_url, created_at)
+                    VALUES (gen_random_uuid(), v_target_parent_id, (v_platform->>'platform_id')::int4, v_platform->>'stream_url', now());
+                END LOOP;
+            END IF;
+        END IF;
+
+        v_success_message := 'Event updated successfully';
+
+    END IF;
+
+    -- ══════════════════════════════════════════════════════════════════════════
+    -- SHARED: is_collaborative (v2.2 — now scope-aware, was always parent-level in v2.1)
+    --
+    -- scope='this' → applies only to the occurrence itself (p_event_id); every row already
+    --                stores its own is_collaborative value and read SPs already read it
+    --                directly (no fallback/COALESCE), so no schema or read-path change needed.
+    -- scope='all'  → applies to the parent + all children, same as before.
+    -- ══════════════════════════════════════════════════════════════════════════
+    IF p_is_collaborative IS NOT NULL THEN
+        IF v_scope = 'this' THEN
+            UPDATE event_mst
+            SET is_collaborative = p_is_collaborative,
+                updated_at       = now()
+            WHERE event_id = p_event_id;
+        ELSE
+            UPDATE event_mst
+            SET is_collaborative = p_is_collaborative,
+                updated_at       = now()
+            WHERE event_id = v_target_parent_id
+               OR parent_event_id = v_target_parent_id;
+        END IF;
+    END IF;
+
+    -- ══════════════════════════════════════════════════════════════════════════
+    -- SHARED: recurring rule + regen
+    -- ══════════════════════════════════════════════════════════════════════════
+    IF v_scope = 'all' AND v_update_recurring THEN
+
+        v_safe_end := COALESCE(v_rec_end, v_rec_start + INTERVAL '3 months');
+        v_rec_end  := v_safe_end;
+
+        UPDATE event_recurring
+        SET recurring_days       = v_rec_days,
+            recurring_type       = v_rec_type,
+            recurring_interval   = v_rec_interval,
+            recurring_start_date = v_rec_start,
+            recurring_end_date   = v_rec_end,
+            renewal_notified_at  = NULL
+        WHERE event_id = v_target_parent_id;
+
+        DELETE FROM event_mst WHERE parent_event_id = v_target_parent_id;
+
+        SELECT profile_id, title, description, event_time, event_end_time,
+               event_timezone, livestream, video, is_collaborative
+        INTO v_profile_id, v_title, v_description, v_event_time, v_event_end_time,
+             v_event_tz, v_livestream, v_video, v_is_collaborative
+        FROM event_mst WHERE event_id = v_target_parent_id;
+
+        IF v_rec_type = 'weekly' THEN
+
+            FOREACH v_day_name IN ARRAY v_rec_days LOOP
+                v_dow_target := CASE v_day_name
+                    WHEN 'Sun' THEN 0 WHEN 'Mon' THEN 1 WHEN 'Tue' THEN 2
+                    WHEN 'Wed' THEN 3 WHEN 'Thu' THEN 4 WHEN 'Fri' THEN 5
+                    WHEN 'Sat' THEN 6
+                END;
+                v_dow_start  := EXTRACT(DOW FROM v_rec_start)::int;
+                v_days_ahead := (7 + v_dow_target - v_dow_start) % 7;
+                v_first_occ  := v_rec_start + v_days_ahead;
+                v_occ_date   := v_first_occ;
+                WHILE v_occ_date <= v_safe_end LOOP
+                    INSERT INTO event_mst (event_id, profile_id, parent_event_id, title, description,
+                        event_date, event_time, event_end_time, event_timezone,
+                        livestream, video, is_collaborative, is_recurring, created_at, updated_at)
+                    VALUES (gen_random_uuid(), v_profile_id, v_target_parent_id, v_title, v_description,
+                        v_occ_date, v_event_time, v_event_end_time, v_event_tz,
+                        v_livestream, v_video, v_is_collaborative, true, now(), now());
+                    v_occ_date := v_occ_date + (7 * v_rec_interval);
+                END LOOP;
+            END LOOP;
+
+        ELSIF v_rec_type IN ('first', 'last') THEN
+
+            FOREACH v_day_name IN ARRAY v_rec_days LOOP
+                v_dow_target  := CASE v_day_name
+                    WHEN 'Sun' THEN 0 WHEN 'Mon' THEN 1 WHEN 'Tue' THEN 2
+                    WHEN 'Wed' THEN 3 WHEN 'Thu' THEN 4 WHEN 'Fri' THEN 5
+                    WHEN 'Sat' THEN 6
+                END;
+                v_month_start := DATE_TRUNC('month', v_rec_start)::date;
+                WHILE v_month_start <= v_safe_end LOOP
+                    IF v_rec_type = 'first' THEN
+                        v_days_ahead := (7 + v_dow_target - EXTRACT(DOW FROM v_month_start)::int) % 7;
+                        v_occ_date   := v_month_start + v_days_ahead;
+                    ELSE
+                        v_month_end     := (DATE_TRUNC('month', v_month_start) + INTERVAL '1 month')::date - 1;
+                        v_dow_month_end := EXTRACT(DOW FROM v_month_end)::int;
+                        v_occ_date      := v_month_end - ((7 + v_dow_month_end - v_dow_target) % 7);
+                    END IF;
+                    IF v_occ_date >= v_rec_start AND v_occ_date <= v_safe_end THEN
+                        INSERT INTO event_mst (event_id, profile_id, parent_event_id, title, description,
+                            event_date, event_time, event_end_time, event_timezone,
+                            livestream, video, is_collaborative, is_recurring, created_at, updated_at)
+                        VALUES (gen_random_uuid(), v_profile_id, v_target_parent_id, v_title, v_description,
+                            v_occ_date, v_event_time, v_event_end_time, v_event_tz,
+                            v_livestream, v_video, v_is_collaborative, true, now(), now());
+                    END IF;
+                    v_month_start := (DATE_TRUNC('month', v_month_start) + INTERVAL '1 month')::date;
+                END LOOP;
+            END LOOP;
+
+        END IF;
+
+    END IF;
+
+    -- ══════════════════════════════════════════════════════════════════════════
+    -- SHARED: collaborator SYNC (v2.1 — scope-aware; v2.0 always synced the parent)
+    --
+    -- null            → skip entirely, don't touch collaborators
+    -- []              → soft-delete ALL existing collaborators (at the resolved target)
+    -- [id1, id2, ...] → soft-delete anyone NOT in list, invite anyone new (at the resolved target)
+    --
+    -- scope='this' → target is the occurrence itself (v_collab_target_id = p_event_id).
+    --                event_collaborators rows are written against the CHILD's own event_id
+    --                and event_mst.collaborators_overridden is flipped true on that child so
+    --                read SPs know to use its own rows instead of the parent's.
+    -- scope='all'  → target is the series parent (v_collab_target_id = v_target_parent_id),
+    --                same as v2.0. Any prior per-occurrence overrides are discarded first so
+    --                children go back to inheriting the series list.
+    -- ══════════════════════════════════════════════════════════════════════════
+    v_skipped_ids := ARRAY[]::uuid[];
+
+    IF v_sync_collabs THEN
+
+        -- Check is_collaborative before doing anything — read from whichever row collaborators
+        -- are being synced against (the occurrence for scope='this', the parent for scope='all'),
+        -- since is_collaborative is now scope-aware too (v2.2).
+        v_effective_is_collab := COALESCE(
+            p_is_collaborative,
+            (SELECT is_collaborative FROM event_mst WHERE event_id = v_collab_target_id)
+        );
+
+        -- If turning off collaboration and passing ids, reject
+        IF v_effective_is_collab = false
+           AND COALESCE(array_length(p_collaborator_ids, 1), 0) > 0 THEN
+            RETURN json_build_object('status', false, 'message', 'Cannot add collaborators when is_collaborative is false');
+        END IF;
+
+        -- scope='all' → discard any per-occurrence collaborator overrides so children
+        -- revert to inheriting the series list before the parent-level sync below.
+        -- Soft-delete (is_deleted/deleted_at), matching every other collaborator removal
+        -- in this function — event_collaborators has no hard-delete precedent anywhere.
+        IF v_scope = 'all' THEN
+            UPDATE event_collaborators
+            SET is_deleted = true,
+                deleted_at = now(),
+                updated_at = now()
+            WHERE event_id   IN (SELECT event_id FROM event_mst WHERE parent_event_id = v_target_parent_id)
+              AND is_deleted = false;
+
+            UPDATE event_mst
+            SET collaborators_overridden = false
+            WHERE parent_event_id = v_target_parent_id;
+        END IF;
+
+        -- ── Step 1: Soft-delete collaborators NOT in the new list ─────────────
+        -- Empty array = remove all; non-empty = remove only those absent from list
+        UPDATE event_collaborators
+        SET is_deleted = true,
+            deleted_at = now(),
+            updated_at = now()
+        WHERE event_id   = v_collab_target_id
+          AND is_deleted = false
+          AND (
+              COALESCE(array_length(p_collaborator_ids, 1), 0) = 0   -- [] → remove all
+              OR profile_id != ALL(p_collaborator_ids)                 -- not in new list
+          );
+
+        -- ── Step 2: Invite/re-invite collaborators in the new list ────────────
+        IF COALESCE(array_length(p_collaborator_ids, 1), 0) > 0 THEN
+
+            SELECT cp.id, cp.profile_name, e.title
+            INTO v_owner_profile_id, v_owner_name, v_event_title
+            FROM event_mst e
+            JOIN creator_profiles cp ON cp.id = e.profile_id
+            WHERE e.event_id = v_collab_target_id;
+
+            -- Count accepted collaborators AFTER the removals above
+            SELECT COUNT(*) INTO v_collab_count
+            FROM event_collaborators
+            WHERE event_id   = v_collab_target_id
+              AND status     = 'accepted'
+              AND is_deleted = false;
+
+            FOREACH v_collab_id IN ARRAY p_collaborator_ids LOOP
+
+                IF v_collab_id IS NULL THEN CONTINUE; END IF;
+
+                -- Skip the event owner
+                IF v_collab_id = v_owner_profile_id THEN
+                    v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
+                    CONTINUE;
+                END IF;
+
+                -- Find existing row (active or previously soft-deleted)
+                SELECT id, is_deleted
+                INTO v_existing_collab_id, v_existing_deleted
+                FROM event_collaborators
+                WHERE event_id   = v_collab_target_id
+                  AND profile_id = v_collab_id
+                LIMIT 1;
+
+                -- Already active → no change needed, skip
+                IF v_existing_collab_id IS NOT NULL AND v_existing_deleted = false THEN
+                    v_existing_collab_id := NULL;
+                    CONTINUE;
+                END IF;
+
+                -- Max 5 accepted collaborators
+                IF v_collab_count >= 5 THEN
+                    v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
+                    CONTINUE;
+                END IF;
+
+                -- Validate the profile exists and is active
+                SELECT user_id INTO v_invitee_user_id
+                FROM creator_profiles WHERE id = v_collab_id AND status = 'active';
+
+                IF v_invitee_user_id IS NULL THEN
+                    v_skipped_ids        := array_append(v_skipped_ids, v_collab_id);
+                    v_existing_collab_id := NULL;
+                    CONTINUE;
+                END IF;
+
+                -- Re-invite (previously soft-deleted row exists)
+                IF v_existing_collab_id IS NOT NULL THEN
+                    UPDATE event_collaborators
+                    SET status       = 'pending',
+                        invited_by   = v_owner_profile_id,
+                        invited_at   = now(),
+                        responded_at = NULL,
+                        updated_at   = now(),
+                        is_deleted   = false,
+                        deleted_at   = NULL
+                    WHERE id = v_existing_collab_id;
+                ELSE
+                    -- New collaborator
+                    INSERT INTO event_collaborators (id, event_id, profile_id, invited_by, status, invited_at, updated_at)
+                    VALUES (gen_random_uuid(), v_collab_target_id, v_collab_id, v_owner_profile_id, 'pending', now(), now());
+                END IF;
+
+                -- Send notification
+                INSERT INTO notifications (user_id, title, body, data)
+                VALUES (
+                    v_invitee_user_id,
+                    'Collaboration Invite',
+                    v_owner_name || ' invited you to collaborate on "' || v_event_title || '"',
+                    json_build_object(
+                        'type',                  'collaborator_invite',
+                        'event_id',              v_collab_target_id,
+                        'invited_profile_id',    v_collab_id,
+                        'invited_by_profile_id', v_owner_profile_id
+                    )
+                );
+
+                v_invitee_user_id    := NULL;
+                v_existing_collab_id := NULL;
+
+            END LOOP;
+
+        END IF;
+
+        -- scope='this' → mark this occurrence as having its own collaborator list
+        IF v_scope = 'this' THEN
+            UPDATE event_mst
+            SET collaborators_overridden = true,
+                updated_at               = now()
+            WHERE event_id = p_event_id;
+        END IF;
+
+    END IF;
+
+    RETURN json_build_object(
+        'status',  true,
+        'message', v_success_message,
+        'data', json_build_object(
+            'skipped_collaborator_ids', v_skipped_ids
+        )
+    );
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object(
+            'status',  false,
+            'message', 'Something went wrong',
+            'error',   SQLERRM
+        );
+END;
+$$;
+```
+
+---
+
+## V2.1 Function (Previous)
 
 ```sql
 -- Function: update_event_v2_1
