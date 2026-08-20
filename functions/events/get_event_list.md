@@ -1,4 +1,4 @@
-﻿# `get_event_list` (v1, v2 & v3)
+# `get_event_list` (v1, v2 & v3)
 
 ## Version History
 

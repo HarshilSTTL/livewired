@@ -1,4 +1,4 @@
-﻿# `update_event`
+# `update_event`
 
 ## Version History
 
