@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS public.event_mst (
     description       text        NULL,   -- nullable
     event_date        date,
     event_time        time,
-    event_end_time    time        NULL,   -- nullable (optional end time; < event_time = cross-midnight/next day)
+    event_end_date    date        NULL,   -- nullable; defaults to event_date when not supplied by the caller
+    event_end_time    time        NULL,   -- nullable (optional end time)
     event_timezone    text        NOT NULL DEFAULT 'UTC', -- creator's IANA timezone at time of creation
     is_collaborative  bool        NOT NULL DEFAULT false, -- true = collaborative event (supports up to 5 collaborators)
     livestream        bool        DEFAULT false,
@@ -32,6 +33,13 @@ CREATE TABLE IF NOT EXISTS public.event_mst (
 --   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS deleted_at timestamptz NULL;
 --   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS event_timezone text NOT NULL DEFAULT 'UTC';
 --   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS event_end_time time NULL;
+--   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS event_end_date date NULL;
+--   Backfill existing rows so old cross-midnight events (event_end_time < event_time,
+--   under the pre-event_end_date convention) get a correct end date instead of NULL:
+--     UPDATE public.event_mst
+--     SET event_end_date = CASE WHEN event_end_time IS NOT NULL AND event_end_time < event_time
+--                                THEN event_date + 1 ELSE event_date END
+--     WHERE event_end_time IS NOT NULL AND event_end_date IS NULL;
 --   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS is_collaborative boolean NOT NULL DEFAULT false;
 --   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS is_overridden boolean NOT NULL DEFAULT false;
 --   ALTER TABLE public.event_mst ADD COLUMN IF NOT EXISTS collaborators_overridden boolean NOT NULL DEFAULT false;

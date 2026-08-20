@@ -1,8 +1,16 @@
-# `get_profile_events` (v1, v2 & v2.1)
+# `get_profile_events` (v1, v2, v2.1 & v2.2)
 
 ## Version History
 
-### v2.1 (Current — 2026-08-06)
+### v2.2 (Current — 2026-08-20)
+- **Change:** Adds `event_end_date` to each returned event, and computes
+  `event_end_time` from the real `event_end_date` column instead of inferring
+  "next day" whenever `event_end_time < event_time`.
+- **Reason:** `create_event_v4`/`update_event_v2_5` now store an explicit end date
+  instead of relying on that implicit convention.
+- **Endpoint:** `POST /rpc/get_profile_events_v2_2`
+
+### v2.1 (Previous — 2026-08-06)
 - **Change:** Collaborators now resolve per-occurrence — when
   `event_mst.collaborators_overridden = true`, uses the occurrence's own
   `event_collaborators` rows (both in the returned `collaborators` field and in the
@@ -27,7 +35,217 @@
 
 ---
 
-## V2.1 Function (Current)
+## V2.2 Function (Current)
+
+```sql
+-- Function: get_profile_events_v2_2
+-- Group:    events
+-- Endpoint: POST /rpc/get_profile_events_v2_2
+-- Tables:   event_mst, event_platforms, platforms, event_collaborators, profile_link_preferences, profile_custom_links
+-- Doc:      docs/api/events/get_profile_events.md
+--
+-- Purpose:  Returns all events for a specific profile for a 7-day window
+--           starting from p_week_start. Platforms ordered by user preferences
+--           (like get_profile_by_id_v2_1). Each platform includes type field.
+--
+-- Change from v2.1: Adds event_end_date to each returned event; event_end_time is
+--   now derived from the real event_end_date column instead of inferring "next day"
+--   from event_end_time < event_time.
+--
+-- Recurring event design:
+--   create_event pre-generates child rows in event_mst — one row per occurrence.
+--   Each child row has parent_event_id set to the parent template event_id.
+--   This SP returns child rows (parent_event_id IS NOT NULL) which already have
+--   the correct event_date for their specific occurrence.
+--
+--   event_platforms rows exist only on the parent event.
+--   The platforms subquery resolves via COALESCE(parent_event_id, event_id),
+--   so both recurring child rows and non-recurring events resolve correctly.
+
+CREATE OR REPLACE FUNCTION get_profile_events_v2_2(
+    p_profile_id  uuid,
+    p_week_start  date,
+    p_timezone    text DEFAULT 'UTC'
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_week_end  date;
+    v_events    json;
+BEGIN
+
+    -- ── Null guards ───────────────────────────────────────────────────────────
+    IF p_profile_id IS NULL THEN
+        RETURN json_build_object('status', false, 'message', 'Profile ID is required');
+    END IF;
+
+    IF p_week_start IS NULL THEN
+        RETURN json_build_object('status', false, 'message', 'Week start date is required');
+    END IF;
+
+    -- ── Existence check ───────────────────────────────────────────────────────
+    IF NOT EXISTS (
+        SELECT 1 FROM creator_profiles WHERE id = p_profile_id
+    ) THEN
+        RETURN json_build_object('status', false, 'message', 'Profile not found');
+    END IF;
+
+    -- ── Calculate week end (7 days inclusive) ─────────────────────────────────
+    v_week_end := p_week_start + interval '6 days';
+
+    -- ── Fetch events ──────────────────────────────────────────────────────────
+    SELECT json_agg(
+        json_build_object(
+            'event_id',        e.event_id,
+            'parent_event_id', e.parent_event_id,
+            'title',           e.title,
+            'description',     e.description,
+            'event_date',      (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date,
+            'event_time',      (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
+            'event_end_date',  (((COALESCE(e.event_end_date, e.event_date)::text || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date,
+            'event_end_time',  (((COALESCE(e.event_end_date, e.event_date)::text || ' ' || e.event_end_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::time,
+            'livestream',      e.livestream,
+            'video',           e.video,
+            'is_collaborative', e.is_collaborative,
+            'is_recurring',    e.is_recurring,
+            'collaborators', (
+                SELECT json_agg(
+                    json_build_object(
+                        'profile_id',   ec.profile_id,
+                        'profile_name', cp_collab.profile_name,
+                        'avatar',       cp_collab.avatar,
+                        'status',       ec.status
+                    ) ORDER BY ec.invited_at
+                )
+                FROM event_collaborators ec
+                JOIN creator_profiles cp_collab ON cp_collab.id = ec.profile_id
+                WHERE ec.event_id = CASE
+                    WHEN e.collaborators_overridden
+                    THEN e.event_id
+                    ELSE COALESCE(e.parent_event_id, e.event_id)
+                END
+                  AND ec.is_deleted = false
+            ),
+            'platforms', (
+                -- Main streaming platforms (IDs 1-4) ordered by user preferences
+                SELECT COALESCE(json_agg(
+                    json_build_object(
+                        'platform_id',   plat_id,
+                        'type',          'platform',
+                        'platform_name', plat_name,
+                        'logo_url',      logo_url,
+                        'stream_url',    stream_url
+                    )
+                    ORDER BY sort_order ASC
+                ), '[]'::json)
+                FROM LATERAL (
+                    SELECT
+                        p.plat_id,
+                        p.plat_name,
+                        p.logo_url,
+                        ep.stream_url,
+                        COALESCE(
+                            (SELECT array_position(plp.platform_ids_order, ep.platform_id::bigint)
+                             FROM profile_link_preferences plp
+                             WHERE plp.profile_id = p_profile_id),
+                            ep.platform_id::int + 100
+                        ) as sort_order
+                    FROM event_platforms ep
+                    LEFT JOIN platforms p ON p.plat_id = ep.platform_id::bigint
+                    WHERE ep.event_id = CASE
+                        WHEN e.is_overridden
+                        THEN e.event_id
+                        ELSE COALESCE(e.parent_event_id, e.event_id)
+                    END
+                      AND ep.platform_id::int IN (1, 2, 3, 4)
+                ) platform_list
+            ),
+            'additional_links', (
+                -- Additional platforms (IDs 5+) ordered by user preferences
+                SELECT COALESCE(json_agg(
+                    json_build_object(
+                        'platform_id',   plat_id,
+                        'type',          'additional_link',
+                        'platform_name', plat_name,
+                        'logo_url',      logo_url,
+                        'stream_url',    stream_url
+                    )
+                    ORDER BY sort_order ASC
+                ), '[]'::json)
+                FROM LATERAL (
+                    SELECT
+                        p.plat_id,
+                        p.plat_name,
+                        p.logo_url,
+                        ep.stream_url,
+                        COALESCE(
+                            (SELECT array_position(plp.additional_ids_order, ep.platform_id::bigint)
+                             FROM profile_link_preferences plp
+                             WHERE plp.profile_id = p_profile_id),
+                            ep.platform_id::int + 100
+                        ) as sort_order
+                    FROM event_platforms ep
+                    LEFT JOIN platforms p ON p.plat_id = ep.platform_id::bigint
+                    WHERE ep.event_id = CASE
+                        WHEN e.is_overridden
+                        THEN e.event_id
+                        ELSE COALESCE(e.parent_event_id, e.event_id)
+                    END
+                      AND ep.platform_id::int >= 5
+                ) additional_list
+            )
+        )
+        ORDER BY e.event_date ASC, e.event_time ASC
+    )
+    INTO v_events
+    FROM event_mst e
+    WHERE (
+        e.profile_id = p_profile_id
+        -- Accepted collaborator on this occurrence's own list (override) OR the series' list
+        OR EXISTS (
+            SELECT 1 FROM event_collaborators ec_mem
+            WHERE ec_mem.profile_id = p_profile_id
+              AND ec_mem.status     = 'accepted'
+              AND ec_mem.is_deleted = false
+              AND ec_mem.event_id   = CASE
+                  WHEN e.collaborators_overridden
+                  THEN e.event_id
+                  ELSE COALESCE(e.parent_event_id, e.event_id)
+              END
+        )
+    )
+      AND (((e.event_date::text || ' ' || e.event_time::text)::timestamp AT TIME ZONE e.event_timezone) AT TIME ZONE p_timezone)::date
+          BETWEEN p_week_start AND v_week_end
+      AND e.is_deleted = false
+      AND (e.is_recurring = false OR e.parent_event_id IS NOT NULL);
+
+    RETURN json_build_object(
+        'status',  true,
+        'message', 'Events fetched successfully',
+        'data', json_build_object(
+            'week_start', p_week_start,
+            'week_end',   v_week_end,
+            'events',     COALESCE(v_events, '[]'::json)
+        )
+    );
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object(
+            'status',  false,
+            'message', 'Something went wrong',
+            'error',   SQLERRM
+        );
+END;
+$$;
+```
+
+---
+
+## V2.1 Function (Previous)
 
 ```sql
 -- Function: get_profile_events_v2_1
