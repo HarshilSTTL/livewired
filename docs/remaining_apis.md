@@ -7,8 +7,20 @@
 
 ## ✅ Just Completed (this session)
 
+> **Correction (2026-08-24):** Push notifications were already partially live in
+> production and undocumented here — a `push_notification` trigger (AFTER INSERT
+> on `notifications`) calls a `push` Edge Function via `http_request`, and a
+> `device_tokens` table already existed. That function sent to every registered
+> token unconditionally, with no way to opt out. This session added the missing
+> piece: `users.is_push_enabled` + `register_device_token` + `update_push_preference`,
+> and updated the Edge Function to check the flag and prune dead tokens.
+> See `schema/tables/20_device_tokens.md`, `functions/notifications/register_device_token.md`,
+> `functions/notifications/update_push_preference.md`, `supabase/functions/push/index.ts`.
+
 | SP | SQL File | API Doc |
 |----|----------|---------|
+| `register_device_token` | `functions/notifications/register_device_token.md` | `docs/api/notifications/register_device_token.md` |
+| `update_push_preference` | `functions/notifications/update_push_preference.md` | `docs/api/notifications/update_push_preference.md` |
 | `get_event_by_id` | `functions/events/get_event_by_id.md` | `docs/api/events/get_event_by_id.md` |
 | `update_event` | `functions/events/update_event.md` | `docs/api/events/update_event.md` |
 | `delete_event` | `functions/events/delete_event.md` | `docs/api/events/delete_event.md` |
@@ -55,7 +67,7 @@ These require SQL migrations + file updates. Not done yet.
 | Feature | How to implement |
 |---------|-----------------|
 | `change_password` | `supabase.auth.updateUser({ password: newPassword })` — call directly from Flutter |
-| `forgot_password` | `supabase.auth.resetPasswordForEmail(email)` — Supabase sends the reset email automatically |
+| `forgot_password` | **OTP-based (2026-08-20).** `resetPasswordForEmail(email)` → `verifyOTP(email, token, type: recovery)` → `updateUser({ password })`. Requires switching the Supabase "Reset Password" email template to send `{{ .Token }}` instead of the magic link. Full flow: [`docs/api/auth/forgot_password.md`](./api/auth/forgot_password.md) |
 
 No stored procedures required for either. Both are handled entirely on the frontend via the Supabase client SDK.
 
@@ -65,7 +77,6 @@ No stored procedures required for either. Both are handled entirely on the front
 
 | SP | Purpose |
 |----|---------|
-| `register_device_token` | Store FCM token for push notifications — needs Firebase setup first |
 | `get_trending_events` | Discovery screen — popular upcoming events across all creators |
 | `get_trending_creators` | Creators with fastest follower growth |
 | `report_profile` | User reports inappropriate creator — needs `reports` table |

@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS public.users (
     is_email_verified  boolean     NOT NULL DEFAULT false, -- synced from auth.users.email_confirmed_at via handle_email_verified trigger
     onboarding_completed boolean   NOT NULL DEFAULT false, -- true once user finishes OR skips the platform/tag onboarding screens
     is_deleted         boolean     NOT NULL DEFAULT false, -- soft delete flag
-    deleted_at         timestamptz NULL                    -- timestamp of soft delete
+    deleted_at         timestamptz NULL,                   -- timestamp of soft delete
+    is_push_enabled    boolean     NOT NULL DEFAULT true   -- account-level push notification preference; checked by the `push` Edge Function before sending FCM messages
 );
 
 -- Note: onboarding_completed is set true by submit_platform, submit_tags, and
@@ -49,4 +50,7 @@ CREATE TABLE IF NOT EXISTS public.users (
 --
 -- Migration: run once in Supabase SQL editor (new — 2026-07-15)
 --   ALTER TABLE public.users ADD COLUMN IF NOT EXISTS onboarding_completed boolean NOT NULL DEFAULT false;
+--
+-- Migration: run once in Supabase SQL editor (new — 2026-08-24)
+--   ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_push_enabled boolean NOT NULL DEFAULT true;
 ```
