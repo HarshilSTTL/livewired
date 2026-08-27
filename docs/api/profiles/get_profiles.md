@@ -14,7 +14,7 @@
 | Version | Endpoint | Ordering | Features |
 |---------|----------|----------|----------|
 | **v2.1** (Current) | `/rpc/get_profiles_v2_1` | User preferences | All 3 groups, preference ordering, type field |
-| **v2** | `/rpc/get_profiles_v2` | ID-based (1-4) | Main platforms only (1-4) |
+| **v2** | `/rpc/get_profiles_v2` | User preferences (patched 2026-08-27; was unordered) | Main platforms only (1-4) |
 | **v1** (Deprecated) | `/rpc/get_profiles` | Database order | All platforms |
 
 ---

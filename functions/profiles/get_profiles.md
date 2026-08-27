@@ -8,10 +8,15 @@
 - **Type Field:** Each link includes type identifier ("platform", "additional_link", or "custom_link")
 - **Endpoint:** `POST /rpc/get_profiles_v2_1`
 
-### v2 (Previous — 2026-05-28)
+### v2 (Previous — 2026-05-28, patched 2026-08-27)
 - **Change:** Platforms filtered to main streaming platforms only (IDs 1-4)
 - **Reason:** Consistent with other search APIs; cleaner results
 - **Endpoint:** `POST /rpc/get_profiles_v2`
+- **Patch (2026-08-27):** Platforms are now ordered by the user's drag-drop
+  preferences (`profile_link_preferences.platform_ids_order`), matching
+  `get_profile_by_id_v2_1`. Previously `json_agg` had no `ORDER BY`, so the
+  platform icon order on Creator Search didn't match the order shown on the
+  creator's own profile. Same function/endpoint name — just redeploy this SQL.
 
 ### v1 (Deprecated)
 - Returns all platforms without filtering
@@ -208,8 +213,17 @@ $$;
 -- Endpoint: POST /rpc/get_profiles_v2
 -- Requires: pg_trgm extension
 -- Doc: docs/api/profiles/get_profiles.md
--- Version: 2.0 (2026-05-28)
+-- Version: 2.0 (2026-05-28), patched 2026-08-27
 -- Changes: Filters platforms to main streaming platforms (IDs 1-4)
+--
+-- Patch (2026-08-27) — platforms were returned in unordered join order (json_agg
+--   with no ORDER BY), so the platform icon order on Creator Search didn't match
+--   the order shown on the creator's own profile (get_profile_by_id_v2_1, which
+--   already sorts by profile_link_preferences.platform_ids_order). Now sorted the
+--   same way, via a LATERAL join computing sort_order per platform (preference
+--   position if set, else plat_id + 100 as a stable fallback). Response shape is
+--   unchanged (platform_id + logo_url only, no new fields) — no client change
+--   required, just redeploy this SQL and NOTIFY pgrst, 'reload schema'.
 
 CREATE OR REPLACE FUNCTION get_profiles_v2(
     p_keyword text DEFAULT null,
@@ -271,18 +285,30 @@ BEGIN
                             ELSE NULL
                         END              AS followers,
                         (
+                            -- Main streaming platforms (IDs 1-4) ordered by user preferences
                             SELECT COALESCE(
                                 json_agg(json_build_object(
                                     'platform_id',   p.plat_id,
                                     'logo_url',      p.logo_url
-                                )),
+                                ) ORDER BY sort_order),
                                 '[]'::json
                             )
-                            FROM creator_platform_accounts cpa
-                            JOIN platforms p ON p.plat_id = cpa.platform_id
-                            WHERE cpa.profile_id = cp.id
-                              AND cpa.is_deleted = false
-                              AND p.plat_id IN (1, 2, 3, 4)
+                            FROM LATERAL (
+                                SELECT
+                                    p.plat_id,
+                                    p.logo_url,
+                                    COALESCE(
+                                        (SELECT array_position(plp.platform_ids_order, p.plat_id)
+                                         FROM profile_link_preferences plp
+                                         WHERE plp.profile_id = cp.id),
+                                        p.plat_id + 100
+                                    ) as sort_order
+                                FROM creator_platform_accounts cpa
+                                JOIN platforms p ON p.plat_id = cpa.platform_id
+                                WHERE cpa.profile_id = cp.id
+                                  AND cpa.is_deleted = false
+                                  AND p.plat_id IN (1, 2, 3, 4)
+                            ) platform_list
                         )                AS platforms
                     FROM creator_profiles cp
                     WHERE cp.status = 'active'
