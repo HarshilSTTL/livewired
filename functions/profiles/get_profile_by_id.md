@@ -2,12 +2,20 @@
 
 ## Version History
 
-### v2.1 (Current — 2026-05-28)
+### v2.1 (Current — 2026-05-28, patched 2026-08-27)
 - **Change:** Returns all 3 link groups (platforms, additional_links, custom_links) in separate response fields
 - **Ordering:** Each group ordered by user drag-drop preferences from profile_link_preferences table
 - **Type Field:** Each link includes type identifier ("platform", "additional_link", or "custom_link")
 - **Order:** Platforms (1-4) → Additional Links (5+) → Custom Links (each in preference order)
 - **Endpoint:** `POST /rpc/get_profile_by_id_v2_1`
+- **Patch (2026-08-27):** Each `json_build_object` was reading `cpa.*`/`p.*`/`pcl.*`
+  columns directly, but those aliases are only in scope *inside* the `LATERAL`
+  subquery that computes `sort_order` — outside it, only the LATERAL's own
+  alias (`platform_list`/`additional_list`/`custom_list`) is in the FROM list.
+  This is invalid SQL (`missing FROM-clause entry for table "p"` at runtime,
+  the same failure mode confirmed on `get_profiles_v2_1`), not merely a stale
+  reference. Fixed by qualifying every field with the LATERAL alias instead.
+  Same function/endpoint name — redeploy this SQL to take effect.
 
 ### v2 (Previous — 2026-05-28)
 - **Change:** Platforms ordered by ID (1→2→3→4: YouTube, Twitch, Kick, Rumble)
@@ -28,10 +36,15 @@
 -- Endpoint: POST /rpc/get_profile_by_id_v2_1
 -- Tables:   creator_profiles, creator_platform_accounts, profile_custom_links, profile_tags, follows, profile_link_preferences
 -- Doc:      docs/api/profiles/get_profile_by_id.md
--- Version:  2.1 (2026-05-28)
+-- Version:  2.1 (2026-05-28), patched 2026-08-27
 -- Changes:  Returns all 3 link groups (platforms, additional_links, custom_links) in separate fields
 --           Each group ordered by profile_link_preferences with fallback to default order
 --           Each link includes type field for client-side classification
+--
+-- Patch (2026-08-27): each LATERAL-backed group's outer json_build_object was
+--   reading cpa./p./pcl. columns that are only in scope inside the LATERAL
+--   subquery — fixed by qualifying with the LATERAL alias
+--   (platform_list/additional_list/custom_list). Same signature, redeploy only.
 --
 -- Purpose:  Returns full detail of a single profile by profile_id with links ordered by user preferences.
 
@@ -84,13 +97,13 @@ BEGIN
             -- Main streaming platforms (IDs 1-4) ordered by profile_link_preferences
             SELECT COALESCE(json_agg(
                 json_build_object(
-                    'id',             cpa.id,
-                    'platform_id',    cpa.platform_id,
+                    'id',             platform_list.id,
+                    'platform_id',    platform_list.platform_id,
                     'type',           'platform',
-                    'platform_name',  p.plat_name,
-                    'logo_url',       p.logo_url,
-                    'channel_url',    cpa.channel_url,
-                    'is_default',     cpa.is_default
+                    'platform_name',  platform_list.plat_name,
+                    'logo_url',       platform_list.logo_url,
+                    'channel_url',    platform_list.channel_url,
+                    'is_default',     platform_list.is_default
                 )
                 ORDER BY sort_order ASC
             ), '[]'::json)
@@ -119,13 +132,13 @@ BEGIN
             -- Additional platform links (IDs 5+) ordered by profile_link_preferences
             SELECT COALESCE(json_agg(
                 json_build_object(
-                    'id',             cpa.id,
-                    'platform_id',    cpa.platform_id,
+                    'id',             additional_list.id,
+                    'platform_id',    additional_list.platform_id,
                     'type',           'additional_link',
-                    'platform_name',  p.plat_name,
-                    'logo_url',       p.logo_url,
-                    'channel_url',    cpa.channel_url,
-                    'is_default',     cpa.is_default
+                    'platform_name',  additional_list.plat_name,
+                    'logo_url',       additional_list.logo_url,
+                    'channel_url',    additional_list.channel_url,
+                    'is_default',     additional_list.is_default
                 )
                 ORDER BY sort_order ASC
             ), '[]'::json)
@@ -154,12 +167,12 @@ BEGIN
             -- Custom creator-defined links ordered by profile_link_preferences
             SELECT COALESCE(json_agg(
                 json_build_object(
-                    'id',             pcl.id,
+                    'id',             custom_list.id,
                     'platform_id',    NULL,
                     'type',           'custom_link',
-                    'platform_name',  pcl.platform_name,
+                    'platform_name',  custom_list.platform_name,
                     'logo_url',       NULL,
-                    'channel_url',    pcl.platform_url,
+                    'channel_url',    custom_list.platform_url,
                     'is_default',     false
                 )
                 ORDER BY sort_order ASC

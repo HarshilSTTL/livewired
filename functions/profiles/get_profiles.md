@@ -2,11 +2,21 @@
 
 ## Version History
 
-### v2.1 (Current — 2026-05-28)
+### v2.1 (Current — 2026-05-28, patched 2026-08-27)
 - **Change:** Returns all 3 link groups (platforms, additional_links, custom_links) in separate response fields
 - **Ordering:** Each group ordered by user drag-drop preferences from profile_link_preferences table
 - **Type Field:** Each link includes type identifier ("platform", "additional_link", or "custom_link")
 - **Endpoint:** `POST /rpc/get_profiles_v2_1`
+- **Patch (2026-08-27) — fixes a hard runtime error:** the `platforms` and
+  `additional_links` subqueries built each `json_build_object` from `p.plat_id`/
+  `p.logo_url`, but `p` only exists inside the `LATERAL` subquery that computes
+  `sort_order` — outside it, only the LATERAL's own alias (`platform_list`/
+  `additional_list`) is in scope. Every call was failing at runtime with
+  `missing FROM-clause entry for table "p"` (still returning `status: true` from
+  callers upstream of this — it's what surfaced as a search request against this
+  endpoint returning `"status": false, "error": "missing FROM-clause entry for
+  table \"p\""`). Fixed by qualifying every field with the LATERAL alias. Same
+  function/endpoint name — redeploy this SQL to take effect.
 
 ### v2 (Previous — 2026-05-28, patched 2026-08-27)
 - **Change:** Platforms filtered to main streaming platforms only (IDs 1-4)
@@ -16,7 +26,10 @@
   preferences (`profile_link_preferences.platform_ids_order`), matching
   `get_profile_by_id_v2_1`. Previously `json_agg` had no `ORDER BY`, so the
   platform icon order on Creator Search didn't match the order shown on the
-  creator's own profile. Same function/endpoint name — just redeploy this SQL.
+  creator's own profile. The `LATERAL`-based fix was written with the same
+  out-of-scope-alias mistake found in `get_profiles_v2_1` above; caught and
+  fixed before this version was ever deployed. Same function/endpoint name —
+  just redeploy this SQL.
 
 ### v1 (Deprecated)
 - Returns all platforms without filtering
@@ -32,10 +45,16 @@
 -- Endpoint: POST /rpc/get_profiles_v2_1
 -- Requires: pg_trgm extension
 -- Doc: docs/api/profiles/get_profiles.md
--- Version: 2.1 (2026-05-28)
+-- Version: 2.1 (2026-05-28), patched 2026-08-27
 -- Changes: Returns all 3 link groups (platforms, additional_links, custom_links) in separate fields
 --          Each group ordered by user preferences with fallback to ID order
 --          Each link includes type field for client-side classification
+--
+-- Patch (2026-08-27): platforms/additional_links json_build_object read p.plat_id/
+--   p.logo_url, out of scope outside the LATERAL that defines them — every call
+--   errored at runtime with "missing FROM-clause entry for table \"p\"". Fixed by
+--   qualifying with the LATERAL alias (platform_list/additional_list). Same
+--   signature, redeploy only.
 
 CREATE OR REPLACE FUNCTION get_profiles_v2_1(
     p_keyword text DEFAULT null,
@@ -100,9 +119,9 @@ BEGIN
                             -- Main streaming platforms (IDs 1-4) ordered by user preferences
                             SELECT COALESCE(
                                 json_agg(json_build_object(
-                                    'platform_id',   p.plat_id,
+                                    'platform_id',   platform_list.plat_id,
                                     'type',          'platform',
-                                    'logo_url',      p.logo_url
+                                    'logo_url',      platform_list.logo_url
                                 ) ORDER BY sort_order),
                                 '[]'::json
                             )
@@ -127,9 +146,9 @@ BEGIN
                             -- Additional platform links (IDs 5+) ordered by user preferences
                             SELECT COALESCE(
                                 json_agg(json_build_object(
-                                    'platform_id',   p.plat_id,
+                                    'platform_id',   additional_list.plat_id,
                                     'type',          'additional_link',
-                                    'logo_url',      p.logo_url
+                                    'logo_url',      additional_list.logo_url
                                 ) ORDER BY sort_order),
                                 '[]'::json
                             )
@@ -288,8 +307,8 @@ BEGIN
                             -- Main streaming platforms (IDs 1-4) ordered by user preferences
                             SELECT COALESCE(
                                 json_agg(json_build_object(
-                                    'platform_id',   p.plat_id,
-                                    'logo_url',      p.logo_url
+                                    'platform_id',   platform_list.plat_id,
+                                    'logo_url',      platform_list.logo_url
                                 ) ORDER BY sort_order),
                                 '[]'::json
                             )
