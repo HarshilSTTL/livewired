@@ -92,7 +92,7 @@ succeeds and you have the user's email from the Supabase session.
 1. Null check: p_email
 2. SELECT id FROM users WHERE lower(email) = lower(p_email) AND is_deleted = false
 3. If found  → return user_id (active login)
-4. If not found → INSERT new user (password=NULL, auth_provider='google')
+4. If not found → INSERT new user (password column omitted, defaults to NULL; auth_provider='google')
               → return new user_id (fresh signup)
               Note: deleted accounts have their email anonymized, so real email
               is never found here — re-login after deletion always creates a

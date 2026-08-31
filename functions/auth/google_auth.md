@@ -14,7 +14,7 @@
 -- Logic:
 --   • If a user with this email already exists → return their user_id  (login)
 --   • If no user with this email exists        → insert new row         (signup)
---     password = NULL  (Google users have no password)
+--     password column omitted from INSERT → defaults to NULL (Google users have no password)
 --     auth_provider = 'google'
 --     username = p_username if provided, NULL otherwise (can be set later)
 --
@@ -63,10 +63,9 @@ BEGIN
     -- If the user previously deleted their account, their email was anonymized
     -- in public.users, so this INSERT always creates a brand new UUID with
     -- no association to any old profiles or events.
-    INSERT INTO users (email, password, username, auth_provider, created_at, updated_at)
+    INSERT INTO users (email, username, auth_provider, created_at, updated_at)
     VALUES (
         trim(p_email),
-        NULL,
         CASE WHEN p_username IS NULL OR trim(p_username) = '' THEN NULL ELSE trim(p_username) END,
         'google',
         now(),
