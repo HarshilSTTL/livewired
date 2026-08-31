@@ -9,11 +9,19 @@
 --
 -- Behaviour:
 --   • COALESCE pattern — only updates fields that are explicitly passed (non-null).
---   • p_platforms = non-null  → upsert: UPDATE existing row if platform_id matches, INSERT if not found.
+--   • p_platforms = non-null  → replace-all: any existing row whose platform_id is
+--     NOT in the array is soft-deleted (is_deleted = true); rows present are
+--     upserted (UPDATE if platform_id matches an active row, INSERT otherwise).
 --   • p_platforms = null      → platforms are NOT touched.
---   • p_platforms = []        → no platform changes (nothing inserted or deleted).
---   • Same semantics apply to p_tag_ids.
+--   • p_platforms = []        → soft-deletes ALL existing platform rows for the profile.
+--   • Same semantics apply to p_tag_ids (hard delete + reinsert, since profile_tags
+--     has no is_deleted column).
 --   • Ownership enforced: profile must belong to p_user_id.
+--   • Fix (2026-08-31): previously only upserted and never removed a platform row
+--     dropped from p_platforms, so deleting a URL client-side and re-fetching via
+--     get_profile_by_id_v2_1 would still show the stale platform. Now soft-deletes
+--     rows missing from the incoming array, matching the documented replace-all
+--     contract in docs/api/profiles/update_profile.md.
 
 CREATE OR REPLACE FUNCTION update_profile(
     p_profile_id          uuid,
@@ -132,8 +140,20 @@ BEGIN
         updated_at          = now()
     WHERE id = p_profile_id;
 
-    -- ── Upsert platforms (if p_platforms is not null) ─────────────────────────
-    IF p_platforms IS NOT NULL AND jsonb_array_length(p_platforms) > 0 THEN
+    -- ── Replace platforms (if p_platforms is not null) ────────────────────────
+    IF p_platforms IS NOT NULL THEN
+
+        -- Soft-delete any existing platform rows that are no longer present
+        -- in p_platforms (this is what makes p_platforms = [] clear all rows,
+        -- and lets a caller drop a single platform by omitting it from the array).
+        UPDATE creator_platform_accounts
+        SET is_deleted = true
+        WHERE profile_id  = p_profile_id
+          AND is_deleted  = false
+          AND platform_id NOT IN (
+              SELECT (pl->>'platform_id')::bigint
+              FROM jsonb_array_elements(p_platforms) AS pl
+          );
 
         FOR v_platform IN SELECT * FROM jsonb_array_elements(p_platforms)
         LOOP

@@ -152,7 +152,8 @@ rows are deleted and replaced. When passed as `null`, those tables are untouched
 6. If p_is_default = true → UPDATE other profiles: is_default = false
 7. UPDATE creator_profiles using COALESCE for each field + updated_at = now()
 8. If p_platforms IS NOT NULL:
-   ├── UPDATE existing platform rows or INSERT new ones (upsert)
+   ├── Soft-delete existing platform rows whose platform_id is absent from p_platforms
+   └── UPDATE existing platform rows or INSERT new ones (upsert) for each entry present
 9. If p_tag_ids IS NOT NULL:
    ├── DELETE FROM profile_tags WHERE profile_id = p_profile_id
    └── If array non-empty → INSERT unnest(p_tag_ids)
