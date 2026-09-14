@@ -4,10 +4,11 @@
 
 | Version | Function | Endpoint | Status |
 |---------|----------|----------|--------|
-| v2.0 | `update_event_v2` | `POST /rpc/update_event_v2` | ✅ Current |
+| v2.6 | `update_event_v2_6` | `POST /rpc/update_event_v2_6` | ✅ Current |
+| v2.5 → v2.0 | `update_event_v2_5` ... `update_event_v2` | `POST /rpc/update_event_v2_5` ... `v2` | ⚠️ Previous |
 | v1.0 | `update_event` | `POST /rpc/update_event` | ❌ Deprecated |
 
-> **Use `update_event_v2`** — v1 is deprecated. Only difference is collaborator behavior (see below).
+> **Use `update_event_v2_6`** — raises the accepted-collaborator cap from 5 to 9. See [`functions/events/update_event.md`](../../../functions/events/update_event.md) for the full version history.
 
 ---
 

@@ -13,15 +13,30 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/api/profiles/update_profile.md",
+                "file": "updates/2026-09-14.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "update_profile"
+              "title": "2026-09-14"
+            }
+          },
+          {
+            "id": "9bbadb1b4f3be6f6",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "functions/events/create_event.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "create_event"
             }
           }
         ],
+        "currentTab": 1,
         "stacked": true
       }
     ],
@@ -185,20 +200,21 @@
       "bases:Create new base": false
     }
   },
-  "active": "1a90534715937069",
+  "active": "9bbadb1b4f3be6f6",
   "lastOpenFiles": [
-    "updates/2026-09-14.md.tmp.19928.6303aacb8e61",
-    "docs/api/events/create_event.md.tmp.19928.99ea3633b4e8",
-    "docs/api/events/create_event.md.tmp.19928.549073f832b2",
-    "docs/api/events/invite_collaborator.md.tmp.19928.f1cd4bc8f519",
-    "docs/api/events/invite_collaborator.md.tmp.19928.c3b49553a6ff",
-    "docs/api/events/update_event.md.tmp.19928.75685a9096e8",
-    "docs/api/events/respond_collaborator_invite.md.tmp.19928.f3f1934a4c91",
-    "TASKS.md.tmp.19928.a754d850965a",
-    "functions/events/respond_collaborator_invite.md.tmp.19928.d1eb9bee3437",
-    "functions/events/invite_collaborator.md.tmp.19928.2d7d8e691d3b",
-    "functions/events/invite_collaborator.md.tmp.19928.46dd9cdc2524",
+    "updates/2026-09-14.md.tmp.34644.7f9d43372e55",
+    "docs/api/events/respond_collaborator_invite.md.tmp.34644.e3b34bac8533",
+    "docs/api/events/respond_collaborator_invite.md.tmp.34644.6e491fd2f103",
+    "docs/api/events/invite_collaborator.md.tmp.34644.6729f11eea63",
+    "functions/events/respond_collaborator_invite.md.tmp.34644.98027ffc40ef",
+    "functions/events/invite_collaborator.md.tmp.34644.656e638e9962",
+    "docs/api/events/update_event.md.tmp.34644.eea1ffc5da95",
+    "functions/events/update_event.md.tmp.34644.f9068cefd55e",
+    "docs/api/events/create_event.md.tmp.34644.da17d938accb",
+    "functions/events/create_event.md.tmp.34644.e1fd13291810",
+    "functions/events/create_event.md.tmp.34644.c83f0c734b87",
     "updates/2026-09-14.md",
+    "docs/api/profiles/update_profile.md",
     "schema/tables/05_creator_profiles.md",
     "functions/profiles/create_profile.md",
     "functions/profiles/update_profile.md",
@@ -223,7 +239,6 @@
     "updates/2026-07-16.md",
     "updates/2026-07-15.md",
     "functions/auth/get_user.md",
-    "schema/tables/02_users.md",
     "Untitled 1.canvas",
     "Untitled.canvas"
   ]

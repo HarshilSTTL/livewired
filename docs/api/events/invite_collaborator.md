@@ -4,7 +4,14 @@
 > Collaborator invites are now sent via `p_collaborator_ids` in [`create_event`](create_event.md) (at creation) or [`update_event`](update_event.md) (after creation).
 > This file is kept for reference only.
 
-**Endpoint:** `POST /rpc/invite_collaborator`
+| Version | Function | Endpoint | Status |
+|---------|----------|----------|--------|
+| v2 | `invite_collaborator_v2` | `POST /rpc/invite_collaborator_v2` | ⚠️ Deprecated (Current of the deprecated line) |
+| v1 | `invite_collaborator` | `POST /rpc/invite_collaborator` | ❌ Deprecated |
+
+> v2 only raises the accepted-collaborator cap from 5 to 9 — see [`functions/events/invite_collaborator.md`](../../../functions/events/invite_collaborator.md).
+
+**Endpoint:** `POST /rpc/invite_collaborator_v2`
 **Group:** Events
 **SQL:** [`functions/events/invite_collaborator.md`](../../../functions/events/invite_collaborator.md)
 **Tables written:** `event_collaborators` (INSERT / UPDATE) · `notifications` (INSERT)

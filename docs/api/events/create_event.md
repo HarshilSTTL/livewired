@@ -4,10 +4,13 @@
 
 | Version | Function | Endpoint | Status |
 |---------|----------|----------|--------|
-| v2.0 | `create_event_v2` | `POST /rpc/create_event_v2` | ✅ Current |
+| v5.0 | `create_event_v5` | `POST /rpc/create_event_v5` | ✅ Current |
+| v4.0 | `create_event_v4` | `POST /rpc/create_event_v4` | ⚠️ Previous |
+| v3.0 | `create_event_v3` | `POST /rpc/create_event_v3` | ⚠️ Previous |
+| v2.0 | `create_event_v2` | `POST /rpc/create_event_v2` | ❌ Deprecated |
 | v1.0 | `create_event` | `POST /rpc/create_event` | ❌ Deprecated |
 
-> **Use `create_event_v2`** — v1 is deprecated. Only difference is default end time behavior (see below).
+> **Use `create_event_v5`** — raises the accepted-collaborator cap from 5 to 9. See [`functions/events/create_event.md`](../../../functions/events/create_event.md) for the full version history.
 
 **Group:** Events
 **SQL:** [`functions/events/create_event.md`](../../../functions/events/create_event.md)

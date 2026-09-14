@@ -1,6 +1,13 @@
 # SP: `respond_collaborator_invite`
 
-**Endpoint:** `POST /rpc/respond_collaborator_invite`
+| Version | Function | Endpoint | Status |
+|---------|----------|----------|--------|
+| v2 | `respond_collaborator_invite_v2` | `POST /rpc/respond_collaborator_invite_v2` | ✅ Current |
+| v1 | `respond_collaborator_invite` | `POST /rpc/respond_collaborator_invite` | ❌ Deprecated |
+
+> **Use `respond_collaborator_invite_v2`** — raises the accepted-collaborator cap from 5 to 9. See [`functions/events/respond_collaborator_invite.md`](../../../functions/events/respond_collaborator_invite.md).
+
+**Endpoint:** `POST /rpc/respond_collaborator_invite_v2`
 **Group:** Events
 **SQL:** [`functions/events/respond_collaborator_invite.md`](../../../functions/events/respond_collaborator_invite.md)
 **Tables written:** `event_collaborators` (UPDATE) · `notifications` (INSERT)
@@ -55,7 +62,7 @@ Allows the invited collaborator to accept or decline a pending invite. The calle
 ```dart
 // Called when the user taps Accept or Decline on the notification
 // notif.data comes from the push notification payload
-await supabase.rpc('respond_collaborator_invite', params: {
+await supabase.rpc('respond_collaborator_invite_v2', params: {
   'p_event_id':   notif.data['event_id'],
   'p_profile_id': notif.data['invited_profile_id'],
   'p_user_id':    currentUserId,
@@ -109,7 +116,7 @@ await supabase.rpc('respond_collaborator_invite', params: {
 2. Validate p_response ∈ {'accepted', 'declined'}
 3. Verify caller owns p_profile_id
 4. Find pending invite for (event_id, profile_id) WHERE is_deleted = false
-5. If accepting: re-check accepted count < 5
+5. If accepting: re-check accepted count < 9
 6. UPDATE event_collaborators SET status = p_response, responded_at = now()
 7. INSERT notification for event owner
 8. Return success
