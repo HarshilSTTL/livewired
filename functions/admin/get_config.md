@@ -36,7 +36,7 @@ $$;
 
 **Example 1: Get integer value**
 ```sql
-v_max_collabs := (get_config('max_collaborators_per_event', '5'))::int;
+v_max_collabs := (get_config('max_collaborators_per_event', '9'))::int;
 ```
 
 **Example 2: Get interval**

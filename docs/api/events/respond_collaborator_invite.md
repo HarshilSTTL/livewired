@@ -9,7 +9,7 @@
 
 ## Overview
 
-Allows the invited collaborator to accept or decline a pending invite. The caller must own the invited profile. Re-checks the 5-collaborator limit before accepting (race-condition safe). Notifies the event owner of the response.
+Allows the invited collaborator to accept or decline a pending invite. The caller must own the invited profile. Re-checks the 9-collaborator limit before accepting (race-condition safe). Notifies the event owner of the response.
 
 ---
 
@@ -90,7 +90,7 @@ await supabase.rpc('respond_collaborator_invite', params: {
 | `p_response must be accepted or declined` | Invalid response value |
 | `Profile not found or access denied` | Caller doesn't own the profile |
 | `No pending invite found for this event and profile` | No pending non-deleted invite exists |
-| `Collaborator limit reached — cannot accept this invite` | 5 others accepted while this was pending |
+| `Collaborator limit reached — cannot accept this invite` | 9 others accepted while this was pending |
 | `Something went wrong` | Unhandled DB exception |
 
 ---

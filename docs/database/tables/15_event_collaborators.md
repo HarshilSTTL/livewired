@@ -44,7 +44,7 @@ update_event / create_event (again) → reactivates the soft-deleted row back to
 ## Business Rules
 
 - Only applies to events where `event_mst.is_collaborative = true`
-- Maximum **5 accepted** (non-deleted) collaborators per event. The owner is not counted.
+- Maximum **9 accepted** (non-deleted) collaborators per event. The owner is not counted.
 - The owner cannot invite themselves
 - Only active creator profiles (`creator_profiles.status = 'active'`) can be invited
 - Any active creator on the platform is eligible — no follow relationship required

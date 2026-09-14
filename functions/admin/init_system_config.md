@@ -26,7 +26,7 @@ VALUES
 
     -- EVENT SETTINGS
     ('default_event_duration_hours', '2', 'integer', 'event', 'Default event duration in hours if end time not specified', false),
-    ('max_collaborators_per_event', '5', 'integer', 'event', 'Maximum number of collaborators allowed per event', false),
+    ('max_collaborators_per_event', '9', 'integer', 'event', 'Maximum number of collaborators allowed per event', false),
     ('recurring_event_max_months', '12', 'integer', 'event', 'Maximum months for recurring event pre-generation', false),
     ('event_conflict_check_enabled', 'true', 'boolean', 'event', 'Enable conflict detection for overlapping events', false),
 

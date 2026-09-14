@@ -1,0 +1,179 @@
+/* Colors mirror the Flutter app's AppTheme (colorSchemeSeed: Colors.blue,
+   scaffoldBackgroundColor F5F5F5/121212). */
+:root {
+  --bg: #f5f5f5;
+  --card-bg: #ffffff;
+  --border: #e0e0e0;
+  --text: #1a1a1a;
+  --muted: #616161;
+  --blue: #1976d2;
+  --on-blue: #ffffff;
+  --success: #2e7d32;
+  --danger: #d32f2f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121212;
+    --card-bg: #1e1e1e;
+    --border: #424242;
+    --text: #f5f5f5;
+    --muted: #b0b0b0;
+    --blue: #64b5f6;
+    --on-blue: #0d1117;
+    --success: #66bb6a;
+    --danger: #ef5350;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+}
+
+.footer {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+
+.card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 40px 28px 32px;
+  text-align: center;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  .card {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  }
+}
+
+.logo-img {
+  width: 190px;
+  height: auto;
+  margin-bottom: 32px;
+}
+
+.icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-success {
+  background: rgba(46, 125, 50, 0.12);
+  color: var(--success);
+  box-shadow: 0 0 0 1px rgba(46, 125, 50, 0.3);
+}
+
+.icon-failure {
+  background: rgba(211, 47, 47, 0.12);
+  color: var(--danger);
+  box-shadow: 0 0 0 1px rgba(211, 47, 47, 0.3);
+}
+
+.icon-neutral {
+  background: rgba(97, 97, 97, 0.12);
+  color: var(--muted);
+  box-shadow: 0 0 0 1px rgba(97, 97, 97, 0.3);
+}
+
+h1 {
+  font-size: 20px;
+  margin: 0 0 8px;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 28px;
+}
+
+.email-line {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  background: rgba(97, 97, 97, 0.08);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: -12px 0 20px;
+  word-break: break-all;
+}
+
+.email-line span {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.btn {
+  display: block;
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  margin-bottom: 12px;
+  transition: opacity 0.15s ease;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+.btn-primary {
+  background: var(--blue);
+  color: var(--on-blue);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--blue);
+  border: 1px solid var(--blue);
+}
+
+.hidden {
+  display: none;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 20px;
+  border: 3px solid var(--border);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

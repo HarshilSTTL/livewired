@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS public.device_tokens (
 ## Related
 
 - [`register_device_token`](../../functions/notifications/register_device_token.md) — upsert a device's FCM token
+- [`unregister_device_token`](../../functions/notifications/unregister_device_token.md) — deactivate a token at logout
 - [`update_push_preference`](../../functions/notifications/update_push_preference.md) — enable/disable push for a user
 - [`push` Edge Function](../../supabase/functions/push/index.ts) — reads this table to send FCM messages
 - [`19_notifications`](19_notifications.md) — the table whose INSERT trigger fires the `push` function

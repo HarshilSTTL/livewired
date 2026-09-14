@@ -1,8 +1,12 @@
-# SP: `create_profile`
+# SP: `create_profile` (v2)
 
-**Endpoint:** `POST /rpc/create_profile`
+**Endpoint:** `POST /rpc/create_profile_v2`
 **Group:** Profile
 **Description:** Creates a new creator profile. Any registered user can create a profile — no pre-approval or role required. The user is automatically promoted to `role_id = 2` (creator) upon success. Optionally links platforms and tags in the same call. Uses `SECURITY DEFINER`.
+
+> `v1` (`POST /rpc/create_profile`) is deprecated and kept only for backwards
+> compatibility — its uniqueness check blocks reusing a name freed up by a soft
+> delete. Use `v2` for new implementations.
 
 ---
 
@@ -19,6 +23,8 @@
 | p_show_followers | boolean | No | true | Show follower count publicly |
 | p_twitch_by_default | boolean | No | false | Show Twitch stream by default on profile |
 | p_kick_by_default | boolean | No | false | Show Kick stream by default on profile |
+| p_youtube_by_default | boolean | No | false | Show YouTube stream by default on profile |
+| p_rumble_by_default | boolean | No | false | Show Rumble stream by default on profile |
 | p_platforms | jsonb | No | null | Array of platform objects (see below) |
 | p_tag_ids | bigint[] | No | null | Array of tag IDs (max 10) |
 
@@ -51,6 +57,8 @@
   "p_show_followers": true,
   "p_twitch_by_default": false,
   "p_kick_by_default": false,
+  "p_youtube_by_default": false,
+  "p_rumble_by_default": false,
   "p_platforms": [
     { "platform_id": 1, "channel_url": "https://youtube.com/@harshil", "is_default": true }
   ],
@@ -71,7 +79,9 @@
     "profile_id": "uuid...",
     "show_followers": true,
     "twitch_by_default": false,
-    "kick_by_default": false
+    "kick_by_default": false,
+    "youtube_by_default": false,
+    "rumble_by_default": false
   }
 }
 ```
@@ -111,6 +121,9 @@
 { "status": false, "message": "Something went wrong", "error": "<sqlerrm>" }
 ```
 
+> `Profile name already taken` now only fires against active/suspended profiles
+> (`status != 'deleted'`) — a name freed up by a soft delete can be reused.
+
 ---
 
 ## Error Cases
@@ -139,7 +152,7 @@
 8. INSERT into `creator_profiles` → get `v_profile_id`
 9. If p_platforms provided → INSERT each into `creator_platform_accounts`
 10. If p_tag_ids provided → bulk INSERT into `profile_tags` via `unnest()`
-11. Return `profile_id` + `show_followers` + `twitch_by_default` + `kick_by_default`
+11. Return `profile_id` + `show_followers` + `twitch_by_default` + `kick_by_default` + `youtube_by_default` + `rumble_by_default`
 
 ---
 

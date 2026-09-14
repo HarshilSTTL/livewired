@@ -93,8 +93,8 @@ Rows inserted into `event_mst`:
 | `p_description` | text | ❌ | null | Event description |
 | `p_livestream` | boolean | ❌ | false | Is this a live stream? |
 | `p_video` | boolean | ❌ | false | Is this a video premiere? |
-| `p_is_collaborative` | boolean | ❌ | false | Enable collaborator invites on this event (max 5 accepted collaborators) |
-| `p_collaborator_ids` | uuid[] | ❌ | null | Profile IDs to invite as collaborators. Requires `p_is_collaborative = true`. Max 5. Invalid/inactive IDs are skipped and returned in `skipped_collaborator_ids`. |
+| `p_is_collaborative` | boolean | ❌ | false | Enable collaborator invites on this event (max 9 accepted collaborators) |
+| `p_collaborator_ids` | uuid[] | ❌ | null | Profile IDs to invite as collaborators. Requires `p_is_collaborative = true`. Max 9. Invalid/inactive IDs are skipped and returned in `skipped_collaborator_ids`. |
 | `p_is_recurring` | boolean | ❌ | false | Is this recurring? If true, recurring params below are required |
 | `p_platforms` | jsonb | ❌ | null | Platforms to stream on (see format below) |
 
@@ -144,7 +144,7 @@ IDs in `p_collaborator_ids` that cannot be invited are silently skipped and retu
 | Skip reason | Condition |
 |-------------|-----------|
 | Self-invite | `collab_id = p_profile_id` |
-| Cap reached | 5 accepted collaborators already on this event |
+| Cap reached | 9 accepted collaborators already on this event |
 | Invalid profile | Profile not found or `status ≠ 'active'` |
 
 ### Flutter Usage
@@ -280,7 +280,7 @@ Flutter uses `type = 'collaborator_invite'` to show **Accept** / **Decline** act
 >
 > `skipped_collaborator_ids` is always present. It is an empty array when all invites
 > succeeded, or contains the profile IDs that were skipped (invalid/inactive profile,
-> duplicate of creating profile, or over the 5-collaborator cap).
+> duplicate of creating profile, or over the 9-collaborator cap).
 
 ### Error
 ```json

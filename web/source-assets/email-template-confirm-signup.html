@@ -1,0 +1,64 @@
+<!-- Paste this into Supabase Dashboard → Authentication → Email Templates → "Confirm signup" -->
+<!-- {{ .Data.full_name }} and {{ .TokenHash }} are escaped automatically by Supabase's template engine. -->
+<!-- IMPORTANT: this template deliberately does NOT use {{ .ConfirmationURL }}. That expands to a GET
+     endpoint (/auth/v1/verify) which confirms the account on *any* request - so email security scanners
+     (Microsoft Defender Safe Links, antivirus, link previewers) silently verified accounts before the
+     user ever opened the mail. We pass {{ .TokenHash }} to our own page instead, which only POSTs to
+     /auth/v1/verify on an explicit button press. Do not revert this to ConfirmationURL. -->
+<!-- The logo <img> below must be an absolute URL (email clients have no "current directory") - update it if the domain ever changes. -->
+<body style="margin:0;background:#f5f5f5;font-family:Arial,Helvetica,sans-serif;">
+  <div style="display:none;max-height:0;overflow:hidden;">Confirm your email to finish setting up your LiveWired account.</div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #e0e0e0;border-radius:16px;overflow:hidden;">
+          <tr>
+            <td style="background:#1976d2;height:4px;line-height:4px;font-size:0;">&nbsp;</td>
+          </tr>
+          <tr>
+            <td style="padding:36px 32px 40px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding-bottom:28px;">
+                    <img src="https://livewired.io/emailverification/livewired-long-logo.png" width="180" height="63" alt="LiveWired" style="display:block;" />
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="font-size:18px;font-weight:600;color:#1a1a1a;padding-bottom:12px;">
+                    {{ if .Data.full_name }}Hi {{ .Data.full_name }},{{ else }}Hi there,{{ end }}
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="font-size:14px;color:#616161;line-height:1.6;padding-bottom:28px;">
+                    Click the button below to confirm your signup and activate your LiveWired account.
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-bottom:28px;">
+                    <a href="https://livewired.io/emailverification/?token_hash={{ .TokenHash }}&type=signup" style="background:#1976d2;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 32px;border-radius:8px;display:inline-block;">
+                      Verify Email
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="font-size:12px;color:#9e9e9e;line-height:1.5;border-top:1px solid #f0f0f0;padding-top:20px;">
+                    If you didn't create a LiveWired account, you can safely ignore this email.<br />
+                    This link expires in 24 hours.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+        <table role="presentation" width="480" cellpadding="0" cellspacing="0">
+          <tr>
+            <td align="center" style="font-size:12px;color:#9e9e9e;line-height:1.6;padding-top:20px;">
+              LiveWired · <a href="https://livewired.io" style="color:#9e9e9e;text-decoration:underline;">livewired.io</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>

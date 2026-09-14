@@ -1,0 +1,6 @@
+[build]
+  publish = "web/LiveWired"
+
+# Headers now live in web/LiveWired/_headers instead of here, so they travel
+# with the folder itself (including a manually zipped/dragged deploy) rather
+# than only applying when Netlify builds straight from this git repo.

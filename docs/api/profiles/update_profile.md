@@ -1,9 +1,13 @@
-# SP: `update_profile`
+# SP: `update_profile` (v2)
 
-**Endpoint:** `POST /rpc/update_profile`
+**Endpoint:** `POST /rpc/update_profile_v2`
 **Group:** Profile
 **SQL:** [`functions/profiles/update_profile.md`](../../../functions/profiles/update_profile.md)
 **Tables written:** `creator_profiles` · `creator_platform_accounts` · `profile_tags`
+
+> `v1` (`POST /rpc/update_profile`) is deprecated and kept only for backwards
+> compatibility — its rename-uniqueness check blocks renaming a profile into a
+> name freed up by a soft delete. Use `v2` for new implementations.
 
 ---
 
@@ -30,6 +34,8 @@ rows are deleted and replaced. When passed as `null`, those tables are untouched
 | `p_show_followers`    | boolean  | ❌        | null    | Toggle follower count visibility            |
 | `p_twitch_by_default` | boolean  | ❌        | null    | Show Twitch stream by default on profile    |
 | `p_kick_by_default`   | boolean  | ❌        | null    | Show Kick stream by default on profile      |
+| `p_youtube_by_default` | boolean | ❌        | null    | Show YouTube stream by default on profile   |
+| `p_rumble_by_default` | boolean  | ❌        | null    | Show Rumble stream by default on profile    |
 | `p_platforms`         | jsonb    | ❌        | null    | Replace all platforms (see format below)    |
 | `p_tag_ids`           | bigint[] | ❌        | null    | Replace all tags (max 10)                   |
 
@@ -80,6 +86,8 @@ rows are deleted and replaced. When passed as `null`, those tables are untouched
   "p_show_followers":      true,
   "p_twitch_by_default":   true,
   "p_kick_by_default":     false,
+  "p_youtube_by_default":  true,
+  "p_rumble_by_default":   false,
   "p_platforms": [
     { "platform_id": 1, "channel_url": "https://youtube.com/@new_handle", "is_default": true }
   ],
@@ -134,6 +142,9 @@ rows are deleted and replaced. When passed as `null`, those tables are untouched
 | `Maximum 10 tags allowed` | `p_tag_ids` array length > 10 |
 | `One or more tag IDs are invalid` | Tag ID not in `tags` table |
 | `Something went wrong` | Unhandled exception — `error` field contains `SQLERRM` |
+
+> `Profile name already taken` now only fires against active/suspended profiles
+> (`status != 'deleted'`) — a name freed up by a soft delete can be reused.
 
 ---
 

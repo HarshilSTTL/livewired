@@ -179,7 +179,7 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 | `p_livestream` | boolean | ❌ | Toggle livestream flag |
 | `p_video` | boolean | ❌ | Toggle video flag |
 | `p_is_collaborative` | boolean | ❌ | Enable or disable collaborative mode. **Series-level** — always applied to parent + propagated to all children, regardless of `p_scope`. |
-| `p_collaborator_ids` | uuid[] | ❌ | Profile IDs to invite. `null` or `[]` = no change. Non-empty requires `p_is_collaborative = true` (current or being set in same call). **Series-level** — invites are always recorded on the parent. Appends only — never removes existing collaborators. Max 5 accepted per event. |
+| `p_collaborator_ids` | uuid[] | ❌ | Profile IDs to invite. `null` or `[]` = no change. Non-empty requires `p_is_collaborative = true` (current or being set in same call). **Series-level** — invites are always recorded on the parent. Appends only — never removes existing collaborators. Max 9 accepted per event. |
 | `p_platforms` | jsonb | ❌ | `null` = no change · `[]` = clear · `[{...}]` = replace |
 
 ### Recurring fields (pass `p_recurring_days` non-empty to trigger recurring update)
@@ -461,7 +461,7 @@ Flutter uses `type = 'collaborator_invite'` to show **Accept** / **Decline** but
 | `p_event_id and p_user_id are required` | Either required param is null |
 | `p_scope must be 'all' or 'this'` | Invalid scope value passed |
 | `Event not found or access denied` | No matching event, or caller is not the event owner |
-| `Recurring schedule cannot be changed for a single occurrence — use scope 'all'` | `p_recurring_days` passed **non-empty** with `p_scope='this'` on a true child occurrence. Cannot regen children without deleting the row being edited. |
+| `Recurring schedule cannot be changed for a single occurrence — use scope 'all'` | `p_recurring_days`/`p_recurring_type`/`p_recurring_interval`/`p_recurring_end_date` passed with `p_scope='this'` on a true child occurrence **and the values actually differ** from the series' current rule (or `p_recurring_days=[]`, the "remove recurring" signal). Cannot regen/remove children without deleting the row being edited — use scope `'all'`. |
 | `Cannot add collaborators when is_collaborative is false` | `p_collaborator_ids` non-empty but neither `p_is_collaborative: true` is being set in the same call nor the parent's current `is_collaborative` is true |
 | `Event end time cannot be the same as event start time` | Final end time equals final start time (zero-duration). End time less than start time is valid — treated as next day |
 | `One or more platform IDs are invalid` | A `platform_id` in `p_platforms` does not exist |
@@ -477,6 +477,7 @@ Flutter uses `type = 'collaborator_invite'` to show **Accept** / **Decline** but
 > `Scope 'this' can only be used on a specific recurring occurrence` is **no longer a returnable error** — `p_scope='this'` on a non-recurring event or series parent now auto-demotes to `'all'`.
 > `Collaborator invites cannot be scoped to a single occurrence` is **no longer a returnable error** — collaborator invites with `p_scope='this'` now auto-route to the parent.
 > `Recurring days cannot be empty` is **no longer a returnable error** — empty arrays are treated as "no intent to change."
+> **v2.5 patch (2026-08-21):** `p_scope='this'` no longer rejects a resend of the series' *unchanged* recurring params (e.g. a client that always includes the current `p_recurring_days`/type/interval/end date on every save). Only a genuine attempted change, or `p_recurring_days=[]`, still returns the error above.
 > `recurring_interval must be null for first/last type` is **no longer a returnable error** — when the resolved type is `'first'`/`'last'`, the SP forces interval to `NULL` regardless of what was passed or stored.
 
 ---

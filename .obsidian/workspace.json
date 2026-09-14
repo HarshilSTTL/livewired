@@ -8,35 +8,20 @@
         "type": "tabs",
         "children": [
           {
-            "id": "85b6989912a3a12b",
+            "id": "1a90534715937069",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "updates/2026-06-30.md",
+                "file": "docs/api/profiles/update_profile.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "2026-06-30"
-            }
-          },
-          {
-            "id": "00181cc83efc4ba0",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "updates/2026-07-13.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "2026-07-13"
+              "title": "update_profile"
             }
           }
         ],
-        "currentTab": 1,
         "stacked": true
       }
     ],
@@ -57,7 +42,9 @@
               "type": "file-explorer",
               "state": {
                 "sortOrder": "alphabetical",
-                "autoReveal": false
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
               },
               "icon": "lucide-folder-closed",
               "title": "Files"
@@ -198,45 +185,46 @@
       "bases:Create new base": false
     }
   },
-  "active": "8951fd9c7d74b44e",
+  "active": "1a90534715937069",
   "lastOpenFiles": [
-    "updates/2026-07-13.md.tmp.23008.50426293ad4e",
-    "functions/events/set_event_reminder.md.tmp.23008.c00fe52d4770",
-    "functions/events/set_event_reminder.md",
-    "updates/2026-07-13.md.tmp.30180.95d63346eeb2",
-    "functions/notifications/process_event_reminders.md.tmp.25540.609773b36f09",
-    "functions/events/delete_event_reminder.md",
-    "functions/events/delete_event_reminder.md.tmp.25540.11b16bac6eeb",
-    "functions/events/add_event_reminder.md",
-    "functions/events/add_event_reminder.md.tmp.25540.58d9fc42364f",
-    "functions/events/get_event_reminder.md.tmp.25540.8ef692e8c2b9",
-    "updates/2026-06-30.md",
-    "updates/2026-07-13.md",
-    "Untitled",
-    "schema/tables/02_users.md",
+    "updates/2026-09-14.md.tmp.19928.6303aacb8e61",
+    "docs/api/events/create_event.md.tmp.19928.99ea3633b4e8",
+    "docs/api/events/create_event.md.tmp.19928.549073f832b2",
+    "docs/api/events/invite_collaborator.md.tmp.19928.f1cd4bc8f519",
+    "docs/api/events/invite_collaborator.md.tmp.19928.c3b49553a6ff",
+    "docs/api/events/update_event.md.tmp.19928.75685a9096e8",
+    "docs/api/events/respond_collaborator_invite.md.tmp.19928.f3f1934a4c91",
+    "TASKS.md.tmp.19928.a754d850965a",
+    "functions/events/respond_collaborator_invite.md.tmp.19928.d1eb9bee3437",
+    "functions/events/invite_collaborator.md.tmp.19928.2d7d8e691d3b",
+    "functions/events/invite_collaborator.md.tmp.19928.46dd9cdc2524",
+    "updates/2026-09-14.md",
+    "schema/tables/05_creator_profiles.md",
+    "functions/profiles/create_profile.md",
+    "functions/profiles/update_profile.md",
+    "functions/events/update_event.md",
+    "docs/api/notifications/update_push_preference.md",
+    "docs/api/notifications/register_device_token.md",
+    "functions/notifications/update_push_preference.md",
+    "functions/notifications/register_device_token.md",
+    "schema/tables/20_device_tokens.md",
+    "updates/2026-08-20.md",
+    "docs/api/auth/forgot_password.md",
+    "schema/tables/08_event_mst.md",
+    "functions/events/get_event_list.md",
+    "functions/events/get_profile_events.md",
+    "functions/events/get_event_by_id.md",
+    "functions/events/check_event_conflict.md",
     "functions/events/create_event.md",
-    "updates/2026-06-30.md.tmp.3172.127ad595cd18",
-    "Untitled 1.base",
-    "2026-06-23.md",
-    "functions/events/respond_collaborator_invite.md",
-    "updates/2026-06-23.md.tmp.35492.1372887204ae",
+    "updates/2026-08-12.md",
+    "updates/2026-08-11.md",
+    "web/source-assets/livewired-short-logo.png",
+    "updates/2026-08-06.md",
+    "updates/2026-07-16.md",
+    "updates/2026-07-15.md",
+    "functions/auth/get_user.md",
+    "schema/tables/02_users.md",
     "Untitled 1.canvas",
-    "functions/auth/login.md",
-    "docs/API_INDEX.md",
-    "Untitled.canvas",
-    "schema/tables/16_system_config.md",
-    "updates/2026-06-23.md",
-    "docs/api/admin/system_config.md",
-    "functions/admin/init_system_config.md",
-    "functions/admin/update_config.md",
-    "functions/admin/list_config_categories.md",
-    "functions/admin/get_all_configs.md",
-    "functions/admin/get_config.md",
-    "updates/2026-06-16.md",
-    "updates/2026-06-15.md",
-    "updates/2026-05-28.md",
-    "updates/2026-05-12.md",
-    "updates/2026-05-07.md",
-    "updates/2026-05-01.md"
+    "Untitled.canvas"
   ]
 }

@@ -43,7 +43,7 @@ CREATE INDEX idx_system_config_key ON system_config(config_key);
 | `account_lockout_duration_minutes` | `15` | integer | auth | Minutes account is locked |
 | `resend_verification_cooldown_minutes` | `5` | integer | auth | Cooldown before resend allowed |
 | `default_event_duration_hours` | `2` | integer | event | Default event duration if end time not specified |
-| `max_collaborators_per_event` | `5` | integer | event | Maximum collaborators per event |
+| `max_collaborators_per_event` | `9` | integer | event | Maximum collaborators per event |
 | `recurring_event_max_months` | `12` | integer | event | Max months for recurring event generation |
 | `event_conflict_check_enabled` | `true` | boolean | event | Enable conflict detection |
 | `default_platforms` | `[1,2,3]` | json | platform | Default platform IDs (YouTube, Twitch, Rumble, etc.) |

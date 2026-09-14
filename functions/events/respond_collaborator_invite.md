@@ -8,7 +8,7 @@
 -- Doc:      docs/api/events/respond_collaborator_invite.md
 --
 -- Allows the invited profile's owner to accept or decline a pending invite.
--- Re-checks the 5-collaborator limit before accepting (race-condition safe).
+-- Re-checks the 9-collaborator limit before accepting (race-condition safe).
 -- Notifies the event owner of the response.
 
 CREATE OR REPLACE FUNCTION respond_collaborator_invite(
@@ -66,7 +66,7 @@ BEGIN
             WHERE event_id   = p_event_id
               AND status     = 'accepted'
               AND is_deleted = false
-        ) >= 5 THEN
+        ) >= 9 THEN
             RETURN json_build_object('status', false, 'message', 'Collaborator limit reached — cannot accept this invite');
         END IF;
     END IF;

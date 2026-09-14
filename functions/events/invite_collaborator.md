@@ -15,7 +15,7 @@
 --
 -- Sends a collaboration invite to any active creator profile.
 -- Only the event owner can invite. Event must be is_collaborative = true.
--- Limit: max 5 accepted (non-deleted) collaborators per event.
+-- Limit: max 9 accepted (non-deleted) collaborators per event.
 -- Re-inviting a soft-deleted collaborator reactivates the existing row.
 
 CREATE OR REPLACE FUNCTION invite_collaborator(
@@ -84,14 +84,14 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'Collaborator profile not found or inactive');
     END IF;
 
-    -- ── Check accepted collaborator limit (max 5) ─────────────────────────────
+    -- ── Check accepted collaborator limit (max 9) ─────────────────────────────
     IF (
         SELECT COUNT(*) FROM event_collaborators
         WHERE event_id   = p_event_id
           AND status     = 'accepted'
           AND is_deleted = false
-    ) >= 5 THEN
-        RETURN json_build_object('status', false, 'message', 'Collaborator limit reached (maximum 5 collaborators per event)');
+    ) >= 9 THEN
+        RETURN json_build_object('status', false, 'message', 'Collaborator limit reached (maximum 9 collaborators per event)');
     END IF;
 
     -- ── Check for existing row (active or soft-deleted) ───────────────────────

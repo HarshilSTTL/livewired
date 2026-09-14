@@ -18,7 +18,7 @@
 | 7 | `recurring_end_date` optional when creating a recurring event | ✅ Complete |
 | 8 | Default recurring duration = 3 months when no end date provided | ✅ Complete |
 | 9 | Send renewal notification 7 days before recurring event expires | ✅ Complete |
-| 10 | Collaborator functionality (owner + max 5 collaborators) | ✅ Complete |
+| 10 | Collaborator functionality (owner + max 9 collaborators) | ✅ Complete |
 | 11 | Postpone or remove a single occurrence within a recurring series | ✅ Complete |
 | 12 | Profile-level notification settings (per-follower auto-reminder, YouTube bell) | ✅ Complete |
 | 13 | Recurring-event notification options (auto-reminder for every occurrence) | ✅ Complete (folded into #12) |

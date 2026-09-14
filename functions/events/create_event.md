@@ -435,7 +435,7 @@ BEGIN
             END IF;
 
             -- Hard cap: max collaborators (from system_config)
-            IF v_collab_count >= (get_config('max_collaborators_per_event', '5'))::int THEN
+            IF v_collab_count >= (get_config('max_collaborators_per_event', '9'))::int THEN
                 v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
                 CONTINUE;
             END IF;
@@ -883,7 +883,7 @@ BEGIN
             END IF;
 
             -- Hard cap: max collaborators (from system_config)
-            IF v_collab_count >= (get_config('max_collaborators_per_event', '5'))::int THEN
+            IF v_collab_count >= (get_config('max_collaborators_per_event', '9'))::int THEN
                 v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
                 CONTINUE;
             END IF;
@@ -1321,7 +1321,7 @@ BEGIN
             END IF;
 
             -- Hard cap: max collaborators (from system_config)
-            IF v_collab_count >= (get_config('max_collaborators_per_event', '5'))::int THEN
+            IF v_collab_count >= (get_config('max_collaborators_per_event', '9'))::int THEN
                 v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
                 CONTINUE;
             END IF;

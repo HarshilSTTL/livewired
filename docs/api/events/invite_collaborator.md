@@ -13,7 +13,7 @@
 
 ## Overview
 
-Sends a collaboration invite to any active creator profile for a given event. Only the event owner can send invites. The event must have `is_collaborative = true`. Up to **5 accepted** collaborators are allowed per event.
+Sends a collaboration invite to any active creator profile for a given event. Only the event owner can send invites. The event must have `is_collaborative = true`. Up to **9 accepted** collaborators are allowed per event.
 
 If the same profile was previously removed (soft-deleted), the existing row is reactivated as a fresh `pending` invite instead of inserting a new row.
 
@@ -66,7 +66,7 @@ If the same profile was previously removed (soft-deleted), the existing row is r
 | `Event is not marked as collaborative` | `event_mst.is_collaborative = false` |
 | `You cannot invite yourself as a collaborator` | Caller is inviting their own profile |
 | `Collaborator profile not found or inactive` | Target profile doesn't exist or status ≠ 'active' |
-| `Collaborator limit reached (maximum 5 collaborators per event)` | Already 5 accepted collaborators |
+| `Collaborator limit reached (maximum 9 collaborators per event)` | Already 9 accepted collaborators |
 | `This profile has already been invited to collaborate on this event` | Active (non-deleted) invite already exists |
 | `Something went wrong` | Unhandled DB exception |
 
@@ -86,7 +86,7 @@ If the same profile was previously removed (soft-deleted), the existing row is r
 3. Verify is_collaborative = true on the event
 4. Prevent owner from inviting themselves
 5. Verify collaborator profile is active → get their user_id
-6. Count accepted (non-deleted) collaborators → reject if >= 5
+6. Count accepted (non-deleted) collaborators → reject if >= 9
 7. Check for existing row:
    - Active row exists → return error (already invited)
    - Soft-deleted row exists → reactivate it (status=pending, reset dates)

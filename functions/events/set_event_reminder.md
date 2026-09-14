@@ -54,8 +54,8 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'p_reminder_minutes is required');
     END IF;
 
-    IF p_reminder_minutes < 1 OR p_reminder_minutes > 1440 THEN
-        RETURN json_build_object('status', false, 'message', 'p_reminder_minutes must be between 1 and 1440');
+    IF p_reminder_minutes < 0 OR p_reminder_minutes > 1440 THEN
+        RETURN json_build_object('status', false, 'message', 'p_reminder_minutes must be between 0 and 1440');
     END IF;
 
     -- ── Event must exist and not be soft-deleted ──────────────────────────────
@@ -150,7 +150,7 @@ $$;
 |-----------|------|----------|-------------|
 | `p_user_id` | `uuid` | ✅ | The user adding the reminder |
 | `p_event_id` | `uuid` | ✅ | Any event UUID in the series — parent template or a single child occurrence |
-| `p_reminder_minutes` | `int` | ✅ | Minutes before event start to notify (1–1440) |
+| `p_reminder_minutes` | `int` | ✅ | Minutes before event start to notify (0–1440; 0 = at event start) |
 
 ---
 

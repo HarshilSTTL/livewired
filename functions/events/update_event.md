@@ -19,6 +19,18 @@
     the series' end-date offset (days between start and end) onto every freshly
     generated sibling occurrence, same as `event_time`/`event_end_time` are already
     copied onto every sibling.
+- **Patch (2026-08-21) — `p_scope='this'` resend-tolerance:** clients that always
+  submit the series' full recurrence params (days/type/interval/end date) on every
+  save — even a per-occurrence edit that never touched recurrence — were getting
+  hard-rejected with `"Recurring schedule cannot be changed for a single occurrence"`
+  even though the resent values were identical to what was already stored. Branch A
+  now compares incoming `p_recurring_days`/`p_recurring_type`/`p_recurring_interval`/
+  `p_recurring_end_date` against the series' current `event_recurring` row first; an
+  exact match falls through as a no-op instead of erroring. A genuine attempted
+  change (different days/type/interval/end date), or the empty-array "remove
+  recurring" signal, is still rejected — those really do require `p_scope='all'`.
+  Same function/endpoint name (`update_event_v2_5`) — no client migration needed,
+  just redeploy the SQL.
 
 ### v2.4 (Previous — 2026-08-12)
 - **Function name:** `update_event_v2_4`
@@ -157,7 +169,15 @@
 -- Tables:   event_mst (UPDATE/INSERT/DELETE), event_platforms (DELETE+INSERT), event_recurring (UPDATE/INSERT/DELETE)
 --           event_collaborators (INSERT/UPDATE/soft-delete)
 -- Doc: docs/api/events/update_event.md
--- Version: 2.5 (2026-08-20)
+-- Version: 2.5 (2026-08-20), patched 2026-08-21
+--
+-- Patch (2026-08-21) — p_scope='this' resend-tolerance: a client resending the
+--   series' current p_recurring_days/p_recurring_type/p_recurring_interval/
+--   p_recurring_end_date unchanged on a per-occurrence save no longer gets
+--   rejected — Branch A now compares against the stored event_recurring row and
+--   only errors on a genuine attempted change (or the [] "remove recurring"
+--   signal). Same function/endpoint name — redeploy this SQL, no client change
+--   required.
 --
 -- Change from v2.4: Adds p_event_end_date, matching create_event_v4, so an event can
 --   safely run past midnight without relying on "end_time < start_time" as an implicit
@@ -179,6 +199,10 @@
 -- Old callers on update_event_v2_4 keep working unchanged (see "V2.4 Function (Previous)" below).
 -- Point the client at /rpc/update_event_v2_5 once deployed, then:
 --   NOTIFY pgrst, 'reload schema';
+--
+-- 2026-08-21 in-place patch: same signature, CREATE OR REPLACE over the existing
+-- update_event_v2_5 — no new endpoint, no client-side change, just redeploy this SQL
+-- and reload the schema cache.
 --
 -- Change from v2.3 (3): Fixes data loss when editing an already-established recurring
 --   series' rule (p_scope='all' + p_recurring_days=[...], not a first conversion).
@@ -333,6 +357,14 @@ DECLARE
     v_rec_start     date;
     v_rec_end       date;
     v_safe_end      date;
+
+    -- v2.5.1: scope='this' resend-tolerance — compare incoming recurring params
+    -- against the series' current stored rule before rejecting.
+    v_existing_rec_days     text[];
+    v_existing_rec_type     text;
+    v_existing_rec_interval int;
+    v_existing_rec_end      date;
+    v_rec_unchanged         boolean;
 
     -- Child generation
     v_profile_id         uuid;
@@ -517,7 +549,31 @@ BEGIN
     -- ══════════════════════════════════════════════════════════════════════════
     IF v_scope = 'this' THEN
 
-        IF v_update_recurring OR v_remove_recurring THEN
+        -- v2.5.1: resend-tolerance — a client that always sends the series' current
+        -- recurring params (even on a per-occurrence save) should not be rejected as
+        -- if it were trying to change the rule. Only error when the incoming values
+        -- actually differ from what's already stored for this series.
+        IF v_update_recurring THEN
+            SELECT recurring_days, recurring_type, recurring_interval, recurring_end_date
+            INTO v_existing_rec_days, v_existing_rec_type, v_existing_rec_interval, v_existing_rec_end
+            FROM event_recurring WHERE event_id = v_target_parent_id;
+
+            v_rec_unchanged :=
+                v_existing_rec_days IS NOT NULL
+                AND (SELECT array_agg(d ORDER BY d) FROM unnest(p_recurring_days) d)
+                    = (SELECT array_agg(d ORDER BY d) FROM unnest(v_existing_rec_days) d)
+                AND p_recurring_type IS NOT DISTINCT FROM v_existing_rec_type
+                AND p_recurring_interval IS NOT DISTINCT FROM v_existing_rec_interval
+                AND p_recurring_end_date IS NOT DISTINCT FROM v_existing_rec_end;
+
+            IF NOT v_rec_unchanged THEN
+                RETURN json_build_object('status', false, 'message',
+                    'Recurring schedule cannot be changed for a single occurrence — use scope ''all''');
+            END IF;
+            -- else: identical to the series' current rule — fall through as a no-op.
+        END IF;
+
+        IF v_remove_recurring THEN
             RETURN json_build_object('status', false, 'message',
                 'Recurring schedule cannot be changed for a single occurrence — use scope ''all''');
         END IF;
@@ -1022,8 +1078,8 @@ BEGIN
                     CONTINUE;
                 END IF;
 
-                -- Max 5 accepted collaborators
-                IF v_collab_count >= 5 THEN
+                -- Max 9 accepted collaborators
+                IF v_collab_count >= 9 THEN
                     v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
                     CONTINUE;
                 END IF;
@@ -1924,8 +1980,8 @@ BEGIN
                     CONTINUE;
                 END IF;
 
-                -- Max 5 accepted collaborators
-                IF v_collab_count >= 5 THEN
+                -- Max 9 accepted collaborators
+                IF v_collab_count >= 9 THEN
                     v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
                     CONTINUE;
                 END IF;
@@ -2699,8 +2755,8 @@ BEGIN
                     CONTINUE;
                 END IF;
 
-                -- Max 5 accepted collaborators
-                IF v_collab_count >= 5 THEN
+                -- Max 9 accepted collaborators
+                IF v_collab_count >= 9 THEN
                     v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
                     CONTINUE;
                 END IF;
@@ -3362,8 +3418,8 @@ BEGIN
                     CONTINUE;
                 END IF;
 
-                -- Max 5 accepted collaborators
-                IF v_collab_count >= 5 THEN
+                -- Max 9 accepted collaborators
+                IF v_collab_count >= 9 THEN
                     v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
                     CONTINUE;
                 END IF;
@@ -4011,8 +4067,8 @@ BEGIN
                     CONTINUE;
                 END IF;
 
-                -- Max 5 accepted collaborators
-                IF v_collab_count >= 5 THEN
+                -- Max 9 accepted collaborators
+                IF v_collab_count >= 9 THEN
                     v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
                     CONTINUE;
                 END IF;
@@ -4635,8 +4691,8 @@ BEGIN
                     CONTINUE;
                 END IF;
 
-                -- Max 5 accepted collaborators
-                IF v_collab_count >= 5 THEN
+                -- Max 9 accepted collaborators
+                IF v_collab_count >= 9 THEN
                     v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
                     CONTINUE;
                 END IF;
@@ -5295,7 +5351,7 @@ BEGIN
                 CONTINUE;
             END IF;
 
-            IF v_collab_count >= 5 THEN
+            IF v_collab_count >= 9 THEN
                 v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
                 CONTINUE;
             END IF;

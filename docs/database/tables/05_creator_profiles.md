@@ -28,7 +28,7 @@
 ## Business Rules
 
 - Only users with `role_id = 2` can create profiles (checked in `create_profile` SP)
-- `username` is **globally unique** across all creator profiles
+- `profile_name` is unique among **non-deleted** (`status != 'deleted'`) profiles — enforced by the partial unique index `unique_profile_name_active`. A name freed up by a soft delete can be reused by a new or renamed profile.
 - First profile created is automatically set as `is_default = true`
 - When a new profile is set as default, all other profiles for the same user are set to `is_default = false`
 - `avatar` and `bio` are optional (nullable)

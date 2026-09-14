@@ -165,5 +165,5 @@ print(result)
 
 - Only active reminders (`is_deleted = false`) are checked.
 - If no reminder exists for this event, returns `has_reminder: false` with `reminder_minutes: null`.
-- When a reminder exists, `reminder_minutes` is the notification lead time (1–1440 minutes before event start).
+- When a reminder exists, `reminder_minutes` is the notification lead time (0–1440 minutes before event start; 0 = at event start).
 - Does not validate if the event exists — simply returns "no reminder" if none is found.

@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS public.event_mst (
     event_end_date    date        NULL,   -- nullable; defaults to event_date when not supplied by the caller
     event_end_time    time        NULL,   -- nullable (optional end time)
     event_timezone    text        NOT NULL DEFAULT 'UTC', -- creator's IANA timezone at time of creation
-    is_collaborative  bool        NOT NULL DEFAULT false, -- true = collaborative event (supports up to 5 collaborators)
+    is_collaborative  bool        NOT NULL DEFAULT false, -- true = collaborative event (supports up to 9 collaborators)
     livestream        bool        DEFAULT false,
     video             bool        DEFAULT false,
     is_recurring      bool        DEFAULT false,

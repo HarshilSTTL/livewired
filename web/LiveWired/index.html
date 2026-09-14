@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LiveWired · Email Verification</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png" />
+  <link rel="shortcut icon" href="favicon.ico" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="card">
+    <img class="logo-img" src="livewired-long-logo.png" alt="LiveWired" width="500" height="176" />
+
+    <div id="state-checking" class="state">
+      <div class="spinner"></div>
+      <h1>Checking your link…</h1>
+      <p class="muted">One moment while we confirm your email.</p>
+    </div>
+
+    <div id="state-confirm" class="state hidden">
+      <div class="icon icon-neutral"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M3 7l9 6 9-6M3 7v10a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <h1>Confirm your email</h1>
+      <p class="muted">Tap the button below to finish verifying your LiveWired account.</p>
+      <p class="email-line hidden" id="email-line-confirm">Account: <span id="email-value-confirm"></span></p>
+      <button class="btn btn-primary" id="confirm-btn">Confirm my email</button>
+    </div>
+
+    <div id="state-success" class="state hidden">
+      <div class="icon icon-success"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <h1>Email Verified!</h1>
+      <p class="muted">Your account is ready. Open the LiveWired app to continue.</p>
+      <p class="email-line hidden" id="email-line-success">Verified: <span id="email-value-success"></span></p>
+      <button class="btn btn-primary" id="open-app-success">Open App</button>
+      <a class="btn btn-secondary hidden" id="play-link-success" href="#" target="_blank" rel="noopener noreferrer">Get it on Google Play</a>
+      <a class="btn btn-secondary hidden" id="appstore-link-success" href="#" target="_blank" rel="noopener noreferrer">Download on the App Store</a>
+    </div>
+
+    <div id="state-failure" class="state hidden">
+      <div class="icon icon-failure"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div>
+      <h1>Verification Failed</h1>
+      <p class="muted" id="failure-reason">This link is invalid or has expired.</p>
+      <p class="email-line hidden" id="email-line-failure">Account: <span id="email-value-failure"></span></p>
+      <button class="btn btn-primary" id="open-app-failure">Open App</button>
+      <a class="btn btn-secondary hidden" id="play-link-failure" href="#" target="_blank" rel="noopener noreferrer">Get it on Google Play</a>
+      <a class="btn btn-secondary hidden" id="appstore-link-failure" href="#" target="_blank" rel="noopener noreferrer">Download on the App Store</a>
+    </div>
+
+    <div id="state-unknown" class="state hidden">
+      <h1>Never miss a stream</h1>
+      <p class="muted">Track when your favorite creators go live on YouTube, Twitch, Kick, and Rumble — all in one place.</p>
+      <a class="btn btn-primary hidden" id="play-link-unknown" href="#" target="_blank" rel="noopener noreferrer">Get it on Google Play</a>
+      <a class="btn btn-secondary hidden" id="appstore-link-unknown" href="#" target="_blank" rel="noopener noreferrer">Download on the App Store</a>
+    </div>
+  </main>
+
+  <p class="footer">LiveWired</p>
+
+  <script src="script.js"></script>
+</body>
+</html>
