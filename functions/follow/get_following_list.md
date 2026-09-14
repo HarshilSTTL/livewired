@@ -48,6 +48,8 @@ BEGIN
                 AND f2.is_active = true
             ),
             'platforms', (
+                -- Main streaming platforms only (IDs 1-4: YouTube, Twitch, Kick, Rumble)
+                -- Matches search_profiles_v2 behavior so avatar icons are consistent across screens
                 SELECT coalesce(
                     json_agg(
                         json_build_object(
@@ -62,6 +64,7 @@ BEGIN
                 JOIN platforms p ON p.plat_id = cpa.platform_id
                 WHERE cpa.profile_id = cp.id
                   AND cpa.is_deleted = false
+                  AND p.plat_id IN (1, 2, 3, 4)
             ),
             'followed_at',   f.created_at
         )

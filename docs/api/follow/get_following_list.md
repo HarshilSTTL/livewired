@@ -4,6 +4,8 @@
 **Group:** Follow
 **Description:** Returns all creator profiles a user actively follows, with live follower count and platforms. Only active profiles included. Uses `SECURITY DEFINER`.
 
+> ⚠️ **Platform filtering (2026-09-14):** `platforms` now returns **main streaming platforms only** (IDs 1-4: YouTube, Twitch, Kick, Rumble), matching `search_profiles_v2` behavior. This keeps the icons shown next to a creator's avatar on the Following screen consistent with the Creator Search screen — additional links (Patreon, Discord, etc.) and custom links are no longer included here.
+
 ---
 
 ## Parameters
@@ -101,7 +103,7 @@
 | `avatar` | nullable — handle in UI |
 | `bio` | nullable — handle in UI |
 | `followers` | live COUNT from follows WHERE is_active=true |
-| `platforms` | from `creator_platform_accounts` JOIN `platforms` — always array |
+| `platforms` | from `creator_platform_accounts` JOIN `platforms`, filtered to IDs 1-4 (main streaming platforms) — always array |
 | `followed_at` | = `follows.created_at` (nullable) |
 
 ---
