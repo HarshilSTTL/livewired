@@ -20,4 +20,17 @@ INSERT INTO public.platforms (plat_id, plat_name) VALUES
     (3, 'Kick'),
     (4, 'Rumble')
 ON CONFLICT (plat_id) DO NOTHING;
+
+-- Additional link icons (curated, non-streaming), appended after existing max plat_id
+INSERT INTO public.platforms (plat_id, plat_name, logo_url)
+SELECT (SELECT COALESCE(MAX(plat_id), 0) FROM public.platforms) + 1,
+       'Fourthwall',
+       'https://vzieacbdhrandechlljw.supabase.co/storage/v1/object/public/website_logos/fourthwall.png'
+WHERE NOT EXISTS (SELECT 1 FROM public.platforms WHERE plat_name = 'Fourthwall');
+
+INSERT INTO public.platforms (plat_id, plat_name, logo_url)
+SELECT (SELECT COALESCE(MAX(plat_id), 0) FROM public.platforms) + 1,
+       'MetaGamerScore',
+       'https://vzieacbdhrandechlljw.supabase.co/storage/v1/object/public/website_logos/mgs.png'
+WHERE NOT EXISTS (SELECT 1 FROM public.platforms WHERE plat_name = 'MetaGamerScore');
 ```

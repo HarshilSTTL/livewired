@@ -45,7 +45,7 @@ BEGIN
             'created_at',   pcl.created_at,
             'updated_at',   pcl.updated_at
         )
-        ORDER BY pcl.created_at ASC
+        ORDER BY pcl.platform_name ASC
     )
     INTO v_result
     FROM profile_custom_links pcl

@@ -113,7 +113,7 @@ Used in two places:
 2. Profile existence check in creator_profiles
 3. SELECT from profile_custom_links
    WHERE profile_id = p_profile_id AND is_deleted = false
-   ORDER BY created_at ASC
+   ORDER BY platform_name ASC
 4. Return data array ([] if none found)
 ```
 
@@ -122,7 +122,7 @@ Used in two places:
 ## Notes
 
 - Only returns **active** links — soft-deleted rows (`is_deleted = true`) are excluded
-- Results ordered by `created_at ASC` — oldest first, preserving the order the user added them
+- Results ordered by `platform_name ASC` — alphabetical, so the Additional Links dropdown icons list in alphabetical order
 - `get_all_platforms` is unchanged — call both separately and merge on the frontend if needed
 
 ---
