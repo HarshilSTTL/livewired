@@ -70,6 +70,8 @@ dropdown** and profile switcher in the app. Returns all statuses (`active`, `sus
         "show_followers":      true,
         "twitch_by_default":   false,
         "kick_by_default":     false,
+        "youtube_by_default":  false,
+        "rumble_by_default":   false,
         "followers":           142,
         "platforms": [
           {

@@ -108,7 +108,7 @@ BEGIN
                         'channel_url',    cpa.channel_url,
                         'is_default',     cpa.is_default
                     )
-                    ORDER BY sort_order ASC
+                    ORDER BY sort_order ASC, plat_name ASC
                 )
                 FROM (
                     SELECT
@@ -118,12 +118,9 @@ BEGIN
                         p.logo_url,
                         cpa.channel_url,
                         cpa.is_default,
-                        COALESCE(
-                            (SELECT array_position(plp.additional_ids_order, cpa.platform_id)
-                             FROM profile_link_preferences plp
-                             WHERE plp.profile_id = p_profile_id),
-                            cpa.platform_id + 100
-                        ) as sort_order
+                        (SELECT array_position(plp.additional_ids_order, cpa.platform_id)
+                         FROM profile_link_preferences plp
+                         WHERE plp.profile_id = p_profile_id) as sort_order
                     FROM creator_platform_accounts cpa
                     LEFT JOIN platforms p ON p.plat_id = cpa.platform_id
                     WHERE cpa.profile_id = p_profile_id

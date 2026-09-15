@@ -7,8 +7,9 @@
 - **Reason:** Consistent platform display order
 - **Endpoint:** `GET /rpc/get_all_platforms_v2`
 
-### v1 (Deprecated)
-- Returns platforms in database order (unordered)
+### v1 (Deprecated, still in use by the app)
+- **Change:** Platforms ordered alphabetically by `plat_name ASC`
+- **Reason:** This is the endpoint the app actually calls; the "Additional Links" icons were showing in raw insertion order instead of A→Z
 - **Endpoint:** `GET /rpc/get_all_platforms`
 
 ---
@@ -76,9 +77,9 @@ $$;
 ## V1 Function (Deprecated)
 
 ```sql
--- Function: get_all_platforms (V1 - Deprecated)
--- Returns platforms in database order (unordered)
--- Use get_all_platforms_v2 for ordered platforms
+-- Function: get_all_platforms (V1 - Deprecated, but still the endpoint the app calls)
+-- Returns platforms ordered alphabetically by plat_name
+-- Use get_all_platforms_v2 once the app is migrated to it
 
 create or replace function get_all_platforms()
 returns json
@@ -89,7 +90,7 @@ as $$
 declare
     v_result json;
 begin
-    -- Fetch all active platforms
+    -- Fetch all active platforms, ordered alphabetically
     select json_agg(
         json_build_object(
             'plat_id', p.plat_id,
@@ -98,6 +99,7 @@ begin
             'is_active', p.is_active,
             'created_at', p.created_at
         )
+        order by p.plat_name asc
     )
     into v_result
     from platforms p

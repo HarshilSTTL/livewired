@@ -76,6 +76,8 @@ to load everything about that profile.
     "show_followers":      true,
     "twitch_by_default":   false,
     "kick_by_default":     false,
+    "youtube_by_default":  false,
+    "rumble_by_default":   false,
     "followers":           142,
     "platforms": [
       {

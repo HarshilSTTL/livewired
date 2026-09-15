@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "functions/events/create_event.md",
+                "file": "functions/events/delete_event.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "create_event"
+              "title": "delete_event"
             }
           }
         ],
@@ -202,22 +202,24 @@
   },
   "active": "9bbadb1b4f3be6f6",
   "lastOpenFiles": [
-    "docs/api/platforms/get_profile_custom_links.md.tmp.31644.5555e2d0310a",
-    "docs/api/platforms/get_profile_custom_links.md.tmp.31644.2235a0a9a221",
-    "functions/platforms/get_profile_custom_links.md.tmp.31644.8642f7b0de01",
-    "schema/tables/03_platforms.md.tmp.35272.a862ecaa2e02",
-    "updates/2026-09-14.md.tmp.34644.7f9d43372e55",
-    "docs/api/events/respond_collaborator_invite.md.tmp.34644.e3b34bac8533",
-    "docs/api/events/respond_collaborator_invite.md.tmp.34644.6e491fd2f103",
-    "docs/api/events/invite_collaborator.md.tmp.34644.6729f11eea63",
-    "functions/events/respond_collaborator_invite.md.tmp.34644.98027ffc40ef",
-    "functions/events/invite_collaborator.md.tmp.34644.656e638e9962",
-    "docs/api/events/update_event.md.tmp.34644.eea1ffc5da95",
+    "functions/platforms/get_all_platforms.md.tmp.31424.a3a3354793a8",
+    "functions/platforms/get_all_platforms.md.tmp.31424.fa8c360e7a10",
+    "functions/profiles/get_profile_platforms.md.tmp.31424.324470c55e1c",
+    "docs/api/profiles/get_user_profiles.md.tmp.31984.5ce93459fb70",
+    "docs/api/profiles/get_user_profiles.md.tmp.31984.9dd53248c699",
+    "docs/api/profiles/get_user_profiles.md.tmp.31984.e59a69dc2f3e",
+    "docs/api/profiles/get_profile_by_userid.md.tmp.31984.28dcc1908a6e",
+    "docs/api/profiles/get_profile_by_id.md.tmp.31984.d5630c963d17",
+    "functions/profiles/get_user_profiles.md.tmp.31984.e0bb482dfe22",
+    "functions/profiles/get_user_profiles.md.tmp.31984.bef06097fa63",
+    "functions/profiles/get_profile_by_userid.md.tmp.31984.d72971aa03dd",
+    "functions/profiles/update_profile.md",
+    "functions/profiles/create_profile.md",
+    "functions/profiles/get_profiles.md",
+    "functions/events/create_event.md",
     "updates/2026-09-14.md",
     "docs/api/profiles/update_profile.md",
     "schema/tables/05_creator_profiles.md",
-    "functions/profiles/create_profile.md",
-    "functions/profiles/update_profile.md",
     "functions/events/update_event.md",
     "docs/api/notifications/update_push_preference.md",
     "docs/api/notifications/register_device_token.md",
@@ -231,14 +233,12 @@
     "functions/events/get_profile_events.md",
     "functions/events/get_event_by_id.md",
     "functions/events/check_event_conflict.md",
-    "functions/events/create_event.md",
     "updates/2026-08-12.md",
     "updates/2026-08-11.md",
     "web/source-assets/livewired-short-logo.png",
     "updates/2026-08-06.md",
     "updates/2026-07-16.md",
     "updates/2026-07-15.md",
-    "functions/auth/get_user.md",
     "Untitled 1.canvas",
     "Untitled.canvas"
   ]

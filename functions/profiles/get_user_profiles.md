@@ -9,7 +9,7 @@
 --
 -- Purpose: Lightweight profile list for post-login profile selector.
 --          Returns only profile_id, profile_name, avatar, is_default,
---          p_twitch_by_default, p_kick_by_default.
+--          p_twitch_by_default, p_kick_by_default, p_youtube_by_default, p_rumble_by_default.
 --          No platforms, no tags, no follower counts.
 --          Default profile is first in array.
 CREATE OR REPLACE FUNCTION get_user_profiles(
@@ -38,7 +38,9 @@ BEGIN
             'avatar',               cp.avatar,
             'is_default',           cp.is_default,
             'p_twitch_by_default',  cp.twitch_by_default,
-            'p_kick_by_default',    cp.kick_by_default
+            'p_kick_by_default',    cp.kick_by_default,
+            'p_youtube_by_default', cp.youtube_by_default,
+            'p_rumble_by_default',  cp.rumble_by_default
         )
         ORDER BY cp.is_default DESC, cp.created_at ASC
     )

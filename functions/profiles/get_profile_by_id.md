@@ -86,6 +86,8 @@ BEGIN
         'show_followers',     cp.show_followers,
         'twitch_by_default',  cp.twitch_by_default,
         'kick_by_default',    cp.kick_by_default,
+        'youtube_by_default', cp.youtube_by_default,
+        'rumble_by_default',  cp.rumble_by_default,
         'followers',          CASE
                                WHEN cp.show_followers = true THEN (
                                    SELECT count(*) FROM follows f
@@ -286,6 +288,8 @@ BEGIN
         'show_followers',     cp.show_followers,
         'twitch_by_default',  cp.twitch_by_default,
         'kick_by_default',    cp.kick_by_default,
+        'youtube_by_default', cp.youtube_by_default,
+        'rumble_by_default',  cp.rumble_by_default,
         'followers',          CASE
                                WHEN cp.show_followers = true THEN (
                                    SELECT count(*) FROM follows f
@@ -396,6 +400,8 @@ BEGIN
         'show_followers',     cp.show_followers,
         'twitch_by_default',  cp.twitch_by_default,
         'kick_by_default',    cp.kick_by_default,
+        'youtube_by_default', cp.youtube_by_default,
+        'rumble_by_default',  cp.rumble_by_default,
         'followers',          CASE
                                WHEN cp.show_followers = true THEN (
                                    SELECT count(*) FROM follows f

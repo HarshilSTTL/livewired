@@ -50,7 +50,9 @@ Only returns `active` profiles.
         "avatar":       "<base64-encoded-image>",
         "is_default":   true,
         "p_twitch_by_default": false,
-        "p_kick_by_default":   false
+        "p_kick_by_default":   false,
+        "p_youtube_by_default": false,
+        "p_rumble_by_default":  false
       },
       {
         "profile_id":   "uuid-2",
@@ -58,7 +60,9 @@ Only returns `active` profiles.
         "avatar":       null,
         "is_default":   false,
         "p_twitch_by_default": true,
-        "p_kick_by_default":   false
+        "p_kick_by_default":   false,
+        "p_youtube_by_default": false,
+        "p_rumble_by_default":  false
       }
     ]
   }
@@ -93,6 +97,8 @@ Only returns `active` profiles.
 | `is_default` | Default profile is always first in the array |
 | `p_twitch_by_default` | Whether Twitch is enabled by default for this profile |
 | `p_kick_by_default` | Whether Kick is enabled by default for this profile |
+| `p_youtube_by_default` | Whether YouTube is enabled by default for this profile |
+| `p_rumble_by_default` | Whether Rumble is enabled by default for this profile |
 | `profiles` | Always array, `[]` if no active profiles |
 
 ---
@@ -112,7 +118,7 @@ Only returns `active` profiles.
 | | `get_user_profiles` | `get_profiles_by_userid` |
 |---|---|---|
 | **Use case** | Post-login profile picker | Profile management screen |
-| **Fields returned** | profile_id, profile_name, avatar, is_default, p_twitch_by_default, p_kick_by_default | Full profile with platforms, tags, followers |
+| **Fields returned** | profile_id, profile_name, avatar, is_default, p_twitch_by_default, p_kick_by_default, p_youtube_by_default, p_rumble_by_default | Full profile with platforms, tags, followers |
 | **Status filter** | `active` only | All statuses |
 | **Speed** | Fast — single table, 6 fields | Heavier — 4 tables, nested subqueries |
 

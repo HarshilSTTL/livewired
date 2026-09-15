@@ -111,10 +111,10 @@ BEGIN
         'Collaboration ' || initcap(p_response),
         v_responder_name || ' ' || p_response || ' your collaboration invite for "' || v_event_title || '"',
         json_build_object(
-            'type',                    'collaborator_response',
-            'event_id',                p_event_id,
-            'collaborator_profile_id', p_profile_id,
-            'status',                  p_response
+            'type',                  'collaborator_response',
+            'event_id',              p_event_id,
+            'responding_profile_id', p_profile_id,
+            'status',                p_response
         )
     );
 
@@ -223,10 +223,10 @@ BEGIN
         'Collaboration ' || initcap(p_response),
         v_responder_name || ' ' || p_response || ' your collaboration invite for "' || v_event_title || '"',
         json_build_object(
-            'type',                    'collaborator_response',
-            'event_id',                p_event_id,
-            'collaborator_profile_id', p_profile_id,
-            'status',                  p_response
+            'type',                  'collaborator_response',
+            'event_id',              p_event_id,
+            'responding_profile_id', p_profile_id,
+            'status',                p_response
         )
     );
 
