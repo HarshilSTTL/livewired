@@ -7,6 +7,57 @@
 - **Endpoint:** `POST /rpc/update_event_v2_6`
 - **Change from v2.5:** Raises the accepted-collaborator cap from 5 to 9
   (`max_collaborators_per_event`). No other behavior changes.
+- **Patch (2026-09-24, part 2) — `p_scope='this'` no longer resets an already-accepted
+  series-level collaborator to `'pending'` when first creating a per-occurrence
+  override:** Collaborator rows for `p_scope='this'` are written against the
+  occurrence's own `event_id` (`v_collab_target_id = p_event_id`), a completely
+  separate row from the series parent's collaborator row. Reproduced from an actual
+  request log: a client resent the event's *full* current collaborator list
+  (correctly, per the part-1 fix below) including an already-accepted collaborator's
+  id, but with `p_scope='this'`. Since that occurrence had never had its own
+  collaborator override before, the function found no row for that profile at the
+  occurrence level, fell into the "new collaborator" branch, and inserted a fresh row
+  with `status='pending'` — while also flipping `collaborators_overridden = true` on
+  that occurrence, which switches every read path from "inherit the parent's list"
+  to "use this occurrence's own (now-pending) rows." The collaborator was still
+  `'accepted'` on the parent; the occurrence just started tracking its own copy from
+  scratch. Fixed by checking for an active row for that profile at the series parent
+  before treating it as brand new — if found, its `status`/`invited_by`/`invited_at`/
+  `responded_at` are copied onto the new occurrence-level row instead of resetting to
+  `'pending'` (same "copy from parent" pattern this function already uses for
+  recurring-series conversion). Same function/endpoint name — redeploy this SQL, no
+  client change required.
+- **Patch (2026-09-24, part 1) — `p_collaborator_ids` is now append/reactivate-only, never
+  removes:** v2.0 through v2.6 treated `p_collaborator_ids` as a full sync/replace
+  list — any existing collaborator (pending *or already-accepted*) whose id was left
+  out of the array got soft-deleted. If that same collaborator was included again on
+  a later edit, the "re-invite a soft-deleted row" branch reset their `status` back to
+  `'pending'`. Reported: adding a new collaborator on an event that already had an
+  *accepted* collaborator flipped the accepted one back to `'pending'` too, because
+  the caller naturally sends `p_collaborator_ids` as "who to invite now," not the full
+  current roster. Removal-by-omission added nothing `remove_collaborator` doesn't
+  already cover as its own dedicated endpoint, so it's removed: `update_event_v2_6`
+  now only ever appends new ids and reactivates soft-deleted ones — it never
+  soft-deletes a collaborator based on who is or isn't in the array (`[]` and `null`
+  are now equivalent no-ops for collaborators). Use `remove_collaborator` to remove
+  one. Same function/endpoint name — redeploy this SQL, no client change required.
+- **Patch (2026-09-16) — restores the collaborator-invite notification:** v2.4 had
+  deliberately removed the `notifications` INSERT fired on collaborator invite/
+  re-invite (see v2.4 changelog below). That left invitees with no way to discover a
+  pending invite created via `update_event` — `get_notifications` is the only surface
+  the client reads for pending invites (`type = 'collaborator_invite'`), and nothing
+  populated it for invites added by editing an existing event. Reported by QC: adding
+  a collaborator to an *existing* recurring event never propagated to the rest of the
+  series (`p_scope='all'`) or landed on the single occurrence (`p_scope='this'`),
+  while adding one at *creation* time worked — because `create_event` still sends
+  this notification and `update_event` didn't. The scope-resolution logic itself
+  (`v_collab_target_id` — parent event for `'all'`, single occurrence for `'this'`)
+  was already correct; the invite row was just invisible to the invitee. Fixed by
+  re-adding the same `'collaborator_invite'` notification `create_event` sends,
+  using `v_collab_target_id` as `data.event_id` so accepting it via
+  `respond_collaborator_invite` always targets the row the invite actually lives on.
+  Same function/endpoint name (`update_event_v2_6`) — no client migration needed,
+  just redeploy the SQL below.
 
 ### v2.5 (Previous — 2026-08-20)
 - **Function name:** `update_event_v2_5`
@@ -173,9 +224,25 @@
 -- Group: Events
 -- Endpoint: POST /rpc/update_event_v2_6
 -- Tables:   event_mst (UPDATE/INSERT/DELETE), event_platforms (DELETE+INSERT), event_recurring (UPDATE/INSERT/DELETE)
---           event_collaborators (INSERT/UPDATE/soft-delete)
+--           event_collaborators (INSERT/UPDATE — append/reactivate only, no removal), notifications (INSERT on collaborator invite/re-invite)
 -- Doc: docs/api/events/update_event.md
 -- Version: 2.6 (2026-09-14)
+--
+-- Patch (2026-09-24) — p_collaborator_ids is now append/reactivate-only:
+--   v2.0-v2.6 synced the list (soft-deleting any existing collaborator omitted from
+--   the array), so a caller passing only the newly-invited id would soft-delete every
+--   other collaborator, and re-adding an already-accepted one later reset them to
+--   'pending'. p_collaborator_ids no longer removes anyone — [] and null are both
+--   no-ops now. Use remove_collaborator for removal. Same function/endpoint name —
+--   redeploy this SQL, no client change required.
+--
+-- Patch (2026-09-16) — restores the "Collaboration Invite" notification on
+--   collaborator invite/re-invite that v2.4 had removed. Without it, invites added
+--   by editing an existing event (recurring or not) were invisible to the invitee,
+--   so they could never be accepted — and therefore never propagated to the series
+--   (p_scope='all') or applied to the single occurrence (p_scope='this'). Uses
+--   v_collab_target_id as data.event_id so acceptance always targets the correct
+--   row. Same function/endpoint name — redeploy this SQL, no client change required.
 --
 -- Change from v2.5: Raises the accepted-collaborator cap from 5 to 9
 --   (max_collaborators_per_event). No other behavior changes.
@@ -283,10 +350,12 @@
 --   p_scope='this' → updates is_collaborative only on the occurrence itself (p_event_id).
 --   p_scope='all' → updates the parent + all children, same as before.
 --
--- Change from v2.0: Collaborator sync behavior
+-- Change from v2.0: Collaborator handling (patched 2026-09-24 — append-only)
 --   p_collaborator_ids: null        = don't touch existing collaborators
---   p_collaborator_ids: []          = remove ALL collaborators (soft delete)
---   p_collaborator_ids: [id1,id2]   = SYNC — keep id1/id2, remove anyone not in list, add new ones
+--   p_collaborator_ids: []          = don't touch existing collaborators (no-op, same as null)
+--   p_collaborator_ids: [id1,id2]   = invite/reactivate id1, id2 (ids already active are left
+--                                      untouched); never removes anyone not in the list —
+--                                      use remove_collaborator to remove a collaborator
 --
 -- p_scope: 'all' (default) = update parent + all occurrences
 --          'this'          = per-occurrence scalar/platform/collaborator overrides
@@ -331,7 +400,7 @@ DECLARE
     v_update_recurring  boolean;
     v_remove_recurring  boolean;
     v_currently_recurring boolean;
-    v_sync_collabs      boolean;   -- true when p_collaborator_ids IS NOT NULL (including [])
+    v_sync_collabs      boolean;   -- true when p_collaborator_ids is a non-empty array (append/reactivate only)
     v_has_scalar        boolean;
     v_has_platforms     boolean;
     v_occurrence_change boolean;
@@ -398,6 +467,8 @@ DECLARE
     v_dow_month_end      int;
 
     -- Collaborator sync
+    v_owner_name         text;
+    v_event_title        text;
     v_owner_profile_id   uuid;
     v_collab_id          uuid;
     v_invitee_user_id    uuid;
@@ -407,6 +478,13 @@ DECLARE
     v_existing_deleted   boolean;
     v_effective_is_collab boolean;
     v_collab_target_id   uuid;   -- event_id collaborator rows are keyed to (occurrence when scope='this', parent when scope='all')
+
+    -- Patch (2026-09-24): inherit status when scope='this' first creates a
+    -- per-occurrence override for a profile already active at the series level.
+    v_parent_status       text;
+    v_parent_invited_by   uuid;
+    v_parent_invited_at   timestamptz;
+    v_parent_responded_at timestamptz;
 
     v_success_message    text;
 BEGIN
@@ -432,7 +510,7 @@ BEGIN
                           AND COALESCE(array_length(p_recurring_days, 1), 0) = 0;
 
     -- v2 change: sync triggers on ANY non-null value, including empty array
-    v_sync_collabs := p_collaborator_ids IS NOT NULL;
+    v_sync_collabs := COALESCE(array_length(p_collaborator_ids, 1), 0) > 0;
 
     -- v2.1: 'this' scope syncs the occurrence's OWN collaborator rows (event_id = p_event_id);
     -- 'all' scope syncs the series' collaborator rows (event_id = v_target_parent_id), same as v2.0.
@@ -974,11 +1052,27 @@ BEGIN
 
     END IF;
     -- ══════════════════════════════════════════════════════════════════════════
-    -- SHARED: collaborator SYNC (v2.1 — scope-aware; v2.0 always synced the parent)
+    -- SHARED: collaborator APPEND (v2.6.2 — append/reactivate only, never removes)
     --
     -- null            → skip entirely, don't touch collaborators
-    -- []              → soft-delete ALL existing collaborators (at the resolved target)
-    -- [id1, id2, ...] → soft-delete anyone NOT in list, invite anyone new (at the resolved target)
+    -- []              → skip entirely, don't touch collaborators (no longer removes all —
+    --                    use remove_collaborator for explicit removal)
+    -- [id1, id2, ...] → invite/reactivate each id (at the resolved target); ids already
+    --                    active (pending or accepted) are left untouched; ids NOT in the
+    --                    list are left untouched too — this endpoint never removes a
+    --                    collaborator as a side effect of the list it's given.
+    --
+    -- Patch (2026-09-24): v2.0-v2.6 treated p_collaborator_ids as a full sync/replace
+    -- list — any existing collaborator whose id was omitted from the array got
+    -- soft-deleted, and if later re-added, fell through to the "re-invite a
+    -- soft-deleted row" branch below, which resets status back to 'pending'. A caller
+    -- that sends only the newly-added id (instead of the full current list) would
+    -- therefore silently knock every other collaborator — including already-accepted
+    -- ones — back to pending on their next edit. Removal-by-omission served no purpose
+    -- `remove_collaborator` doesn't already cover as its own endpoint, so it's dropped
+    -- here: this function now only ever appends/reactivates ids it's given. Same
+    -- function/endpoint name (`update_event_v2_6`) — no client migration needed, just
+    -- redeploy the SQL below.
     --
     -- scope='this' → target is the occurrence itself (v_collab_target_id = p_event_id).
     --                event_collaborators rows are written against the CHILD's own event_id
@@ -1003,13 +1097,12 @@ BEGIN
         );
 
         -- If turning off collaboration and passing ids, reject
-        IF v_effective_is_collab = false
-           AND COALESCE(array_length(p_collaborator_ids, 1), 0) > 0 THEN
+        IF v_effective_is_collab = false THEN
             RETURN json_build_object('status', false, 'message', 'Cannot add collaborators when is_collaborative is false');
         END IF;
 
         -- scope='all' → discard any per-occurrence collaborator overrides so children
-        -- revert to inheriting the series list before the parent-level sync below.
+        -- revert to inheriting the series list before the parent-level append below.
         -- Soft-delete (is_deleted/deleted_at), matching every other collaborator removal
         -- in this function — event_collaborators has no hard-delete precedent anywhere.
         IF v_scope = 'all' THEN
@@ -1025,24 +1118,11 @@ BEGIN
             WHERE parent_event_id = v_target_parent_id;
         END IF;
 
-        -- ── Step 1: Soft-delete collaborators NOT in the new list ─────────────
-        -- Empty array = remove all; non-empty = remove only those absent from list
-        UPDATE event_collaborators
-        SET is_deleted = true,
-            deleted_at = now(),
-            updated_at = now()
-        WHERE event_id   = v_collab_target_id
-          AND is_deleted = false
-          AND (
-              COALESCE(array_length(p_collaborator_ids, 1), 0) = 0   -- [] → remove all
-              OR profile_id != ALL(p_collaborator_ids)                 -- not in new list
-          );
-
-        -- ── Step 2: Invite/re-invite collaborators in the new list ────────────
+        -- ── Invite/re-invite collaborators in the new list ────────────────────
         IF COALESCE(array_length(p_collaborator_ids, 1), 0) > 0 THEN
 
-            SELECT cp.id
-            INTO v_owner_profile_id
+            SELECT cp.id, cp.profile_name, e.title
+            INTO v_owner_profile_id, v_owner_name, v_event_title
             FROM event_mst e
             JOIN creator_profiles cp ON cp.id = e.profile_id
             WHERE e.event_id = v_collab_target_id;
@@ -1087,6 +1167,32 @@ BEGIN
                     CONTINUE;
                 END IF;
 
+                -- scope='this' first-time override: this profile has no row at the
+                -- occurrence level yet, but may already be active (pending or
+                -- accepted) at the series/parent level — that's the row the UI was
+                -- showing before this occurrence had its own override. Copy that
+                -- status down instead of creating a fresh 'pending' invite, so
+                -- editing one occurrence doesn't visually revert an already-accepted
+                -- collaborator back to pending. Not applicable to scope='all', where
+                -- v_collab_target_id already IS v_target_parent_id.
+                IF v_collab_target_id != v_target_parent_id THEN
+                    SELECT status, invited_by, invited_at, responded_at
+                    INTO v_parent_status, v_parent_invited_by, v_parent_invited_at, v_parent_responded_at
+                    FROM event_collaborators
+                    WHERE event_id   = v_target_parent_id
+                      AND profile_id = v_collab_id
+                      AND is_deleted = false;
+
+                    IF v_parent_status IS NOT NULL THEN
+                        INSERT INTO event_collaborators (id, event_id, profile_id, invited_by, status, invited_at, responded_at, updated_at)
+                        VALUES (gen_random_uuid(), v_collab_target_id, v_collab_id, v_parent_invited_by, v_parent_status, v_parent_invited_at, v_parent_responded_at, now());
+
+                        v_parent_status := NULL;
+                        v_existing_collab_id := NULL;
+                        CONTINUE;
+                    END IF;
+                END IF;
+
                 -- Max 9 accepted collaborators
                 IF v_collab_count >= 9 THEN
                     v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
@@ -1120,9 +1226,28 @@ BEGIN
                     VALUES (gen_random_uuid(), v_collab_target_id, v_collab_id, v_owner_profile_id, 'pending', now(), now());
                 END IF;
 
-                -- v2.4: notification intentionally NOT sent on invite/re-invite —
-                -- caller does not want a "Collaboration Invite" notification fired
-                -- as a side effect of syncing the collaborator list via update_event.
+                -- v2.6.1: restores the "Collaboration Invite" notification that v2.4
+                -- deliberately removed. Without it the invitee has no way to discover
+                -- a pending invite created via update_event (get_notifications is the
+                -- only surface for pending invites — see get_notifications.md), so an
+                -- invite added while editing an existing event could never be accepted,
+                -- and therefore never propagated ('all' scope) or applied ('this' scope).
+                -- event_id here is v_collab_target_id — the same event_id the invite row
+                -- itself is keyed to (series parent for 'all', single occurrence for
+                -- 'this') — so accepting it via respond_collaborator_invite always
+                -- targets the correct row regardless of scope.
+                INSERT INTO notifications (user_id, title, body, data)
+                VALUES (
+                    v_invitee_user_id,
+                    'Collaboration Invite',
+                    v_owner_name || ' invited you to collaborate on "' || v_event_title || '"',
+                    json_build_object(
+                        'type',                  'collaborator_invite',
+                        'event_id',              v_collab_target_id,
+                        'invited_profile_id',    v_collab_id,
+                        'invited_by_profile_id', v_owner_profile_id
+                    )
+                );
 
                 v_invitee_user_id    := NULL;
                 v_existing_collab_id := NULL;
