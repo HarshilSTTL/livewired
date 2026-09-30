@@ -55,6 +55,7 @@ DECLARE
     v_invitee_user_id     uuid;
     v_existing_id         uuid;
     v_existing_deleted    boolean;
+    v_existing_status     text;
 BEGIN
 
     -- ── Null guards ───────────────────────────────────────────────────────────
@@ -115,19 +116,19 @@ BEGIN
     END IF;
 
     -- ── Check for existing row (active or soft-deleted) ───────────────────────
-    SELECT id, is_deleted
-    INTO v_existing_id, v_existing_deleted
+    SELECT id, is_deleted, status
+    INTO v_existing_id, v_existing_deleted, v_existing_status
     FROM event_collaborators
     WHERE event_id   = p_event_id
       AND profile_id = p_collaborator_profile_id
     LIMIT 1;
 
     IF v_existing_id IS NOT NULL THEN
-        IF v_existing_deleted = false THEN
-            -- Active invite already exists (pending or accepted or declined)
+        IF v_existing_deleted = false AND v_existing_status <> 'declined' THEN
+            -- Active invite already exists (pending or accepted); declined rows fall through to re-invite
             RETURN json_build_object('status', false, 'message', 'This profile has already been invited to collaborate on this event');
         ELSE
-            -- Soft-deleted row: reactivate as a fresh pending invite
+            -- Soft-deleted or declined row: reactivate as a fresh pending invite
             UPDATE event_collaborators
             SET status       = 'pending',
                 invited_by   = v_inviting_profile_id,

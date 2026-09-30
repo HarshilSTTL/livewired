@@ -10,6 +10,11 @@
 - **Patch (2026-09-30) — cap now read from config:** the accepted-collaborator check
   uses `get_config('max_collaborators_per_event', '9')` instead of a hardcoded `9`, matching
   `create_event`. Same function/endpoint name — redeploy this SQL, no client change.
+- **Patch (2026-09-30) — declined collaborators can be re-invited:** a collaborator row left
+  with `status = 'declined'` (and `is_deleted = false`) was treated as "already active" and
+  skipped, so the invite was never resent. `'declined'` rows are now reactivated as a fresh
+  `pending` invite and the `collaborator_invite` notification is sent again. Same
+  function/endpoint name — redeploy this SQL, no client change.
 - **Patch (2026-09-24, part 2) — `p_scope='this'` no longer resets an already-accepted
   series-level collaborator to `'pending'` when first creating a per-occurrence
   override:** Collaborator rows for `p_scope='this'` are written against the
@@ -479,6 +484,7 @@ DECLARE
     v_collab_count       int;
     v_existing_collab_id uuid;
     v_existing_deleted   boolean;
+    v_existing_status    text;
     v_effective_is_collab boolean;
     v_collab_target_id   uuid;   -- event_id collaborator rows are keyed to (occurrence when scope='this', parent when scope='all')
 
@@ -1156,16 +1162,19 @@ BEGIN
                 -- fell through to the re-invite branch below and tried to flip it back
                 -- to active while a genuinely active row for that profile still
                 -- existed — violating uq_event_collaborators_active.
-                SELECT id, is_deleted
-                INTO v_existing_collab_id, v_existing_deleted
+                SELECT id, is_deleted, status
+                INTO v_existing_collab_id, v_existing_deleted, v_existing_status
                 FROM event_collaborators
                 WHERE event_id   = v_collab_target_id
                   AND profile_id = v_collab_id
                 ORDER BY is_deleted ASC
                 LIMIT 1;
 
-                -- Already active → no change needed, skip
-                IF v_existing_collab_id IS NOT NULL AND v_existing_deleted = false THEN
+                -- Already active (pending/accepted) → no change needed, skip.
+                -- A 'declined' row is NOT skipped: it falls through to the re-invite
+                -- branch below so the organizer can resend the invite.
+                IF v_existing_collab_id IS NOT NULL AND v_existing_deleted = false
+                   AND v_existing_status <> 'declined' THEN
                     v_existing_collab_id := NULL;
                     CONTINUE;
                 END IF;
@@ -1184,7 +1193,8 @@ BEGIN
                     FROM event_collaborators
                     WHERE event_id   = v_target_parent_id
                       AND profile_id = v_collab_id
-                      AND is_deleted = false;
+                      AND is_deleted = false
+                      AND status    <> 'declined';
 
                     IF v_parent_status IS NOT NULL THEN
                         INSERT INTO event_collaborators (id, event_id, profile_id, invited_by, status, invited_at, responded_at, updated_at)

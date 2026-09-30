@@ -117,6 +117,7 @@ BEGIN
                 ELSE COALESCE(e.parent_event_id, e.event_id)
             END
               AND ec.is_deleted = false
+              AND ec.status <> 'declined'
         ),
         'recurring', (
             SELECT json_build_object(
