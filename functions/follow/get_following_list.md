@@ -5,6 +5,7 @@
 -- Group: Follow
 -- Endpoint: POST /rpc/get_following_list
 -- Doc: docs/api/follow/get_following_list.md
+-- Fix: followers is null when profile has show_followers = false
 
 CREATE OR REPLACE FUNCTION get_following_list(
     p_user_id UUID
@@ -41,12 +42,15 @@ BEGIN
             'avatar',        cp.avatar,
             'bio',           cp.bio,
             'status',        cp.status,
-            'followers',     (
-                SELECT count(*)
-                FROM follows f2
-                WHERE f2.profile_id = cp.id
-                AND f2.is_active = true
-            ),
+            'followers',     CASE
+                                 WHEN cp.show_followers = true THEN (
+                                     SELECT count(*)
+                                     FROM follows f2
+                                     WHERE f2.profile_id = cp.id
+                                     AND f2.is_active = true
+                                 )
+                                 ELSE null
+                             END,
             'platforms', (
                 -- Main streaming platforms only (IDs 1-4: YouTube, Twitch, Kick, Rumble)
                 -- Matches search_profiles_v2 behavior so avatar icons are consistent across screens

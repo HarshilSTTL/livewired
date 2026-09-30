@@ -102,7 +102,7 @@
 |-------|-------|
 | `avatar` | nullable — handle in UI |
 | `bio` | nullable — handle in UI |
-| `followers` | live COUNT from follows WHERE is_active=true |
+| `followers` | live COUNT from follows WHERE is_active=true; `null` when the profile's `show_followers` is false |
 | `platforms` | from `creator_platform_accounts` JOIN `platforms`, filtered to IDs 1-4 (main streaming platforms) — always array |
 | `followed_at` | = `follows.created_at` (nullable) |
 
