@@ -2,21 +2,22 @@
 
 | Version | Function | Endpoint | Status |
 |---------|----------|----------|--------|
-| v2 | `respond_collaborator_invite_v2` | `POST /rpc/respond_collaborator_invite_v2` | ✅ Current |
+| v3 | `respond_collaborator_invite_v3` | `POST /rpc/respond_collaborator_invite_v3` | ✅ Current |
+| v2 | `respond_collaborator_invite_v2` | `POST /rpc/respond_collaborator_invite_v2` | ❌ Deprecated |
 | v1 | `respond_collaborator_invite` | `POST /rpc/respond_collaborator_invite` | ❌ Deprecated |
 
-> **Use `respond_collaborator_invite_v2`** — raises the accepted-collaborator cap from 5 to 9. See [`functions/events/respond_collaborator_invite.md`](../../../functions/events/respond_collaborator_invite.md).
+> **Use `respond_collaborator_invite_v3`** — additionally clears the invitee's invite notification after they respond (v2 raised the cap from 5 to 9). See [`functions/events/respond_collaborator_invite.md`](../../../functions/events/respond_collaborator_invite.md).
 
-**Endpoint:** `POST /rpc/respond_collaborator_invite_v2`
+**Endpoint:** `POST /rpc/respond_collaborator_invite_v3`
 **Group:** Events
 **SQL:** [`functions/events/respond_collaborator_invite.md`](../../../functions/events/respond_collaborator_invite.md)
-**Tables written:** `event_collaborators` (UPDATE) · `notifications` (INSERT)
+**Tables written:** `event_collaborators` (UPDATE) · `notifications` (INSERT, UPDATE)
 
 ---
 
 ## Overview
 
-Allows the invited collaborator to accept or decline a pending invite. The caller must own the invited profile. Re-checks the 9-collaborator limit before accepting (race-condition safe). Notifies the event owner of the response.
+Allows the invited collaborator to accept or decline a pending invite. The caller must own the invited profile. Re-checks the 9-collaborator limit before accepting (race-condition safe). Notifies the event owner of the response, and removes the invitee's own invite notification from their notifications page.
 
 ---
 
@@ -62,7 +63,7 @@ Allows the invited collaborator to accept or decline a pending invite. The calle
 ```dart
 // Called when the user taps Accept or Decline on the notification
 // notif.data comes from the push notification payload
-await supabase.rpc('respond_collaborator_invite_v2', params: {
+await supabase.rpc('respond_collaborator_invite_v3', params: {
   'p_event_id':   notif.data['event_id'],
   'p_profile_id': notif.data['invited_profile_id'],
   'p_user_id':    currentUserId,
@@ -106,6 +107,7 @@ await supabase.rpc('respond_collaborator_invite_v2', params: {
 
 - Updates `event_collaborators.status`, `responded_at`, `updated_at`
 - Inserts a `notifications` row for the event owner with `type = 'collaborator_response'`
+- Sets `is_cleared = true` on the caller's `collaborator_invite` notification(s) for this event (matched by `user_id` + `event_id`), so `get_notifications` no longer returns them
 
 ---
 
@@ -118,8 +120,9 @@ await supabase.rpc('respond_collaborator_invite_v2', params: {
 4. Find pending invite for (event_id, profile_id) WHERE is_deleted = false
 5. If accepting: re-check accepted count < 9
 6. UPDATE event_collaborators SET status = p_response, responded_at = now()
-7. INSERT notification for event owner
-8. Return success
+7. UPDATE notifications SET is_cleared = true for the invitee's collaborator_invite (user_id + event_id)
+8. INSERT notification for event owner
+9. Return success
 ```
 
 ---
