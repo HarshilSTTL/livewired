@@ -9,6 +9,8 @@
   `collaborator_invite` notification for that event is marked `is_cleared = true`
   so it disappears from their notifications page. Matched on
   `user_id` + `data->>'type'` + `data->>'event_id'`.
+- **Update (2026-09-30):** The accepted-collaborator cap is read from the
+  `max_collaborators_per_event` config (default 9) instead of hardcoded `9`.
 - **Update (2026-09-30):** Declining now soft-deletes the collaborator row
   (`is_deleted = true`, `status = 'declined'`), so a declined collaborator is
   removed from the event automatically and no longer appears in event settings.
@@ -40,7 +42,7 @@
 --           declining soft-deletes the collaborator row (auto-removed from the event).
 --
 -- Allows the invited profile's owner to accept or decline a pending invite.
--- Re-checks the 9-collaborator limit before accepting (race-condition safe).
+-- Re-checks the collaborator limit (max_collaborators_per_event config, default 9) before accepting (race-condition safe).
 -- Notifies the event owner of the response and clears the invitee's invite notification.
 
 CREATE OR REPLACE FUNCTION respond_collaborator_invite_v3(
@@ -98,7 +100,7 @@ BEGIN
             WHERE event_id   = p_event_id
               AND status     = 'accepted'
               AND is_deleted = false
-        ) >= 9 THEN
+        ) >= (get_config('max_collaborators_per_event', '9'))::int THEN
             RETURN json_build_object('status', false, 'message', 'Collaborator limit reached — cannot accept this invite');
         END IF;
     END IF;

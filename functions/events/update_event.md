@@ -7,6 +7,9 @@
 - **Endpoint:** `POST /rpc/update_event_v2_6`
 - **Change from v2.5:** Raises the accepted-collaborator cap from 5 to 9
   (`max_collaborators_per_event`). No other behavior changes.
+- **Patch (2026-09-30) — cap now read from config:** the accepted-collaborator check
+  uses `get_config('max_collaborators_per_event', '9')` instead of a hardcoded `9`, matching
+  `create_event`. Same function/endpoint name — redeploy this SQL, no client change.
 - **Patch (2026-09-24, part 2) — `p_scope='this'` no longer resets an already-accepted
   series-level collaborator to `'pending'` when first creating a per-occurrence
   override:** Collaborator rows for `p_scope='this'` are written against the
@@ -1193,8 +1196,8 @@ BEGIN
                     END IF;
                 END IF;
 
-                -- Max 9 accepted collaborators
-                IF v_collab_count >= 9 THEN
+                -- Max accepted collaborators (max_collaborators_per_event config, default 9)
+                IF v_collab_count >= (get_config('max_collaborators_per_event', '9'))::int THEN
                     v_skipped_ids := array_append(v_skipped_ids, v_collab_id);
                     CONTINUE;
                 END IF;

@@ -17,7 +17,7 @@
 
 ## Overview
 
-Allows the invited collaborator to accept or decline a pending invite. The caller must own the invited profile. Re-checks the 9-collaborator limit before accepting (race-condition safe). Notifies the event owner of the response, and removes the invitee's own invite notification from their notifications page. **Declining automatically removes the collaborator from the event** (soft delete), so the organizer has nothing to remove manually.
+Allows the invited collaborator to accept or decline a pending invite. The caller must own the invited profile. Re-checks the collaborator limit (`max_collaborators_per_event` config, default 9) before accepting (race-condition safe). Notifies the event owner of the response, and removes the invitee's own invite notification from their notifications page. **Declining automatically removes the collaborator from the event** (soft delete), so the organizer has nothing to remove manually.
 
 ---
 
