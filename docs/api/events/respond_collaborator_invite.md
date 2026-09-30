@@ -17,7 +17,7 @@
 
 ## Overview
 
-Allows the invited collaborator to accept or decline a pending invite. The caller must own the invited profile. Re-checks the 9-collaborator limit before accepting (race-condition safe). Notifies the event owner of the response, and removes the invitee's own invite notification from their notifications page.
+Allows the invited collaborator to accept or decline a pending invite. The caller must own the invited profile. Re-checks the 9-collaborator limit before accepting (race-condition safe). Notifies the event owner of the response, and removes the invitee's own invite notification from their notifications page. **Declining automatically removes the collaborator from the event** (soft delete), so the organizer has nothing to remove manually.
 
 ---
 
@@ -106,6 +106,7 @@ await supabase.rpc('respond_collaborator_invite_v3', params: {
 ## Side Effects
 
 - Updates `event_collaborators.status`, `responded_at`, `updated_at`
+- On `'declined'`, also sets `is_deleted = true` — the collaborator disappears from the event's collaborator list; they can be re-invited later
 - Inserts a `notifications` row for the event owner with `type = 'collaborator_response'`
 - Sets `is_cleared = true` on the caller's `collaborator_invite` notification(s) for this event (matched by `user_id` + `event_id`), so `get_notifications` no longer returns them
 
@@ -119,7 +120,7 @@ await supabase.rpc('respond_collaborator_invite_v3', params: {
 3. Verify caller owns p_profile_id
 4. Find pending invite for (event_id, profile_id) WHERE is_deleted = false
 5. If accepting: re-check accepted count < 9
-6. UPDATE event_collaborators SET status = p_response, responded_at = now()
+6. UPDATE event_collaborators SET status = p_response, is_deleted = (p_response = 'declined'), responded_at = now()
 7. UPDATE notifications SET is_cleared = true for the invitee's collaborator_invite (user_id + event_id)
 8. INSERT notification for event owner
 9. Return success

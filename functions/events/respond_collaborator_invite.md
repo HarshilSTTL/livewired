@@ -9,6 +9,10 @@
   `collaborator_invite` notification for that event is marked `is_cleared = true`
   so it disappears from their notifications page. Matched on
   `user_id` + `data->>'type'` + `data->>'event_id'`.
+- **Update (2026-09-30):** Declining now soft-deletes the collaborator row
+  (`is_deleted = true`, `status = 'declined'`), so a declined collaborator is
+  removed from the event automatically and no longer appears in event settings.
+  Re-inviting still works (`uq_event_collaborators_active` ignores soft-deleted rows).
 
 ### v2 (Deprecated — 2026-09-14)
 - **Function name:** `respond_collaborator_invite_v2`
@@ -32,7 +36,8 @@
 -- Tables:   event_collaborators (UPDATE), notifications (INSERT, UPDATE)
 -- Doc:      docs/api/events/respond_collaborator_invite.md
 -- Version:  3 (2026-09-30)
--- Change:   Clears the invitee's own collaborator_invite notification once they accept/decline.
+-- Change:   Clears the invitee's own collaborator_invite notification once they accept/decline;
+--           declining soft-deletes the collaborator row (auto-removed from the event).
 --
 -- Allows the invited profile's owner to accept or decline a pending invite.
 -- Re-checks the 9-collaborator limit before accepting (race-condition safe).
@@ -100,7 +105,10 @@ BEGIN
 
     -- ── Update the invite ─────────────────────────────────────────────────────
     UPDATE event_collaborators
+    -- Declined invites are soft-deleted so the collaborator drops off the event
+    -- immediately (the organizer has nothing left to remove).
     SET status       = p_response,
+        is_deleted   = (p_response = 'declined'),
         responded_at = now(),
         updated_at   = now()
     WHERE id = v_invite_id;
