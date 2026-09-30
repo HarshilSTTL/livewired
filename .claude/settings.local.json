@@ -11,7 +11,12 @@
       "Bash(git commit *)",
       "Bash(grep -E \"\\\\.\\(md|sql\\)$\")",
       "Bash(git restore *)",
-      "Bash(git diff *)"
+      "Bash(git diff *)",
+      "Bash(grep -viE '\\\\.md$')",
+      "Bash(python3 -)",
+      "Bash(sed -i '1004,1066d' functions/events/update_event.md)",
+      "Bash(sed -i '1003r .scratch_newblock.txt' functions/events/update_event.md)",
+      "Bash(rm .scratch_newblock.txt)"
     ]
   }
 }

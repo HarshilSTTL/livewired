@@ -8,35 +8,20 @@
         "type": "tabs",
         "children": [
           {
-            "id": "1a90534715937069",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "updates/2026-09-14.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "2026-09-14"
-            }
-          },
-          {
             "id": "9bbadb1b4f3be6f6",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "functions/events/delete_event.md",
+                "file": "functions/events/update_event.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "delete_event"
+              "title": "update_event"
             }
           }
         ],
-        "currentTab": 1,
         "stacked": true
       }
     ],
@@ -202,22 +187,23 @@
   },
   "active": "9bbadb1b4f3be6f6",
   "lastOpenFiles": [
+    "updates/2026-09-24.md",
+    "updates/2026-09-24.md.tmp.16436.19a3bf6246ce",
+    "functions/events/update_event.md.tmp.16436.e712697f0c12",
+    "functions/events/sedyfUric",
+    "functions/events/sedKHQJz5",
+    "updates/2026-09-14.md",
+    "functions/events/delete_event.md",
     "functions/platforms/get_all_platforms.md.tmp.31424.a3a3354793a8",
     "functions/platforms/get_all_platforms.md.tmp.31424.fa8c360e7a10",
     "functions/profiles/get_profile_platforms.md.tmp.31424.324470c55e1c",
     "docs/api/profiles/get_user_profiles.md.tmp.31984.5ce93459fb70",
     "docs/api/profiles/get_user_profiles.md.tmp.31984.9dd53248c699",
     "docs/api/profiles/get_user_profiles.md.tmp.31984.e59a69dc2f3e",
-    "docs/api/profiles/get_profile_by_userid.md.tmp.31984.28dcc1908a6e",
-    "docs/api/profiles/get_profile_by_id.md.tmp.31984.d5630c963d17",
-    "functions/profiles/get_user_profiles.md.tmp.31984.e0bb482dfe22",
-    "functions/profiles/get_user_profiles.md.tmp.31984.bef06097fa63",
-    "functions/profiles/get_profile_by_userid.md.tmp.31984.d72971aa03dd",
     "functions/profiles/update_profile.md",
     "functions/profiles/create_profile.md",
     "functions/profiles/get_profiles.md",
     "functions/events/create_event.md",
-    "updates/2026-09-14.md",
     "docs/api/profiles/update_profile.md",
     "schema/tables/05_creator_profiles.md",
     "functions/events/update_event.md",
@@ -238,7 +224,6 @@
     "web/source-assets/livewired-short-logo.png",
     "updates/2026-08-06.md",
     "updates/2026-07-16.md",
-    "updates/2026-07-15.md",
     "Untitled 1.canvas",
     "Untitled.canvas"
   ]
