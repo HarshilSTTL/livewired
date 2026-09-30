@@ -6,6 +6,7 @@
 -- Endpoint: POST /rpc/get_following_list
 -- Doc: docs/api/follow/get_following_list.md
 -- Fix: followers is null when profile has show_followers = false
+-- Fix: list ordered alphabetically by profile_name (case-insensitive)
 
 CREATE OR REPLACE FUNCTION get_following_list(
     p_user_id UUID
@@ -72,7 +73,7 @@ BEGIN
             ),
             'followed_at',   f.created_at
         )
-        ORDER BY f.created_at DESC
+        ORDER BY lower(cp.profile_name) ASC, f.created_at DESC
     )
     INTO v_result
     FROM public.follows f

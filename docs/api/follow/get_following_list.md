@@ -2,7 +2,7 @@
 
 **Endpoint:** `POST /rpc/get_following_list`
 **Group:** Follow
-**Description:** Returns all creator profiles a user actively follows, with live follower count and platforms. Only active profiles included. Uses `SECURITY DEFINER`.
+**Description:** Returns all creator profiles a user actively follows, with live follower count and platforms. Only active profiles included. Ordered alphabetically by `profile_name` (case-insensitive). Uses `SECURITY DEFINER`.
 
 > ⚠️ **Platform filtering (2026-09-14):** `platforms` now returns **main streaming platforms only** (IDs 1-4: YouTube, Twitch, Kick, Rumble), matching `search_profiles_v2` behavior. This keeps the icons shown next to a creator's avatar on the Following screen consistent with the Creator Search screen — additional links (Patreon, Discord, etc.) and custom links are no longer included here.
 
