@@ -180,7 +180,7 @@ Updates a single event. All fields except `p_event_id` and `p_user_id` are optio
 | `p_livestream` | boolean | ❌ | Toggle livestream flag |
 | `p_video` | boolean | ❌ | Toggle video flag |
 | `p_is_collaborative` | boolean | ❌ | Enable or disable collaborative mode. **Series-level** — always applied to parent + propagated to all children, regardless of `p_scope`. |
-| `p_collaborator_ids` | uuid[] | ❌ | Profile IDs to invite. `null` or `[]` = no change. Non-empty requires `p_is_collaborative = true` (current or being set in same call). **Series-level** — invites are always recorded on the parent. Appends only — never removes existing collaborators. Max accepted per event = `max_collaborators_per_event` config (default 9). |
+| `p_collaborator_ids` | uuid[] | ❌ | Profile IDs to invite. `null` or `[]` = no change. Non-empty requires `p_is_collaborative = true` (current or being set in same call). **Series-level** — invites are always recorded on the parent. Non-empty list = the full roster to keep: new ids are invited, already-active ids are left unchanged, and active collaborators omitted from the list are removed (soft delete). Send the full current roster, not just new ids. Max accepted per event = `max_collaborators_per_event` config (default 9). |
 | `p_platforms` | jsonb | ❌ | `null` = no change · `[]` = clear · `[{...}]` = replace |
 
 ### Recurring fields (pass `p_recurring_days` non-empty to trigger recurring update)

@@ -1,4 +1,4 @@
-# `update_event`
+	# `update_event`
 
 ## Version History
 
@@ -10,6 +10,14 @@
 - **Patch (2026-09-30) — cap now read from config:** the accepted-collaborator check
   uses `get_config('max_collaborators_per_event', '9')` instead of a hardcoded `9`, matching
   `create_event`. Same function/endpoint name — redeploy this SQL, no client change.
+- **Patch (2026-10-01) — removing a collaborator via `p_collaborator_ids` works again:**
+  the 2026-09-24 append-only change meant a non-empty `p_collaborator_ids` that omitted a
+  collaborator returned success but removed nobody (add 2, remove 1 → fetch still showed 2).
+  A non-empty list is now the full roster to keep: active collaborators at the target who
+  are absent from the list are soft-deleted; those present and already active/accepted keep
+  their status (no reset to pending). `null` and `[]` remain no-ops. Same function/endpoint
+  name — redeploy this SQL, no client change, but the client must send the FULL current
+  roster (not just the newly added id) when editing.
 - **Patch (2026-09-30) — declined collaborators can be re-invited:** a collaborator row left
   with `status = 'declined'` (and `is_deleted = false`) was treated as "already active" and
   skipped, so the invite was never resent. `'declined'` rows are now reactivated as a fresh
@@ -408,7 +416,7 @@ DECLARE
     v_update_recurring  boolean;
     v_remove_recurring  boolean;
     v_currently_recurring boolean;
-    v_sync_collabs      boolean;   -- true when p_collaborator_ids is a non-empty array (append/reactivate only)
+    v_sync_collabs      boolean;   -- true when p_collaborator_ids is a non-empty array (sync: invite new, keep active, remove omitted)
     v_has_scalar        boolean;
     v_has_platforms     boolean;
     v_occurrence_change boolean;
@@ -519,6 +527,8 @@ BEGIN
                           AND COALESCE(array_length(p_recurring_days, 1), 0) = 0;
 
     -- v2 change: sync triggers on ANY non-null value, including empty array
+    -- 2026-10-01: non-empty list = full roster sync (omitted collaborators are removed).
+    -- null and [] remain no-ops so unrelated edits never wipe collaborators.
     v_sync_collabs := COALESCE(array_length(p_collaborator_ids, 1), 0) > 0;
 
     -- v2.1: 'this' scope syncs the occurrence's OWN collaborator rows (event_id = p_event_id);
@@ -1127,7 +1137,20 @@ BEGIN
             WHERE parent_event_id = v_target_parent_id;
         END IF;
 
-        -- ── Invite/re-invite collaborators in the new list ────────────────────
+        -- ── Step 1: Soft-delete collaborators NOT in the new list ─────────────
+        -- (2026-10-01) p_collaborator_ids is the full roster to keep. Active rows at the
+        -- target whose profile is absent from the list are soft-deleted, so removing a
+        -- collaborator via this endpoint actually sticks. Ids that ARE in the list and
+        -- already active (pending/accepted) are left untouched below — no status reset.
+        UPDATE event_collaborators
+        SET is_deleted = true,
+            deleted_at = now(),
+            updated_at = now()
+        WHERE event_id   = v_collab_target_id
+          AND is_deleted = false
+          AND profile_id != ALL(p_collaborator_ids);
+
+        -- ── Step 2: Invite/re-invite collaborators in the new list ────────────
         IF COALESCE(array_length(p_collaborator_ids, 1), 0) > 0 THEN
 
             SELECT cp.id, cp.profile_name, e.title
