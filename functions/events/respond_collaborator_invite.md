@@ -40,6 +40,7 @@
 -- Version:  3 (2026-09-30)
 -- Change:   Clears the invitee's own collaborator_invite notification once they accept/decline;
 --           declining soft-deletes the collaborator row (auto-removed from the event).
+--           Added validation: if a user is removed, invite becomes invalid and cannot be accepted/declined.
 --
 -- Allows the invited profile's owner to accept or decline a pending invite.
 -- Re-checks the collaborator limit (max_collaborators_per_event config, default 9) before accepting (race-condition safe).
@@ -81,7 +82,7 @@ BEGIN
         RETURN json_build_object('status', false, 'message', 'Profile not found or access denied');
     END IF;
 
-    -- ── Find the pending invite ───────────────────────────────────────────────
+    -- ── Find the pending invite (must not be soft-deleted, i.e. not removed by host) ─
     SELECT id INTO v_invite_id
     FROM event_collaborators
     WHERE event_id   = p_event_id
@@ -90,7 +91,7 @@ BEGIN
       AND is_deleted = false;
 
     IF v_invite_id IS NULL THEN
-        RETURN json_build_object('status', false, 'message', 'No pending invite found for this event and profile');
+        RETURN json_build_object('status', false, 'message', 'Invite is no longer valid. You may have been removed from this event.');
     END IF;
 
     -- ── Re-check limit before accepting (race-condition safe) ─────────────────

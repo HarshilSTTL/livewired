@@ -61,6 +61,14 @@ BEGIN
         updated_at = now()
     WHERE id = v_invite_id;
 
+    -- ── Clear the removed collaborator's invite notification (no longer valid) ──
+    UPDATE notifications
+    SET is_cleared = true
+    WHERE user_id = (SELECT user_id FROM creator_profiles WHERE id = p_collaborator_profile_id)
+      AND data->>'type'      = 'collaborator_invite'
+      AND data->>'event_id'  = p_event_id::text
+      AND is_cleared         = false;
+
     RETURN json_build_object('status', true, 'message', 'Collaborator removed successfully');
 
 EXCEPTION
