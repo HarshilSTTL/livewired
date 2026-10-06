@@ -10,6 +10,11 @@
 - **Patch (2026-09-30) — cap now read from config:** the accepted-collaborator check
   uses `get_config('max_collaborators_per_event', '9')` instead of a hardcoded `9`, matching
   `create_event`. Same function/endpoint name — redeploy this SQL, no client change.
+- **Patch (2026-10-06) — turning collaboration off removes collaborators:** sending
+  `p_is_collaborative = false` only flipped the flag; the `event_collaborators` rows stayed
+  active, so event details kept listing the removed collaborators. It now soft-deletes the
+  collaborators for the affected events (this occurrence for `p_scope='this'`, the whole
+  series for `'all'`). Same function/endpoint name — redeploy this SQL, no client change.
 - **Patch (2026-10-01) — removing a collaborator via `p_collaborator_ids` works again:**
   the 2026-09-24 append-only change meant a non-empty `p_collaborator_ids` that omitted a
   collaborator returned success but removed nobody (add 2, remove 1 → fetch still showed 2).
@@ -893,6 +898,33 @@ BEGIN
                 updated_at       = now()
             WHERE event_id = v_target_parent_id
                OR parent_event_id = v_target_parent_id;
+        END IF;
+
+        -- (2026-10-06) Turning collaboration OFF removes the collaborators too — otherwise
+        -- the rows stayed active and event details kept showing them.
+        IF p_is_collaborative = false THEN
+            IF v_scope = 'this' THEN
+                UPDATE event_collaborators
+                SET is_deleted = true, deleted_at = now(), updated_at = now()
+                WHERE event_id = p_event_id AND is_deleted = false;
+
+                -- Occurrence now has its own (empty) list instead of inheriting the parent's
+                UPDATE event_mst
+                SET collaborators_overridden = true, updated_at = now()
+                WHERE event_id = p_event_id;
+            ELSE
+                UPDATE event_collaborators
+                SET is_deleted = true, deleted_at = now(), updated_at = now()
+                WHERE is_deleted = false
+                  AND event_id IN (
+                      SELECT event_id FROM event_mst
+                      WHERE event_id = v_target_parent_id OR parent_event_id = v_target_parent_id
+                  );
+
+                UPDATE event_mst
+                SET collaborators_overridden = false
+                WHERE parent_event_id = v_target_parent_id;
+            END IF;
         END IF;
     END IF;
 

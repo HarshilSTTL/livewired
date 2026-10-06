@@ -118,6 +118,7 @@ BEGIN
             END
               AND ec.is_deleted = false
               AND ec.status <> 'declined'
+              AND e.is_collaborative = true   -- collaboration off → no collaborators in the response
         ),
         'recurring', (
             SELECT json_build_object(
