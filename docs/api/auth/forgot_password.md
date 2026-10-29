@@ -31,16 +31,22 @@ integration is needed.
 
 ---
 
+## Step 0 — Check the email exists
+
+Call the `check_email_exists` RPC first (see `check_email_exists.md`). If
+`status` is `false`, show its message ("Please enter a valid email") and
+stop; otherwise continue to Step 1.
+
 ## Step 1 — Request OTP
 
 ```dart
 await supabase.auth.resetPasswordForEmail(email);
 ```
 
-- Always returns success to the caller regardless of whether the email
-  exists — **do not** report "email not found" in the UI; this prevents
-  account enumeration (same intent as `login`'s shared error message, see
-  `docs/api/auth/login.md`).
+- `resetPasswordForEmail` itself always returns success regardless of
+  whether the email exists, which is why Step 0 is needed to show an
+  "invalid email" message. This reveals registered emails by design
+  (account-enumeration trade-off, accepted by product).
 - Supabase generates the OTP, stores it hashed, sets its own expiry
   (default 1 hour), and enforces its own resend cooldown/rate limiting
   server-side — none of this needs to be built or configured in this repo's
@@ -104,7 +110,7 @@ await supabase.auth.updateUser(
 
 | Scenario | Handling |
 |----------|----------|
-| Email doesn't exist | `resetPasswordForEmail` still returns success — show the generic "check your email" message |
+| Email doesn't exist | `check_email_exists` returns `status: false` — show "Please enter a valid email" and don't call `resetPasswordForEmail` |
 | Wrong/expired OTP | `verifyOTP` throws — show "Invalid or expired code", let user retry or resend |
 | New password too short/long | Validate client-side against `password_min_length`/`password_max_length` before calling `updateUser` |
 | `updateUser` called without a valid recovery session | Throws — user must restart the flow from Step 1 |
